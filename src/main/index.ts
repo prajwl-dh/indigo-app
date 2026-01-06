@@ -1,8 +1,11 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { app, BrowserWindow, shell } from 'electron'
+import Store from 'electron-store'
 import { join } from 'path'
 import icon from '../../resources/icon.png?asset'
 import { themeController } from './controller/themeController'
+
+const store = new Store()
 
 function createWindow(): void {
   // Create the browser window.
@@ -51,7 +54,7 @@ app.whenReady().then(() => {
   })
 
   // Import the controllers before createWindow()
-  themeController()
+  themeController(store)
 
   createWindow()
 
