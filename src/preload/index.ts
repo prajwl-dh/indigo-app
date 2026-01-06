@@ -1,8 +1,12 @@
-import { contextBridge } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import { contextBridge, ipcRenderer } from 'electron'
+import { Theme } from '../shared/model/theme'
 
 // Custom APIs for renderer
-const api = {}
+const themeApi = {
+  setTheme: (theme: Theme) => ipcRenderer.invoke('set:theme', theme),
+  getTheme: () => ipcRenderer.invoke('get:theme')
+}
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
@@ -10,7 +14,7 @@ const api = {}
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld('electron', electronAPI)
-    contextBridge.exposeInMainWorld('api', api)
+    contextBridge.exposeInMainWorld('themeApi', themeApi)
   } catch (error) {
     console.error(error)
   }
@@ -18,5 +22,5 @@ if (process.contextIsolated) {
   // @ts-ignore (define in dts)
   window.electron = electronAPI
   // @ts-ignore (define in dts)
-  window.api = api
+  window.themeApi = themeApi
 }
