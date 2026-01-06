@@ -8,5 +8,17 @@
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
-  "files.eol": "\n"
+  "files.eol": "\n",
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit",
+    "source.sortMembers": "explicit",
+    "editor.formatOnPaste": "always",
+    "editor.formatOnSave": "always",
+    "editor.formatOnType": "always",
+    "editor.inlineSuggest.enabled": "always",
+    "editor.inlineSuggest.showToolbar": "always",
+    "prettier.jsxSingleQuote": "always",
+    "prettier.singleQuote": "always"
+  }
 }
