@@ -9,7 +9,8 @@ const themeApi = {
 }
 
 const notesApi = {
-    createDatabase: () => ipcRenderer.invoke('create:database')
+    createDatabase: () => ipcRenderer.invoke('create:database'),
+    loadDatabase: () => ipcRenderer.invoke('load:database')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to

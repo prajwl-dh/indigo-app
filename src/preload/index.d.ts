@@ -10,6 +10,7 @@ declare global {
         }
         notesApi: {
             createDatabase: () => Promise<string | null>
+            loadDatabase: () => Promise<string | null>
         }
     }
 }

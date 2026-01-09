@@ -2,7 +2,13 @@ import React from 'react'
 
 function App(): React.JSX.Element {
     async function createNotesDatabase(): Promise<void> {
-        await window.notesApi.createDatabase()
+        const result = await window.notesApi.createDatabase()
+        console.log('Note database created on : ' + result)
+    }
+
+    async function loadNotesDatabase(): Promise<void> {
+        const result = await window.notesApi.loadDatabase()
+        console.log('Note database loaded from : ' + result)
     }
 
     return (
@@ -12,6 +18,12 @@ function App(): React.JSX.Element {
                 onClick={createNotesDatabase}
             >
                 Create Db
+            </button>
+            <button
+                className="border rounded p-2 min-w-20 cursor-pointer"
+                onClick={loadNotesDatabase}
+            >
+                Load Db
             </button>
         </div>
     )
