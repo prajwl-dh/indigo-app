@@ -1,7 +1,9 @@
 import { dialog, ipcMain } from 'electron'
+import Store from 'electron-store'
+import { isValidIndigoDatabase } from '../database/databaseChecker'
 import { initDatabase } from '../database/init'
 
-export function databaseController(): void {
+export function databaseController(store: Store): void {
     ipcMain.handle('create:database', async () => {
         const result = await dialog.showSaveDialog({
             title: 'Create Indigo Database',
@@ -19,7 +21,7 @@ export function databaseController(): void {
         }
 
         initDatabase(result.filePath)
-
+        store.set('activeDatabase', result.filePath)
         return result.filePath
     })
 
@@ -37,6 +39,32 @@ export function databaseController(): void {
         const filePath = result.filePaths[0]
 
         if (!filePath.endsWith('.indigo')) {
+            return null
+        }
+
+        const valid = await isValidIndigoDatabase(filePath)
+        if (!valid) {
+            dialog.showErrorBox(
+                'Invalid File',
+                'The selected file is not a valid Indigo database file.'
+            )
+            return null
+        }
+
+        store.set('activeDatabase', filePath)
+        return filePath
+    })
+
+    ipcMain.handle('get:activeDatabase', async () => {
+        const filePath = store.get('activeDatabase') as string | undefined
+
+        if (!filePath) {
+            return null
+        }
+
+        const valid = await isValidIndigoDatabase(filePath)
+        if (!valid) {
+            store.delete('activeDatabase')
             return null
         }
 

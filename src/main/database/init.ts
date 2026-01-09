@@ -18,5 +18,7 @@ export function initDatabase(dbPath: string): BetterSQLite3Database<Record<strin
     );
   `)
 
+    sqlite.close()
+
     return db
 }

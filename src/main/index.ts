@@ -56,7 +56,7 @@ app.whenReady().then(() => {
 
     // Import the controllers before createWindow()
     themeController(store)
-    databaseController()
+    databaseController(store)
 
     createWindow()
 

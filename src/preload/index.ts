@@ -8,9 +8,10 @@ const themeApi = {
     getTheme: () => ipcRenderer.invoke('get:theme')
 }
 
-const notesApi = {
+const databaseApi = {
     createDatabase: () => ipcRenderer.invoke('create:database'),
-    loadDatabase: () => ipcRenderer.invoke('load:database')
+    loadDatabase: () => ipcRenderer.invoke('load:database'),
+    getActiveDatabase: () => ipcRenderer.invoke('get:activeDatabase')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
@@ -20,7 +21,7 @@ if (process.contextIsolated) {
     try {
         contextBridge.exposeInMainWorld('electron', electronAPI)
         contextBridge.exposeInMainWorld('themeApi', themeApi)
-        contextBridge.exposeInMainWorld('notesApi', notesApi)
+        contextBridge.exposeInMainWorld('databaseApi', databaseApi)
     } catch (error) {
         console.error(error)
     }
@@ -30,5 +31,5 @@ if (process.contextIsolated) {
     // @ts-ignore (define in dts)
     window.themeApi = themeApi
     // @ts-ignore (define in dts)
-    window.notesApi = notesApi
+    window.databaseApi = databaseApi
 }

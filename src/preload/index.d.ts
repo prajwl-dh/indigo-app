@@ -8,9 +8,10 @@ declare global {
             setTheme: (theme: Theme) => Promise<void>
             getTheme: () => Promise<Theme>
         }
-        notesApi: {
+        databaseApi: {
             createDatabase: () => Promise<string | null>
             loadDatabase: () => Promise<string | null>
+            getActiveDatabase: () => Promise<string | null>
         }
     }
 }

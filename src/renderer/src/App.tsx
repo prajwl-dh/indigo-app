@@ -1,15 +1,24 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 
 function App(): React.JSX.Element {
     async function createNotesDatabase(): Promise<void> {
-        const result = await window.notesApi.createDatabase()
+        const result = await window.databaseApi.createDatabase()
         console.log('Note database created on : ' + result)
     }
 
     async function loadNotesDatabase(): Promise<void> {
-        const result = await window.notesApi.loadDatabase()
+        const result = await window.databaseApi.loadDatabase()
         console.log('Note database loaded from : ' + result)
     }
+
+    async function loadActiveDatabase(): Promise<void> {
+        const result = await window.databaseApi.getActiveDatabase()
+        console.log('Active database is : ' + result)
+    }
+
+    useEffect(() => {
+        loadActiveDatabase()
+    })
 
     return (
         <div className="h-screen w-screen flex flex-col items-center justify-center bg-red-50 dark:bg-amber-200">
