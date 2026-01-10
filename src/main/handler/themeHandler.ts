@@ -2,7 +2,7 @@ import { ipcMain, nativeTheme } from 'electron'
 import Store from 'electron-store'
 import { Theme } from '../../shared/model/theme'
 
-export function themeController(store: Store): void {
+export function themeHandler(store: Store): void {
     const savedTheme = store.get('theme') as Theme | undefined
     if (savedTheme) {
         nativeTheme.themeSource = savedTheme

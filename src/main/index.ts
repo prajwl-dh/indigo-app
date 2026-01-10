@@ -3,8 +3,8 @@ import { app, BrowserWindow, shell } from 'electron'
 import Store from 'electron-store'
 import { join } from 'path'
 import icon from '../../resources/icon.png?asset'
-import { databaseController } from './controller/databaseController'
-import { themeController } from './controller/themeController'
+import { databaseHandler } from './handler/databaseHandler'
+import { themeHandler } from './handler/themeHandler'
 
 const store = new Store()
 
@@ -54,9 +54,9 @@ app.whenReady().then(() => {
         optimizer.watchWindowShortcuts(window)
     })
 
-    // Import the controllers before createWindow()
-    themeController(store)
-    databaseController(store)
+    // Import the handlers before createWindow()
+    themeHandler(store)
+    databaseHandler(store)
 
     createWindow()
 

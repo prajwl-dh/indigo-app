@@ -3,7 +3,7 @@ import Store from 'electron-store'
 import { isValidIndigoDatabase } from '../database/databaseChecker'
 import { createDatabase } from '../database/migration'
 
-export function databaseController(store: Store): void {
+export function databaseHandler(store: Store): void {
     ipcMain.handle('create:database', async () => {
         const result = await dialog.showSaveDialog({
             title: 'Create Indigo Database',
