@@ -1,11 +1,7 @@
 import Database from 'better-sqlite3'
-import { BetterSQLite3Database, drizzle } from 'drizzle-orm/better-sqlite3'
 
-export function initDatabase(dbPath: string): BetterSQLite3Database<Record<string, never>> & {
-    $client: Database.Database
-} {
+export function createDatabase(dbPath: string): void {
     const sqlite = new Database(dbPath)
-    const db = drizzle(sqlite)
 
     sqlite.exec(`
     CREATE TABLE IF NOT EXISTS notes (
@@ -19,6 +15,4 @@ export function initDatabase(dbPath: string): BetterSQLite3Database<Record<strin
   `)
 
     sqlite.close()
-
-    return db
 }

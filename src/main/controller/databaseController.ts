@@ -1,7 +1,7 @@
 import { dialog, ipcMain } from 'electron'
 import Store from 'electron-store'
 import { isValidIndigoDatabase } from '../database/databaseChecker'
-import { initDatabase } from '../database/init'
+import { createDatabase } from '../database/migration'
 
 export function databaseController(store: Store): void {
     ipcMain.handle('create:database', async () => {
@@ -20,7 +20,7 @@ export function databaseController(store: Store): void {
             return null
         }
 
-        initDatabase(result.filePath)
+        createDatabase(result.filePath)
         store.set('activeDatabase', result.filePath)
         return result.filePath
     })
