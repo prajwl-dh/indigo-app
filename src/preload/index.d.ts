@@ -11,8 +11,8 @@ declare global {
         databaseApi: {
             createDatabase: () => Promise<string | null>
             loadDatabase: () => Promise<string | null>
-            getActiveDatabase: () => Promise<string | null>
-            deleteActiveDatabase: () => Promise<void>
+            getActiveDatabasePath: () => Promise<string | null>
+            deleteActiveDatabasePath: () => Promise<void>
         }
         notesApi: {
             createNote: () => Promise<void>

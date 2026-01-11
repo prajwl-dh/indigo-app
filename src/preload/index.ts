@@ -11,8 +11,8 @@ const themeApi = {
 const databaseApi = {
     createDatabase: () => ipcRenderer.invoke('create:database'),
     loadDatabase: () => ipcRenderer.invoke('load:database'),
-    getActiveDatabase: () => ipcRenderer.invoke('get:activeDatabase'),
-    deleteActiveDatabase: () => ipcRenderer.invoke('delete:activeDatabase')
+    getActiveDatabasePath: () => ipcRenderer.invoke('get:activeDatabasePath'),
+    deleteActiveDatabasePath: () => ipcRenderer.invoke('delete:activeDatabasePath')
 }
 
 const notesApi = {

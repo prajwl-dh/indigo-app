@@ -2,10 +2,10 @@ import { ipcMain } from 'electron'
 import Store from 'electron-store'
 import { createDatabaseConnection } from '../database/connection'
 import { notes } from '../database/schema'
-import { getActiveDatabase } from '../util/activeDatabaseUtils'
+import { getActiveDatabasePath } from '../util/activeDatabasePathUtils'
 
 export async function notesHandler(store: Store): Promise<void> {
-    const activeDatabase = await getActiveDatabase(store)
+    const activeDatabase = await getActiveDatabasePath(store)
 
     if (!activeDatabase) {
         return
@@ -15,7 +15,7 @@ export async function notesHandler(store: Store): Promise<void> {
     console.log(connection)
 
     ipcMain.handle('create:note', async () => {
-        const activeDatabase = await getActiveDatabase(store)
+        const activeDatabase = await getActiveDatabasePath(store)
         if (!activeDatabase) {
             return
         }

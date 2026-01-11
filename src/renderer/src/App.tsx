@@ -11,13 +11,13 @@ function App(): React.JSX.Element {
         console.log('Note database loaded from : ' + result)
     }
 
-    async function loadActiveDatabase(): Promise<void> {
-        const result = await window.databaseApi.getActiveDatabase()
+    async function loadActiveDatabasePath(): Promise<void> {
+        const result = await window.databaseApi.getActiveDatabasePath()
         console.log('Active database is : ' + result)
     }
 
-    async function deleteActiveDatabase(): Promise<void> {
-        await window.databaseApi.deleteActiveDatabase()
+    async function deleteActiveDatabasePath(): Promise<void> {
+        await window.databaseApi.deleteActiveDatabasePath()
     }
 
     async function addNewNote(): Promise<void> {
@@ -25,7 +25,7 @@ function App(): React.JSX.Element {
     }
 
     useEffect(() => {
-        loadActiveDatabase()
+        loadActiveDatabasePath()
     })
 
     return (
@@ -47,7 +47,7 @@ function App(): React.JSX.Element {
             </button>
             <button
                 className="border rounded p-2 min-w-20 cursor-pointer"
-                onClick={deleteActiveDatabase}
+                onClick={deleteActiveDatabasePath}
             >
                 Delete Active Database
             </button>
