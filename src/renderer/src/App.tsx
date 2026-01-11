@@ -16,12 +16,20 @@ function App(): React.JSX.Element {
         console.log('Active database is : ' + result)
     }
 
+    async function deleteActiveDatabase(): Promise<void> {
+        await window.databaseApi.deleteActiveDatabase()
+    }
+
+    async function addNewNote(): Promise<void> {
+        await window.notesApi.createNote()
+    }
+
     useEffect(() => {
         loadActiveDatabase()
     })
 
     return (
-        <div className="h-screen w-screen flex flex-col items-center justify-center bg-red-50 dark:bg-amber-200">
+        <div className="h-screen w-screen flex flex-col items-center justify-center bg-red-50 dark:bg-amber-200 gap-2">
             <button
                 className="border rounded p-2 min-w-20 cursor-pointer"
                 onClick={createNotesDatabase}
@@ -33,6 +41,15 @@ function App(): React.JSX.Element {
                 onClick={loadNotesDatabase}
             >
                 Load Db
+            </button>
+            <button className="border rounded p-2 min-w-20 cursor-pointer" onClick={addNewNote}>
+                Add New Note
+            </button>
+            <button
+                className="border rounded p-2 min-w-20 cursor-pointer"
+                onClick={deleteActiveDatabase}
+            >
+                Delete Active Database
             </button>
         </div>
     )

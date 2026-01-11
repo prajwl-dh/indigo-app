@@ -4,6 +4,7 @@ import Store from 'electron-store'
 import { join } from 'path'
 import icon from '../../resources/icon.png?asset'
 import { databaseHandler } from './handler/databaseHandler'
+import { notesHandler } from './handler/notesHandler'
 import { themeHandler } from './handler/themeHandler'
 
 const store = new Store()
@@ -57,6 +58,7 @@ app.whenReady().then(() => {
     // Import the handlers before createWindow()
     themeHandler(store)
     databaseHandler(store)
+    notesHandler(store)
 
     createWindow()
 
