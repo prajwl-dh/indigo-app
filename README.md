@@ -1,34 +1,65 @@
-# indigo-app
+# Indigo Notes App
 
-An Electron application with React and TypeScript
+A modern, lightweight notes application designed for flexibility, organization, and a pleasant writing experience.
 
-## Recommended IDE Setup
+## Features
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+### Local SQLite Storage
 
-## Project Setup
+- Save notes to a custom Indigo SQLite database
+- Choose your preferred storage location
+- Load and switch between existing Indigo databases
 
-### Install
+### Folder Organization
+
+- Create folders to organize notes
+- Manage notes using a simple hierarchical structure
+
+### Block-Based Editor
+
+- Write notes using a Notion-like block editing system
+- Clean, flexible, and intuitive writing experience
+
+### Themes and Appearance
+
+- Light and dark modes
+- Six accent color themes for UI customization
+
+### Offline-First
+
+- All data is stored locally
+- No account or internet connection required
+
+## Project Development Setup
+
+### Clone Repository
 
 ```bash
-$ npm install
+git clone https://github.com/prajwl-dh/indigo-app
 ```
 
-### Development
+### Install Dependencies
 
 ```bash
-$ npm run dev
+npm install
+npx electron-rebuild
 ```
 
-### Build
+### Run in Development Mode
 
 ```bash
-# For windows
-$ npm run build:win
+npm run dev
+```
 
-# For macOS
-$ npm run build:mac
+### Build Application
 
-# For Linux
-$ npm run build:linux
+```bash
+# Windows
+npm run build:win
+
+# macOS
+npm run build:mac
+
+# Linux
+npm run build:linux
 ```
