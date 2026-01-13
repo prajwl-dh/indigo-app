@@ -47,7 +47,7 @@ export async function notesHandler(store: Store): Promise<void> {
             return updated
         } catch (error: unknown) {
             console.error('[update:note]', error)
-            throw new Error('Failed to update note')
+            throw new Error('Failed to update note with id: ' + payload.id)
         }
     })
 
@@ -57,7 +57,27 @@ export async function notesHandler(store: Store): Promise<void> {
             return true
         } catch (error: unknown) {
             console.error('[delete:note]', error)
-            throw new Error('Failed to delete note')
+            throw new Error('Failed to delete note with id: ' + payload.id)
+        }
+    })
+
+    ipcMain.handle('get:note', async (_event, id: number) => {
+        try {
+            const note = await connection.db.select().from(notes).where(eq(notes.id, id)).get()
+            return note
+        } catch (error) {
+            console.error('[get:note]', error)
+            throw new Error('Failed to get note with id: ' + id)
+        }
+    })
+
+    ipcMain.handle('get:notes', async () => {
+        try {
+            const allNotes = await connection.db.select().from(notes).all()
+            return allNotes
+        } catch (error) {
+            console.error('[get:all-notes]', error)
+            throw new Error('Failed to get all notes')
         }
     })
 }

@@ -1,5 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
-import { Note } from 'src/shared/model/note'
+import { Note, Notes } from 'src/shared/model/note'
 import { Theme } from 'src/shared/model/theme'
 
 declare global {
@@ -19,6 +19,8 @@ declare global {
             createNote: () => Promise<Note>
             updateNote: () => Promise<Note>
             deleteNote: () => Promise<boolean>
+            getNote: (id: number) => Promise<Note>
+            getAllNotes: () => Promise<Notes>
         }
     }
 }
