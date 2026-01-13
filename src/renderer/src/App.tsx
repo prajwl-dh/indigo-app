@@ -21,7 +21,12 @@ function App(): React.JSX.Element {
     }
 
     async function addNewNote(): Promise<void> {
-        await window.notesApi.createNote()
+        try {
+            const response = await window.notesApi.createNote()
+            console.log(response)
+        } catch (error) {
+            console.log(error)
+        }
     }
 
     useEffect(() => {

@@ -1,4 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
+import { Note } from 'src/shared/model/note'
 import { Theme } from 'src/shared/model/theme'
 
 declare global {
@@ -15,7 +16,9 @@ declare global {
             deleteActiveDatabasePath: () => Promise<void>
         }
         notesApi: {
-            createNote: () => Promise<void>
+            createNote: () => Promise<Note>
+            updateNote: () => Promise<Note>
+            deleteNote: () => Promise<boolean>
         }
     }
 }

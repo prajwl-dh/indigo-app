@@ -16,7 +16,9 @@ const databaseApi = {
 }
 
 const notesApi = {
-    createNote: () => ipcRenderer.invoke('create:note')
+    createNote: () => ipcRenderer.invoke('create:note'),
+    updateNote: () => ipcRenderer.invoke('update:note'),
+    deleteNote: () => ipcRenderer.invoke('delete:note')
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
