@@ -1,5 +1,6 @@
 import { electronAPI } from '@electron-toolkit/preload'
 import { contextBridge, ipcRenderer } from 'electron'
+import { Note } from '../shared/model/note'
 import { Theme } from '../shared/model/theme'
 
 // Custom APIs for renderer
@@ -17,8 +18,8 @@ const databaseApi = {
 
 const notesApi = {
     createNote: () => ipcRenderer.invoke('create:note'),
-    updateNote: () => ipcRenderer.invoke('update:note'),
-    deleteNote: () => ipcRenderer.invoke('delete:note'),
+    updateNote: (payload: Note) => ipcRenderer.invoke('update:note', payload),
+    deleteNote: (payload: Note) => ipcRenderer.invoke('delete:note', payload),
     getNote: (id: number) => ipcRenderer.invoke('get:note', id),
     getAllNotes: () => ipcRenderer.invoke('get:notes')
 }

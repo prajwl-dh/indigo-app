@@ -17,8 +17,8 @@ declare global {
         }
         notesApi: {
             createNote: () => Promise<Note>
-            updateNote: () => Promise<Note>
-            deleteNote: () => Promise<boolean>
+            updateNote: (payload: Note) => Promise<Note>
+            deleteNote: (payload: Note) => Promise<boolean>
             getNote: (id: number) => Promise<Note>
             getAllNotes: () => Promise<Notes>
         }
