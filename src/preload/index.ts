@@ -1,5 +1,6 @@
 import { electronAPI } from '@electron-toolkit/preload'
 import { contextBridge, ipcRenderer } from 'electron'
+import { Accent } from '../shared/model/accent'
 import { Note } from '../shared/model/note'
 import { Theme } from '../shared/model/theme'
 
@@ -7,6 +8,11 @@ import { Theme } from '../shared/model/theme'
 const themeApi = {
     setTheme: (theme: Theme) => ipcRenderer.invoke('set:theme', theme),
     getTheme: () => ipcRenderer.invoke('get:theme')
+}
+
+const accentApi = {
+    setAccent: (accent: Accent) => ipcRenderer.invoke('set:accent', accent),
+    getAccent: () => ipcRenderer.invoke('get:accent')
 }
 
 const databaseApi = {
@@ -31,6 +37,7 @@ if (process.contextIsolated) {
     try {
         contextBridge.exposeInMainWorld('electron', electronAPI)
         contextBridge.exposeInMainWorld('themeApi', themeApi)
+        contextBridge.exposeInMainWorld('accentApi', accentApi)
         contextBridge.exposeInMainWorld('databaseApi', databaseApi)
         contextBridge.exposeInMainWorld('notesApi', notesApi)
     } catch (error) {
@@ -41,6 +48,8 @@ if (process.contextIsolated) {
     window.electron = electronAPI
     // @ts-ignore (define in dts)
     window.themeApi = themeApi
+    // @ts-ignore (define in dts)
+    window.accentApi = accentApi
     // @ts-ignore (define in dts)
     window.databaseApi = databaseApi
     // @ts-ignore (define in dts)

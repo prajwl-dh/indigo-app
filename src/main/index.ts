@@ -3,6 +3,7 @@ import { app, BrowserWindow, shell } from 'electron'
 import Store from 'electron-store'
 import { join } from 'path'
 import icon from '../../resources/icon.png?asset'
+import { accentHandler } from './handler/accentHandler'
 import { databaseHandler } from './handler/databaseHandler'
 import { notesHandler } from './handler/notesHandler'
 import { themeHandler } from './handler/themeHandler'
@@ -57,6 +58,7 @@ app.whenReady().then(() => {
 
     // Import the handlers before createWindow()
     themeHandler(store)
+    accentHandler(store)
     databaseHandler(store)
     notesHandler(store)
 

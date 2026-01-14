@@ -23,7 +23,8 @@ export async function notesHandler(store: Store): Promise<void> {
                     body: 'Your notes database is ready.',
                     lastModified: new Date().toISOString(),
                     isFavourite: false,
-                    folderId: ''
+                    folderId: '',
+                    isInTrash: false
                 })
                 .returning()
 
@@ -36,11 +37,18 @@ export async function notesHandler(store: Store): Promise<void> {
 
     ipcMain.handle('update:note', async (_event, payload: Note) => {
         try {
-            const { id, title, body, isFavourite, folderId } = payload
+            const { id, title, body, isFavourite, folderId, isInTrash } = payload
 
             const [updated] = await connection.db
                 .update(notes)
-                .set({ title, body, isFavourite, folderId, lastModified: new Date().toISOString() })
+                .set({
+                    title,
+                    body,
+                    isFavourite,
+                    folderId,
+                    isInTrash,
+                    lastModified: new Date().toISOString()
+                })
                 .where(eq(notes.id, id))
                 .returning()
 

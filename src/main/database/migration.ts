@@ -10,7 +10,8 @@ export function createDatabase(dbPath: string): void {
       body TEXT NOT NULL,
       last_modified TEXT NOT NULL,
       is_favourite INTEGER NOT NULL DEFAULT 0,
-      folder_id TEXT NOT NULL
+      folder_id TEXT NOT NULL,
+      is_in_trash INTEGER NOT NULL DEFAULT 0
     );
   `)
 

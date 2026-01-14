@@ -5,6 +5,7 @@ export type Note = {
     lastModified?: string
     isFavourite?: boolean
     folderId?: string
+    isInTrash?: boolean
 }
 
 export type Notes = Array<Note>

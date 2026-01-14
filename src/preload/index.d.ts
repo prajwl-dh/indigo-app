@@ -1,4 +1,5 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
+import { Accent } from 'src/shared/model/accent'
 import { Note, Notes } from 'src/shared/model/note'
 import { Theme } from 'src/shared/model/theme'
 
@@ -8,6 +9,10 @@ declare global {
         themeApi: {
             setTheme: (theme: Theme) => Promise<void>
             getTheme: () => Promise<Theme>
+        }
+        accentApi: {
+            setAccent: (accent: Accent) => Promise<void>
+            getAccent: () => Promise<Accent>
         }
         databaseApi: {
             createDatabase: () => Promise<string | null>
