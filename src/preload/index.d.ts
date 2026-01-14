@@ -11,7 +11,7 @@ declare global {
             getTheme: () => Promise<Theme>
         }
         accentApi: {
-            setAccent: (accent: Accent) => Promise<void>
+            setAccent: (accent: Accent) => Promise<Accent>
             getAccent: () => Promise<Accent>
         }
         databaseApi: {

@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react'
+import { Accent } from 'src/shared/model/accent'
+import { accentValue } from 'src/shared/model/accentValues'
 import { Notes } from 'src/shared/model/note'
 
 function App(): React.JSX.Element {
     const [notes, setNotes] = useState<Notes>([])
-    const [activeDatabase, setActiveDatabase] = useState<string | null>('')
+    const [activeDatabase, setActiveDatabase] = useState<string | null>()
+    const [accent, setAccent] = useState<Accent>('indigo')
 
     async function createNotesDatabase(): Promise<void> {
         const result = await window.databaseApi.createDatabase()
@@ -72,16 +75,38 @@ function App(): React.JSX.Element {
         }
     }
 
+    async function loadAccentColor(): Promise<void> {
+        const response = await window.accentApi.getAccent()
+        setAccent(response)
+    }
+
+    async function setAccentColor(): Promise<void> {
+        let response: Accent = 'indigo'
+        if (accent === 'indigo') {
+            response = await window.accentApi.setAccent('rose')
+        } else {
+            response = await window.accentApi.setAccent('indigo')
+        }
+        setAccent(response)
+    }
+
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         loadActiveDatabasePath()
-    })
+        loadAccentColor()
+    }, [])
 
     console.log(notes)
     console.log('Active database is : ' + activeDatabase)
+    console.log(accent)
 
     return (
-        <div className="h-screen w-screen flex flex-col items-center justify-center bg-red-50 dark:bg-amber-200 gap-2">
+        <div
+            className={`h-screen w-screen flex flex-col items-center justify-center ${accentValue[accent]} gap-2`}
+        >
+            <button className="border rounded p-2 min-w-40 cursor-pointer" onClick={setAccentColor}>
+                Change Accent Color
+            </button>
             <button
                 className="border rounded p-2 min-w-40 cursor-pointer"
                 onClick={createNotesDatabase}
