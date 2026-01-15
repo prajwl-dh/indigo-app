@@ -8,8 +8,20 @@
     font-display: swap;
 }
 
+@theme {
+    --color-light-background: #ffffff;
+    --color-light-foreground: #fbfbfd;
+    --color-light-surface: #f9fafc;
+    --color-light-primaryText: #0f172a;
+    --color-light-secondaryText: #64748b;
+
+    --color-dark-background: #0f0f12;
+    --color-dark-foreground: #161618;
+    --color-dark-surface: #19191b;
+    --color-dark-primaryText: #f3f4f6;
+    --color-dark-secondaryText: #9ca3af;
+}
+
 body {
-    margin: 0;
-    padding: 0;
     font-family: 'Outfit', sans-serif;
 }
