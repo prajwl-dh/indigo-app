@@ -30,7 +30,6 @@ function App(): React.JSX.Element {
         try {
             const response = await window.themeApi.getTheme()
             setActiveTheme(response)
-            console.log(activeTheme)
         } catch (error) {
             throw new Error(JSON.stringify(error))
         }
@@ -40,12 +39,10 @@ function App(): React.JSX.Element {
         getActiveDatabase()
         getCurrentTheme()
         getActiveAccent()
-    })
+    }, [])
 
     if (!activeDatabase) {
-        if (activeAccent) {
-            return <InitialLanding activeAccent={activeAccent} />
-        }
+        return activeAccent ? <InitialLanding activeAccent={activeAccent} /> : <></>
     }
 
     return <>App</>

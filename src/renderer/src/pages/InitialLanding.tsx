@@ -9,6 +9,22 @@ type InitialLandingType = {
 }
 
 export default function InitialLanding({ activeAccent }: InitialLandingType): React.JSX.Element {
+    async function createNew(): Promise<void> {
+        try {
+            await window.databaseApi.createDatabase()
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    async function openExisting(): Promise<void> {
+        try {
+            await window.databaseApi.loadDatabase()
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
     return (
         <div className={`h-screen w-full flex flex-col justify-center items-center pb-10`}>
             <div className="max-w-2xl w-full flex flex-col items-center gap-12">
@@ -27,7 +43,8 @@ export default function InitialLanding({ activeAccent }: InitialLandingType): Re
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row items-center min-w-max justify-between gap-6">
                     <Button
-                        className={`p-4 flex flex-col w-72 gap-2 bg-light-foreground dark:bg-dark-foreground rounded-2xl transition-all duration-300 hover:-translate-y-0.5 ${accentValue[activeAccent].hover}`}
+                        className={`p-4 flex flex-col w-72 gap-2 bg-light-foreground dark:bg-dark-foreground rounded-2xl transition-all duration-300 hover:-translate-y-0.5 ${accentValue[activeAccent].hover} ${accentValue[activeAccent].border}`}
+                        onClick={createNew}
                     >
                         <div
                             className={`p-3 rounded-xl w-min transition-transform group-hover:scale-110 duration-300 ${accentValue[activeAccent].bgSubtle} ${accentValue[activeAccent].text}`}
@@ -46,7 +63,8 @@ export default function InitialLanding({ activeAccent }: InitialLandingType): Re
                         </div>
                     </Button>
                     <Button
-                        className={`p-4 flex flex-col w-72 gap-2 bg-light-foreground dark:bg-dark-foreground rounded-2xl transition-all duration-300 hover:-translate-y-0.5 ${accentValue[activeAccent].hover}`}
+                        className={`p-4 flex flex-col w-72 gap-2 bg-light-foreground dark:bg-dark-foreground rounded-2xl transition-all duration-300 hover:-translate-y-0.5 ${accentValue[activeAccent].hover} ${accentValue[activeAccent].border}`}
+                        onClick={openExisting}
                     >
                         <div
                             className={`p-3 rounded-xl w-min transition-transform group-hover:scale-110 duration-300 ${accentValue[activeAccent].bgSubtle} ${accentValue[activeAccent].text}`}
