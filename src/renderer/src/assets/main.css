@@ -14,12 +14,14 @@
     --color-light-surface: #f9fafc;
     --color-light-primaryText: #0f172a;
     --color-light-secondaryText: #64748b;
+    --color-light-border: #e2e8f0;
 
     --color-dark-background: #0f0f12;
     --color-dark-foreground: #161618;
     --color-dark-surface: #19191b;
     --color-dark-primaryText: #f3f4f6;
     --color-dark-secondaryText: #9ca3af;
+    --color-dark-border: #ffffff1a;
 }
 
 body {

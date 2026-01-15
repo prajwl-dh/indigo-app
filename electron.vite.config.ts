@@ -8,7 +8,8 @@ export default defineConfig({
     renderer: {
         resolve: {
             alias: {
-                src: path.resolve(__dirname, 'src')
+                src: path.resolve(__dirname, 'src'),
+                '@renderer': path.resolve('src/renderer/src')
             }
         },
         plugins: [react()]
