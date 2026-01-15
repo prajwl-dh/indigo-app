@@ -1,5 +1,5 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, nativeTheme, shell } from 'electron'
 import Store from 'electron-store'
 import { join } from 'path'
 import icon from '../../resources/icon.png?asset'
@@ -16,12 +16,17 @@ function createWindow(): void {
         width: 900,
         height: 670,
         show: false,
+        backgroundColor: nativeTheme.shouldUseDarkColors ? '#0f0f12' : '#ffffff',
         autoHideMenuBar: process.platform === 'win32' ? false : true,
         ...(process.platform === 'linux' ? { icon } : {}),
         webPreferences: {
             preload: join(__dirname, '../preload/index.mjs'),
             sandbox: false
         }
+    })
+
+    nativeTheme.on('updated', () => {
+        mainWindow.setBackgroundColor(nativeTheme.shouldUseDarkColors ? '#0f0f12' : '#ffffff')
     })
 
     mainWindow.on('ready-to-show', () => {
