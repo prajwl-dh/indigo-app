@@ -1,7 +1,11 @@
 import { app, dialog, ipcMain } from 'electron'
 import Store from 'electron-store'
 import { createDatabase } from '../database/migration'
-import { deleteActiveDatabasePath, getActiveDatabasePath } from '../util/activeDatabasePathUtils'
+import {
+    deleteActiveDatabasePath,
+    getActiveDatabasePath,
+    truncateActiveDatabasePath
+} from '../util/activeDatabasePathUtils'
 import { isValidIndigoDatabase } from '../util/databaseValidator'
 
 export function databaseHandler(store: Store): void {
@@ -77,7 +81,7 @@ export function databaseHandler(store: Store): void {
             return null
         }
 
-        return filePath
+        return truncateActiveDatabasePath(filePath, 40)
     })
 
     ipcMain.handle('delete:activeDatabasePath', () => {

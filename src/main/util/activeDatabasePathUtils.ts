@@ -19,3 +19,27 @@ export async function getActiveDatabasePath(store: Store): Promise<string | null
 export function deleteActiveDatabasePath(store: Store): void {
     store.delete('activeDatabase')
 }
+
+export function truncateActiveDatabasePath(filePath: string, maxLength = 20): string {
+    if (filePath.length <= maxLength) return filePath
+
+    const sep = filePath.includes('\\') ? '\\' : '/'
+    const parts = filePath.split(sep)
+    const fileName = parts.pop()!
+
+    let start = ''
+    let i = 0
+
+    while (i < parts.length) {
+        const next = start ? start + sep + parts[i] : parts[i]
+        if ((next + sep + '..' + sep + fileName).length > maxLength) break
+        start = next
+        i++
+    }
+
+    if (i < parts.length) {
+        return `${start}${sep}..${sep}${fileName}`
+    } else {
+        return `${start}${sep}${fileName}`
+    }
+}

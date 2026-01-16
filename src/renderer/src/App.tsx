@@ -1,12 +1,11 @@
 import React from 'react'
 import { Accent } from 'src/shared/model/accent'
-import { Theme } from 'src/shared/model/theme'
 import InitialLanding from './pages/InitialLanding'
+import Workspace from './pages/Workspace'
 
 function App(): React.JSX.Element {
     const [activeDatabase, setActiveDatabase] = React.useState<string | null>()
     const [activeAccent, setActiveAccent] = React.useState<Accent | null>()
-    const [activeTheme, setActiveTheme] = React.useState<Theme>('system')
 
     async function getActiveDatabase(): Promise<void> {
         try {
@@ -26,18 +25,8 @@ function App(): React.JSX.Element {
         }
     }
 
-    async function getCurrentTheme(): Promise<void> {
-        try {
-            const response = await window.themeApi.getTheme()
-            setActiveTheme(response)
-        } catch (error) {
-            throw new Error(JSON.stringify(error))
-        }
-    }
-
     React.useEffect(() => {
         getActiveDatabase()
-        getCurrentTheme()
         getActiveAccent()
     }, [])
 
@@ -45,7 +34,7 @@ function App(): React.JSX.Element {
         return activeAccent ? <InitialLanding activeAccent={activeAccent} /> : <></>
     }
 
-    return <>App</>
+    return <Workspace activeDatabase={activeDatabase} />
 }
 
 export default App
