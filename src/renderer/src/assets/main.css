@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 
 @font-face {
-    font-family: 'Outfit';
-    src: url('./Outfit-VariableFont_wght.ttf') format('truetype');
+    font-family: 'Rubik';
+    src: url('./Rubik-VariableFont_wght.ttf') format('truetype');
     font-weight: 100 900;
     font-style: normal;
     font-display: swap;
@@ -12,7 +12,7 @@
     --color-light-background: #ffffff;
     --color-light-foreground: #fbfbfd;
     --color-light-surface: #f9fafc;
-    --color-light-primaryText: #0f172a;
+    --color-light-primaryText: #2b323b;
     --color-light-secondaryText: #64748b;
     --color-light-border: #e7ecf3;
 
@@ -25,5 +25,5 @@
 }
 
 body {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Rubik', sans-serif;
 }

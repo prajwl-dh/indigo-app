@@ -34,7 +34,11 @@ function App(): React.JSX.Element {
         return activeAccent ? <InitialLanding activeAccent={activeAccent} /> : <></>
     }
 
-    return <Workspace activeDatabase={activeDatabase} />
+    if (!activeAccent) {
+        return <></>
+    }
+
+    return <Workspace activeDatabase={activeDatabase} activeAccent={activeAccent} />
 }
 
 export default App
