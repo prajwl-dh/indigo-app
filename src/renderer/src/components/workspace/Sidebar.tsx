@@ -26,10 +26,10 @@ export default function Sidebar({
     console.log(activeDatabase)
     return (
         <div
-            className={`${isSidebarOpen ? 'w-70 lg:w-80' : 'w-16 items-center'} flex shrink-0 flex-col bg-light-foreground dark:bg-dark-foreground border-r border-light-border dark:border-dark-border transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] overflow-hidden`}
+            className={`${isSidebarOpen ? 'w-70 lg:w-80' : 'w-16 md:w-18 items-center'} flex shrink-0 flex-col bg-light-foreground dark:bg-dark-foreground border-r border-light-border dark:border-dark-border transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] overflow-hidden`}
         >
             {isSidebarOpen && (
-                <div className="flex gap-2 justify-start items-center px-2 py-1 border-b border-light-border dark:border-dark-border text-[10px] font-medium text-light-secondaryText dark:text-dark-secondaryText bg-light-surface dark:bg-dark-surface">
+                <div className="flex gap-2 justify-start items-center px-2 border-b border-light-border dark:border-dark-border text-[10px] font-medium text-light-secondaryText dark:text-dark-secondaryText bg-light-surface dark:bg-dark-surface">
                     <Database className="w-3 shrink-0" />
                     <span className="cursor-default">{activeDatabase}</span>
                 </div>
@@ -40,26 +40,26 @@ export default function Sidebar({
             >
                 <div className={`flex flex-row items-center gap-2`} hidden={!isSidebarOpen}>
                     <div
-                        className={`w-5 h-5 p-0.5 rounded-md flex items-center justify-center text-white text-[10px] font-bold ${accentValue[activeAccent].bg}`}
+                        className={`w-5 h-5 p-0.5 rounded-md flex items-center justify-center text-white text-[14px] font-bold ${accentValue[activeAccent].bg}`}
                     >
                         I
                     </div>
-                    <span className="text-[16px] font-semibold tracking-tight text-light-primaryText dark:text-dark-primaryText">
+                    <div className="text-[16px] font-semibold tracking-tight text-light-primaryText dark:text-dark-primaryText">
                         {isTrashOpened ? 'Trash' : 'Indigo'}
-                    </span>
+                    </div>
                 </div>
                 <div
                     hidden={isSidebarOpen}
-                    className={`w-6 h-6 p-1 rounded-md flex items-center justify-center text-white text-lg font-bold transition-all duration-500 ${accentValue[activeAccent].bg}`}
+                    className={`w-7 h-7 p-1 rounded-md flex items-center justify-center text-white text-lg font-bold ${accentValue[activeAccent].bg}`}
                 >
                     I
                 </div>
                 <Button
                     onClick={toggleSidebar}
-                    className={`p-1 rounded-md text-light-secondaryText dark:text-dark-secondaryText border-none transition-all duration-500 ${accentValue[activeAccent].hover}`}
+                    className={`p-1 rounded-md text-light-secondaryText dark:text-dark-secondaryText border hover:brightness-80 dark:hover:brightness-120`}
                 >
                     {isSidebarOpen ? (
-                        <ChevronLeft className="h-4 w-4" />
+                        <ChevronLeft className="h-3 w-3" />
                     ) : (
                         <Menu className="h-5 w-5" />
                     )}
