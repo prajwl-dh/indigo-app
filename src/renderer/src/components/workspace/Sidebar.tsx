@@ -25,7 +25,7 @@ export default function Sidebar({
 
     return (
         <div
-            className={`${isSidebarOpen ? 'w-60 lg:w-70' : 'w-16 md:w-18 items-center'} flex shrink-0 flex-col bg-light-foreground dark:bg-dark-foreground border-r border-light-border dark:border-dark-border transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] overflow-hidden`}
+            className={`${isSidebarOpen ? 'w-60 lg:w-70' : 'w-16 md:w-18 items-center'} flex shrink-0 flex-col bg-light-foreground dark:bg-dark-foreground border-r border-light-border dark:border-dark-border transition-all ${!isSidebarOpen ? 'duration-500' : 'duration-150'} ease-[cubic-bezier(0.25,1,0.5,1)] overflow-hidden`}
         >
             {/* Active Database Section */}
             {isSidebarOpen && (
