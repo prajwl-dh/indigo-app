@@ -11,6 +11,7 @@ interface AccentConfig {
     ring: string
     selection: string
     border: string
+    active: string
 }
 
 export const accentValue: Record<Accent, AccentConfig> = {
@@ -24,7 +25,8 @@ export const accentValue: Record<Accent, AccentConfig> = {
         hover: 'hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300',
         ring: 'ring-indigo-200 dark:ring-indigo-500/30',
         selection: 'selection:bg-indigo-100 dark:selection:bg-indigo-500/30',
-        border: 'border-indigo-100 dark:border-indigo-500/20'
+        border: 'border-indigo-100 dark:border-indigo-500/20',
+        active: 'active:border-indigo-100 active:dark:border-indigo-500/20'
     },
     rose: {
         label: 'Rose',
@@ -36,7 +38,8 @@ export const accentValue: Record<Accent, AccentConfig> = {
         hover: 'hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-500/10 dark:hover:text-rose-300',
         ring: 'ring-rose-200 dark:ring-rose-500/30',
         selection: 'selection:bg-rose-100 dark:selection:bg-rose-500/30',
-        border: 'border-rose-100 dark:border-rose-500/20'
+        border: 'border-rose-100 dark:border-rose-500/20',
+        active: 'active:border-rose-100 active:dark:border-rose-500/20'
     },
     orange: {
         label: 'Orange',
@@ -48,7 +51,8 @@ export const accentValue: Record<Accent, AccentConfig> = {
         hover: 'hover:bg-orange-50 hover:text-orange-900 dark:hover:bg-orange-500/10 dark:hover:text-orange-300',
         ring: 'ring-orange-200 dark:ring-orange-500/30',
         selection: 'selection:bg-orange-100 dark:selection:bg-orange-500/30',
-        border: 'border-orange-100 dark:border-orange-500/20'
+        border: 'border-orange-100 dark:border-orange-500/20',
+        active: 'active:border-orange-100 active:dark:border-orange-500/20'
     },
     teal: {
         label: 'Teal',
@@ -60,7 +64,8 @@ export const accentValue: Record<Accent, AccentConfig> = {
         hover: 'hover:bg-teal-50 hover:text-teal-900 dark:hover:bg-teal-500/10 dark:hover:text-teal-300',
         ring: 'ring-teal-200 dark:ring-teal-500/30',
         selection: 'selection:bg-teal-100 dark:selection:bg-teal-500/30',
-        border: 'border-teal-100 dark:border-teal-500/20'
+        border: 'border-teal-100 dark:border-teal-500/20',
+        active: 'active:border-teal-100 active:dark:border-teal-500/20'
     },
     blue: {
         label: 'Blue',
@@ -72,7 +77,8 @@ export const accentValue: Record<Accent, AccentConfig> = {
         hover: 'hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300',
         ring: 'ring-blue-200 dark:ring-blue-500/30',
         selection: 'selection:bg-blue-100 dark:selection:bg-blue-500/30',
-        border: 'border-blue-100 dark:border-blue-500/20'
+        border: 'border-blue-100 dark:border-blue-500/20',
+        active: 'active:border-blue-100 active:dark:border-blue-500/20'
     },
     violet: {
         label: 'Violet',
@@ -84,6 +90,7 @@ export const accentValue: Record<Accent, AccentConfig> = {
         hover: 'hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-500/10 dark:hover:text-violet-300',
         ring: 'ring-violet-200 dark:ring-violet-500/30',
         selection: 'selection:bg-violet-100 dark:selection:bg-violet-500/30',
-        border: 'border-violet-100 dark:border-violet-500/20'
+        border: 'border-violet-100 dark:border-violet-500/20',
+        active: 'active:border-violet-100 active:dark:border-violet-500/20'
     }
 }
