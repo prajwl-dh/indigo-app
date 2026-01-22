@@ -1,14 +1,15 @@
-import Database from 'better-sqlite3'
-import { BetterSQLite3Database, drizzle } from 'drizzle-orm/better-sqlite3'
+import { createClient, type Client } from '@libsql/client'
+
+import { drizzle, type LibSQLDatabase } from 'drizzle-orm/libsql'
 
 export function createDatabaseConnection(dbPath: string): {
-    db: BetterSQLite3Database<Record<string, never>> & {
-        $client: Database.Database
+    db: LibSQLDatabase<Record<string, never>> & {
+        $client: Client
     }
-    sqlite: Database.Database
+    sqlite: Client
     close: () => void
 } {
-    const sqlite = new Database(dbPath)
+    const sqlite = createClient({ url: `file:${dbPath}` })
     const db = drizzle(sqlite)
 
     return {

@@ -25,7 +25,7 @@ export function databaseHandler(store: Store): void {
             return null
         }
 
-        createDatabase(result.filePath)
+        await createDatabase(result.filePath)
         store.set('activeDatabase', result.filePath)
 
         app.relaunch()
