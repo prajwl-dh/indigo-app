@@ -26,7 +26,7 @@ export const accentValue: Record<Accent, AccentConfig> = {
         ring: 'ring-indigo-200 dark:ring-indigo-500/30',
         selection: 'selection:bg-indigo-100 dark:selection:bg-indigo-500/30',
         border: 'border-indigo-100 dark:border-indigo-500/20',
-        active: 'active:border-indigo-100 active:dark:border-indigo-500/20'
+        active: 'hover:border-indigo-200 hover:dark:border-indigo-500/30'
     },
     rose: {
         label: 'Rose',
@@ -39,7 +39,7 @@ export const accentValue: Record<Accent, AccentConfig> = {
         ring: 'ring-rose-200 dark:ring-rose-500/30',
         selection: 'selection:bg-rose-100 dark:selection:bg-rose-500/30',
         border: 'border-rose-100 dark:border-rose-500/20',
-        active: 'active:border-rose-100 active:dark:border-rose-500/20'
+        active: 'hover:border-rose-200 hover:dark:border-rose-500/30'
     },
     orange: {
         label: 'Orange',
@@ -52,7 +52,7 @@ export const accentValue: Record<Accent, AccentConfig> = {
         ring: 'ring-orange-200 dark:ring-orange-500/30',
         selection: 'selection:bg-orange-100 dark:selection:bg-orange-500/30',
         border: 'border-orange-100 dark:border-orange-500/20',
-        active: 'active:border-orange-100 active:dark:border-orange-500/20'
+        active: 'hover:border-orange-200 hover:dark:border-orange-500/30'
     },
     teal: {
         label: 'Teal',
@@ -65,7 +65,7 @@ export const accentValue: Record<Accent, AccentConfig> = {
         ring: 'ring-teal-200 dark:ring-teal-500/30',
         selection: 'selection:bg-teal-100 dark:selection:bg-teal-500/30',
         border: 'border-teal-100 dark:border-teal-500/20',
-        active: 'active:border-teal-100 active:dark:border-teal-500/20'
+        active: 'hover:border-teal-200 hover:dark:border-teal-500/30'
     },
     blue: {
         label: 'Blue',
@@ -78,7 +78,7 @@ export const accentValue: Record<Accent, AccentConfig> = {
         ring: 'ring-blue-200 dark:ring-blue-500/30',
         selection: 'selection:bg-blue-100 dark:selection:bg-blue-500/30',
         border: 'border-blue-100 dark:border-blue-500/20',
-        active: 'active:border-blue-100 active:dark:border-blue-500/20'
+        active: 'hover:border-blue-200 hover:dark:border-blue-500/30'
     },
     violet: {
         label: 'Violet',
@@ -91,6 +91,6 @@ export const accentValue: Record<Accent, AccentConfig> = {
         ring: 'ring-violet-200 dark:ring-violet-500/30',
         selection: 'selection:bg-violet-100 dark:selection:bg-violet-500/30',
         border: 'border-violet-100 dark:border-violet-500/20',
-        active: 'active:border-violet-100 active:dark:border-violet-500/20'
+        active: 'hover:border-violet-200 hover:dark:border-violet-500/30'
     }
 }

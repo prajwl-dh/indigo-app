@@ -1,8 +1,10 @@
-import { ChevronLeft, Database, Menu, Plus, Search, Trash2, X } from 'lucide-react'
+import { ChevronLeft, Database, Heart, Menu, Plus, Search, Trash2, X } from 'lucide-react'
 import React from 'react'
+import { useDraggable } from 'react-use-draggable-scroll'
 import { Accent } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
 import Button from '../ui/Button'
+import FolderChip from '../ui/FolderChip'
 
 type SidebarType = {
     activeDatabase: string
@@ -18,6 +20,13 @@ export default function Sidebar({
     setIsTrashOpened
 }: SidebarType): React.JSX.Element {
     const [isSidebarOpen, setIsSidebarOpen] = React.useState<boolean>(true)
+    const [activeFolder, setActiveFolder] = React.useState<string>('All')
+
+    const folderChipRef = React.useRef<HTMLDivElement>(
+        null
+    ) as React.MutableRefObject<HTMLInputElement>
+
+    const { events } = useDraggable(folderChipRef)
 
     function toggleSidebar(): void {
         setIsSidebarOpen((prev) => !prev)
@@ -96,6 +105,77 @@ export default function Sidebar({
                         <Trash2 className="h-4 w-4 mb-1" />
                         <span>Empty Trash</span>
                     </Button>
+                </div>
+            )}
+
+            {isSidebarOpen && (
+                <div
+                    {...events}
+                    ref={folderChipRef}
+                    className="flex row items-center gap-1 p-2 shrink-0 overflow-x-auto no-scrollbar select-none cursor-default"
+                >
+                    <FolderChip
+                        className={`transition duration-300 ${activeFolder === 'All' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].hover}`}
+                    >
+                        <span
+                            className={`${activeFolder === 'All' ? accentValue[activeAccent].text : null}`}
+                        >
+                            All
+                        </span>
+                        <span className="text-light-secondaryText dark:text-dark-secondaryText">
+                            5
+                        </span>
+                    </FolderChip>
+
+                    <FolderChip
+                        className={`transition duration-300 ${activeFolder === 'Favorites' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
+                    >
+                        <Heart
+                            className={`h-3 w-3 opacity-70 ${activeFolder === 'Favorites' ? accentValue[activeAccent].text : null}`}
+                        />
+                        <span
+                            className={`${activeFolder === 'Favorites' ? accentValue[activeAccent].text : null}`}
+                        >
+                            Favorites
+                        </span>
+                        <span className="text-light-secondaryText dark:text-dark-secondaryText">
+                            3
+                        </span>
+                    </FolderChip>
+
+                    <div className={`w-px h-5 mx-1 shrink-0 bg-gray-300 dark:bg-gray-600`} />
+
+                    <FolderChip
+                        className={`transition duration-300 ${activeFolder === 'Personal' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
+                    >
+                        <Heart
+                            className={`h-3 w-3 opacity-70 ${activeFolder === 'Personal' ? accentValue[activeAccent].text : null}`}
+                        />
+                        <span
+                            className={`${activeFolder === 'Personal' ? accentValue[activeAccent].text : null}`}
+                        >
+                            Personal
+                        </span>
+                        <span className="text-light-secondaryText dark:text-dark-secondaryText">
+                            1
+                        </span>
+                    </FolderChip>
+
+                    <FolderChip
+                        className={`transition duration-300 ${activeFolder === 'Work' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
+                    >
+                        <Heart
+                            className={`h-3 w-3 opacity-70 ${activeFolder === 'Work' ? accentValue[activeAccent].text : null}`}
+                        />
+                        <span
+                            className={`${activeFolder === 'Work' ? accentValue[activeAccent].text : null}`}
+                        >
+                            Work
+                        </span>
+                        <span className="text-light-secondaryText dark:text-dark-secondaryText">
+                            2
+                        </span>
+                    </FolderChip>
                 </div>
             )}
         </div>
