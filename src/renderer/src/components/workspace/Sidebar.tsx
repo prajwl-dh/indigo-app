@@ -34,7 +34,7 @@ export default function Sidebar({
 
     return (
         <div
-            className={`${isSidebarOpen ? 'w-60 lg:w-70' : 'w-16 md:w-18 items-center'} flex shrink-0 flex-col bg-light-foreground dark:bg-dark-foreground border-r border-light-border dark:border-dark-border transition-discrete duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] overflow-hidden`}
+            className={`${isSidebarOpen ? 'w-60 md:w-64 lg:w-72' : 'w-16 md:w-18 items-center'} flex shrink-0 flex-col bg-light-foreground dark:bg-dark-foreground border-r border-light-border dark:border-dark-border transition-discrete duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] overflow-hidden`}
         >
             {/* Active Database Section */}
             {isSidebarOpen && (
@@ -77,7 +77,7 @@ export default function Sidebar({
             </div>
 
             {isSidebarOpen && (
-                <div className="flex flex-col gap-2 p-2 shrink-0">
+                <div className="flex flex-col gap-3 p-2 shrink-0">
                     <div
                         className={`flex flex-row items-center gap-2 p-2 border border-light-border dark:border-dark-border rounded-lg bg-white dark:bg-[#1c1c1e] text-light-secondaryText dark:text-dark-secondaryText`}
                     >
@@ -93,14 +93,14 @@ export default function Sidebar({
                     {/* Action Button */}
                     <Button
                         hidden={isTrashOpened}
-                        className={`flex flex-row items-center justify-center gap-1 text-white rounded-lg text-[14px] font-medium transition duration-500 ${accentValue[activeAccent].bg} ${accentValue[activeAccent].bgHover}`}
+                        className={`flex flex-row items-center justify-center gap-1 text-white rounded-lg text-[14px] font-medium transition duration-300 ${accentValue[activeAccent].bg} ${accentValue[activeAccent].bgHover} hover:-translate-y-0.5`}
                     >
                         <Plus className="mb-1 h-4 w-4" />
                         <span>New Note</span>
                     </Button>
                     <Button
                         hidden={!isTrashOpened}
-                        className={`flex flex-row items-center justify-center gap-2 text-white rounded-lg text-[14px] font-medium transition duration-500 bg-red-500 hover:bg-red-600`}
+                        className={`flex flex-row items-center justify-center gap-2 text-white rounded-lg text-[14px] font-medium transition duration-300 bg-red-500 hover:bg-red-600 hover:-translate-y-0.5`}
                     >
                         <Trash2 className="h-4 w-4 mb-1" />
                         <span>Empty Trash</span>
@@ -108,14 +108,16 @@ export default function Sidebar({
                 </div>
             )}
 
+            {/* Folder Chips */}
             {isSidebarOpen && (
                 <div
                     {...events}
                     ref={folderChipRef}
                     className="flex row items-center gap-1 p-2 shrink-0 overflow-x-auto no-scrollbar select-none cursor-default"
+                    hidden={isTrashOpened}
                 >
                     <FolderChip
-                        className={`transition duration-300 ${activeFolder === 'All' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].hover}`}
+                        className={`${activeFolder === 'All' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].hover}`}
                     >
                         <span
                             className={`${activeFolder === 'All' ? accentValue[activeAccent].text : null}`}
@@ -128,7 +130,7 @@ export default function Sidebar({
                     </FolderChip>
 
                     <FolderChip
-                        className={`transition duration-300 ${activeFolder === 'Favorites' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
+                        className={`${activeFolder === 'Favorites' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
                     >
                         <Heart
                             className={`h-3 w-3 opacity-70 ${activeFolder === 'Favorites' ? accentValue[activeAccent].text : null}`}
@@ -146,11 +148,8 @@ export default function Sidebar({
                     <div className={`w-px h-5 mx-1 shrink-0 bg-gray-300 dark:bg-gray-600`} />
 
                     <FolderChip
-                        className={`transition duration-300 ${activeFolder === 'Personal' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
+                        className={`${activeFolder === 'Personal' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
                     >
-                        <Heart
-                            className={`h-3 w-3 opacity-70 ${activeFolder === 'Personal' ? accentValue[activeAccent].text : null}`}
-                        />
                         <span
                             className={`${activeFolder === 'Personal' ? accentValue[activeAccent].text : null}`}
                         >
@@ -162,11 +161,8 @@ export default function Sidebar({
                     </FolderChip>
 
                     <FolderChip
-                        className={`transition duration-300 ${activeFolder === 'Work' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
+                        className={`${activeFolder === 'Work' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
                     >
-                        <Heart
-                            className={`h-3 w-3 opacity-70 ${activeFolder === 'Work' ? accentValue[activeAccent].text : null}`}
-                        />
                         <span
                             className={`${activeFolder === 'Work' ? accentValue[activeAccent].text : null}`}
                         >
