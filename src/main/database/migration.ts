@@ -11,10 +11,16 @@ export async function createDatabase(dbPath: string): Promise<void> {
             body TEXT NOT NULL,
             last_modified TEXT NOT NULL,
             is_favourite INTEGER NOT NULL DEFAULT 0,
-            folder_id TEXT NOT NULL,
+            folder_id INTEGER NOT NULL,
             is_in_trash INTEGER NOT NULL DEFAULT 0
           );
-  `)
+        `)
+
+        await sqlite.execute(`
+        CREATE TABLE IF NOT EXISTS folders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE);
+        `)
     } finally {
         sqlite.close()
     }

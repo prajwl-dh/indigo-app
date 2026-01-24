@@ -4,8 +4,15 @@ export type Note = {
     body?: string
     lastModified?: string
     isFavourite?: boolean
-    folderId?: string
+    folderId?: number
     isInTrash?: boolean
 }
 
 export type Notes = Array<Note>
+
+export type Folder = {
+    id: number
+    name?: string
+}
+
+export type Folders = Array<Folder>

@@ -3,7 +3,7 @@ import { ipcMain } from 'electron'
 import Store from 'electron-store'
 import { Note } from '../../shared/model/note'
 import { createDatabaseConnection } from '../database/connection'
-import { notes } from '../database/schema'
+import { folders, notes } from '../database/schema'
 import { getActiveDatabasePath } from '../util/activeDatabasePathUtils'
 
 export async function notesHandler(store: Store): Promise<void> {
@@ -14,6 +14,7 @@ export async function notesHandler(store: Store): Promise<void> {
 
     const connection = createDatabaseConnection(activeDatabase)
 
+    // create a new note
     ipcMain.handle('create:note', async () => {
         try {
             const [inserted] = await connection.db
@@ -23,7 +24,7 @@ export async function notesHandler(store: Store): Promise<void> {
                     body: 'Your notes database is ready.',
                     lastModified: new Date().toISOString(),
                     isFavourite: false,
-                    folderId: '',
+                    folderId: 0,
                     isInTrash: false
                 })
                 .returning()
@@ -35,6 +36,7 @@ export async function notesHandler(store: Store): Promise<void> {
         }
     })
 
+    // update a note
     ipcMain.handle('update:note', async (_event, payload: Note) => {
         try {
             const { id, title, body, isFavourite, folderId, isInTrash } = payload
@@ -59,6 +61,7 @@ export async function notesHandler(store: Store): Promise<void> {
         }
     })
 
+    // delete a note
     ipcMain.handle('delete:note', async (_event, payload: Note) => {
         try {
             await connection.db.delete(notes).where(eq(notes.id, payload.id))
@@ -69,6 +72,7 @@ export async function notesHandler(store: Store): Promise<void> {
         }
     })
 
+    // get a single note by id
     ipcMain.handle('get:note', async (_event, id: number) => {
         try {
             const note = await connection.db.select().from(notes).where(eq(notes.id, id)).get()
@@ -79,6 +83,7 @@ export async function notesHandler(store: Store): Promise<void> {
         }
     })
 
+    // get all notes
     ipcMain.handle('get:notes', async () => {
         try {
             const allNotes = await connection.db.select().from(notes).all()
@@ -88,4 +93,37 @@ export async function notesHandler(store: Store): Promise<void> {
             throw new Error('Failed to get all notes')
         }
     })
+
+    // get a folder by id
+    ipcMain.handle('get:folder', async (_event, id: number) => {
+        try {
+            const folder = await connection.db
+                .select()
+                .from(folders)
+                .where(eq(folders.id, id))
+                .get()
+            return folder
+        } catch (error) {
+            console.error('[get:folder]', error)
+            throw new Error('Failed to get folder with id: ' + id)
+        }
+    })
+
+    // get all folders
+    ipcMain.handle('get:folders', async () => {
+        try {
+            const allFolders = await connection.db.select().from(folders).all()
+            return allFolders
+        } catch (error) {
+            console.error('[get:folders]', error)
+            throw new Error('Failed to get all folders')
+        }
+    })
+
+    // // create a new folder
+    // ipcMain.handle('create:folder', async (_event, ) => {
+    //     try {
+    //         const [inserted] = await connection.db.insert(folders).values()
+    //     }
+    // })
 }

@@ -6,6 +6,11 @@ export const notes = sqliteTable('notes', {
     body: text('body').notNull(),
     lastModified: text('last_modified').notNull(),
     isFavourite: integer('is_favourite', { mode: 'boolean' }).notNull().default(false),
-    folderId: text('folder_id').notNull(),
+    folderId: integer('folder_id').notNull(),
     isInTrash: integer('is_in_trash', { mode: 'boolean' }).notNull().default(false)
+})
+
+export const folders = sqliteTable('folders', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    name: text('name').notNull().unique()
 })
