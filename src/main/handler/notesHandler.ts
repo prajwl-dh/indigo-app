@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { ipcMain } from 'electron'
 import Store from 'electron-store'
-import { Note } from '../../shared/model/note'
+import { Folder, Note } from '../../shared/model/note'
 import { createDatabaseConnection } from '../database/connection'
 import { folders, notes } from '../database/schema'
 import { getActiveDatabasePath } from '../util/activeDatabasePathUtils'
@@ -120,10 +120,52 @@ export async function notesHandler(store: Store): Promise<void> {
         }
     })
 
-    // // create a new folder
-    // ipcMain.handle('create:folder', async (_event, ) => {
-    //     try {
-    //         const [inserted] = await connection.db.insert(folders).values()
-    //     }
-    // })
+    // create a new folder
+    ipcMain.handle('create:folder', async (_event, payload: Folder) => {
+        try {
+            if (payload.name?.trim()) {
+                const [inserted] = await connection.db
+                    .insert(folders)
+                    .values({ name: payload.name })
+                    .returning()
+
+                return inserted
+            }
+            return
+        } catch (error) {
+            console.error('[create:folder]', error)
+            throw new Error('Failed to create folder ' + payload.name)
+        }
+    })
+
+    // update a folder
+    ipcMain.handle('update:folder', async (_event, payload: Folder) => {
+        try {
+            const [updated] = await connection.db
+                .update(folders)
+                .set({ name: payload.name })
+                .where(eq(folders.id, payload.id))
+                .returning()
+
+            return updated
+        } catch (error) {
+            console.error('[update:folder]', error)
+            throw new Error('Failed to update a folder with id ' + payload.id)
+        }
+    })
+
+    // delete a folder
+    ipcMain.handle('delete:folder', async (_event, payload: Folder) => {
+        try {
+            await connection.db
+                .update(notes)
+                .set({ folderId: 0 })
+                .where(eq(notes.folderId, payload.id))
+            await connection.db.delete(folders).where(eq(folders.id, payload.id))
+            return true
+        } catch (error) {
+            console.error('[delete:folder]', error)
+            throw new Error('Failed to delete a folder with id ' + payload.id)
+        }
+    })
 }
