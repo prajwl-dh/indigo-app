@@ -3,6 +3,7 @@ import React from 'react'
 import { useDraggable } from 'react-use-draggable-scroll'
 import { Accent } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
+import { Folders, Notes } from 'src/shared/model/note'
 import Button from '../ui/Button'
 import FolderChip from '../ui/FolderChip'
 
@@ -11,16 +12,27 @@ type SidebarType = {
     activeAccent: Accent
     isTrashOpened: boolean
     setIsTrashOpened: React.Dispatch<React.SetStateAction<boolean>>
+    activeFolder: string
+    setActiveFolder: React.Dispatch<React.SetStateAction<string>>
+    notes: Notes
+    setNotes: React.Dispatch<React.SetStateAction<Notes | undefined>>
+    folders: Folders
+    setFolders: React.Dispatch<React.SetStateAction<Folders | undefined>>
 }
 
 export default function Sidebar({
     activeDatabase,
     activeAccent,
     isTrashOpened,
-    setIsTrashOpened
+    setIsTrashOpened,
+    activeFolder,
+    setActiveFolder,
+    notes,
+    setNotes,
+    folders,
+    setFolders
 }: SidebarType): React.JSX.Element {
     const [isSidebarOpen, setIsSidebarOpen] = React.useState<boolean>(true)
-    const [activeFolder, setActiveFolder] = React.useState<string>('All')
 
     const folderChipRef = React.useRef<HTMLDivElement>(
         null
@@ -109,71 +121,61 @@ export default function Sidebar({
             )}
 
             {/* Folder Chips */}
-            {isSidebarOpen && (
-                <div
-                    {...events}
-                    ref={folderChipRef}
-                    className="flex row items-center gap-1 p-2 shrink-0 overflow-x-auto no-scrollbar select-none cursor-default"
-                    hidden={isTrashOpened}
+            <div
+                {...events}
+                ref={folderChipRef}
+                className={`flex row items-center gap-1 p-2 shrink-0 overflow-x-auto no-scrollbar select-none cursor-default`}
+                hidden={isTrashOpened || !isSidebarOpen}
+            >
+                <FolderChip
+                    className={`${activeFolder === 'All' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].hover}`}
                 >
-                    <FolderChip
-                        className={`${activeFolder === 'All' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].hover}`}
+                    <span
+                        className={`${activeFolder === 'All' ? accentValue[activeAccent].text : null}`}
                     >
-                        <span
-                            className={`${activeFolder === 'All' ? accentValue[activeAccent].text : null}`}
-                        >
-                            All
-                        </span>
-                        <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                            5
-                        </span>
-                    </FolderChip>
+                        All
+                    </span>
+                    <span className="text-light-secondaryText dark:text-dark-secondaryText">5</span>
+                </FolderChip>
 
-                    <FolderChip
-                        className={`${activeFolder === 'Favorites' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
+                <FolderChip
+                    className={`${activeFolder === 'Favorites' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
+                >
+                    <Heart
+                        className={`h-3 w-3 opacity-70 ${activeFolder === 'Favorites' ? accentValue[activeAccent].text : null}`}
+                    />
+                    <span
+                        className={`${activeFolder === 'Favorites' ? accentValue[activeAccent].text : null}`}
                     >
-                        <Heart
-                            className={`h-3 w-3 opacity-70 ${activeFolder === 'Favorites' ? accentValue[activeAccent].text : null}`}
-                        />
-                        <span
-                            className={`${activeFolder === 'Favorites' ? accentValue[activeAccent].text : null}`}
-                        >
-                            Favorites
-                        </span>
-                        <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                            3
-                        </span>
-                    </FolderChip>
+                        Favorites
+                    </span>
+                    <span className="text-light-secondaryText dark:text-dark-secondaryText">3</span>
+                </FolderChip>
 
-                    <div className={`w-px h-5 mx-1 shrink-0 bg-gray-300 dark:bg-gray-600`} />
+                <div className={`w-px h-5 mx-1 shrink-0 bg-gray-300 dark:bg-gray-600`} />
 
-                    <FolderChip
-                        className={`${activeFolder === 'Personal' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
-                    >
-                        <span
-                            className={`${activeFolder === 'Personal' ? accentValue[activeAccent].text : null}`}
-                        >
-                            Personal
-                        </span>
-                        <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                            1
-                        </span>
-                    </FolderChip>
+                {folders.map((folder) => {
+                    const totalNotesInAFolder = notes.filter(
+                        (note) => note.folderId === folder.id
+                    ).length
 
-                    <FolderChip
-                        className={`${activeFolder === 'Work' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
-                    >
-                        <span
-                            className={`${activeFolder === 'Work' ? accentValue[activeAccent].text : null}`}
+                    return (
+                        <FolderChip
+                            key={folder.id}
+                            className={`${activeFolder === folder.name ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active} min-w-max`}
                         >
-                            Work
-                        </span>
-                        <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                            2
-                        </span>
-                    </FolderChip>
-                </div>
-            )}
+                            <span
+                                className={`${activeFolder === folder.name ? accentValue[activeAccent].text : null}`}
+                            >
+                                {folder.name}
+                            </span>
+                            <span className="text-light-secondaryText dark:text-dark-secondaryText">
+                                {totalNotesInAFolder}
+                            </span>
+                        </FolderChip>
+                    )
+                })}
+            </div>
         </div>
     )
 }
