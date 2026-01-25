@@ -1,6 +1,6 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import { Accent } from 'src/shared/model/accent'
-import { Note, Notes } from 'src/shared/model/note'
+import { Folder, Folders, Note, Notes } from 'src/shared/model/note'
 import { Theme } from 'src/shared/model/theme'
 
 declare global {
@@ -26,6 +26,11 @@ declare global {
             deleteNote: (payload: Note) => Promise<boolean>
             getNote: (id: number) => Promise<Note>
             getAllNotes: () => Promise<Notes>
+            getFolder: (id: number) => Promise<Folder>
+            getAllFolders: () => Promise<Folders>
+            createFolder: (payload: Folder) => Promise<Folder>
+            updateFolder: (payload: Folder) => Promise<Folder>
+            deleteFolder: (payload: Folder) => Promise<boolean>
         }
     }
 }

@@ -1,7 +1,7 @@
 import { electronAPI } from '@electron-toolkit/preload'
 import { contextBridge, ipcRenderer } from 'electron'
 import { Accent } from '../shared/model/accent'
-import { Note } from '../shared/model/note'
+import { Folder, Note } from '../shared/model/note'
 import { Theme } from '../shared/model/theme'
 
 // Custom APIs for renderer
@@ -27,7 +27,12 @@ const notesApi = {
     updateNote: (payload: Note) => ipcRenderer.invoke('update:note', payload),
     deleteNote: (payload: Note) => ipcRenderer.invoke('delete:note', payload),
     getNote: (id: number) => ipcRenderer.invoke('get:note', id),
-    getAllNotes: () => ipcRenderer.invoke('get:notes')
+    getAllNotes: () => ipcRenderer.invoke('get:notes'),
+    getFolder: (id: number) => ipcRenderer.invoke('get:folder', id),
+    getAllFolders: () => ipcRenderer.invoke('get:folders'),
+    createFolder: (payload: Folder) => ipcRenderer.invoke('create:folder', payload),
+    updateFolder: (payload: Folder) => ipcRenderer.invoke('update:folder', payload),
+    deleteFolder: (payload: Folder) => ipcRenderer.invoke('delete:folder', payload)
 }
 
 // Use `contextBridge` APIs to expose Electron APIs to
