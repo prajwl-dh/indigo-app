@@ -4,6 +4,7 @@ import { useDraggable } from 'react-use-draggable-scroll'
 import { Accent } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
 import { Folder, Folders, Note, Notes } from 'src/shared/model/note'
+import { capitalizeWords } from 'src/shared/util/stringUtils'
 import Button from '../ui/Button'
 import FolderChip from '../ui/FolderChip'
 
@@ -52,7 +53,7 @@ export default function Sidebar({
     }
 
     async function createNewFolder(name: string): Promise<void> {
-        const trimmed = name.trim()
+        const trimmed = capitalizeWords(name)
         if (!trimmed) return
 
         if (folders.some((f) => f.name?.toLowerCase() === trimmed.toLowerCase())) {
@@ -173,6 +174,37 @@ export default function Sidebar({
                 className={`flex row items-center gap-1 p-2 shrink-0 overflow-x-auto no-scrollbar select-none no-drag-cursor`}
                 hidden={isTrashOpened || !isSidebarOpen}
             >
+                {!createFolder ? (
+                    <Button
+                        onClick={() => setCreateFolder((prev) => !prev)}
+                        title="Create New Folder"
+                        className={`flex items-center py-1.5 rounded-lg text-light-secondaryText! dark:text-dark-primaryText! cursor-default no-drag-cursor bg-white dark:bg-[#1c1c1e] ${accentValue[activeAccent].active}`}
+                    >
+                        <Plus className="h-4.5 w-4" />
+                    </Button>
+                ) : (
+                    <input
+                        className={`flex-1 border py-1.5 px-1 rounded-md w-24 border-light-border dark:border-dark-border outline-none text text-xs text-light-primaryText dark:text-dark-primaryText bg-white dark:bg-[#1c1c1e] capitalize`}
+                        autoFocus
+                        placeholder="Name..."
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault()
+                                e.currentTarget.blur()
+                            }
+
+                            if (e.key === 'Escape') {
+                                e.preventDefault()
+                                setCreateFolder(false)
+                            }
+                        }}
+                        onBlur={(e) => {
+                            createNewFolder(e.currentTarget.value)
+                            setCreateFolder(false)
+                        }}
+                    />
+                )}
+
                 <FolderChip
                     className={`${activeFolder === 'All' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
                     onClick={() => setActiveFolder('All')}
@@ -228,37 +260,6 @@ export default function Sidebar({
                         </span>
                     </FolderChip>
                 ))}
-
-                {!createFolder ? (
-                    <Button
-                        onClick={() => setCreateFolder((prev) => !prev)}
-                        title="Create New Folder"
-                        className={`flex items-center py-1.5 rounded-lg text-light-secondaryText! dark:text-dark-primaryText! cursor-default no-drag-cursor bg-white dark:bg-[#1c1c1e] ${accentValue[activeAccent].active}`}
-                    >
-                        <Plus className="h-4 w-4" />
-                    </Button>
-                ) : (
-                    <input
-                        className={`flex-1 border py-1.5 px-1 rounded-md w-24 border-light-border dark:border-dark-border outline-none text text-xs text-light-primaryText dark:text-dark-primaryText bg-white dark:bg-[#1c1c1e]`}
-                        autoFocus
-                        placeholder="Name..."
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault()
-                                createNewFolder(e.currentTarget.value)
-                            }
-
-                            if (e.key === 'Escape') {
-                                e.preventDefault()
-                                setCreateFolder(false)
-                            }
-                        }}
-                        onBlur={(e) => {
-                            createNewFolder(e.currentTarget.value)
-                            setCreateFolder(false)
-                        }}
-                    />
-                )}
             </div>
         </div>
     )
