@@ -3,7 +3,7 @@ import React from 'react'
 import { useDraggable } from 'react-use-draggable-scroll'
 import { Accent } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
-import { Folders, Note, Notes } from 'src/shared/model/note'
+import { Folder, Folders, Note, Notes } from 'src/shared/model/note'
 import Button from '../ui/Button'
 import FolderChip from '../ui/FolderChip'
 
@@ -33,6 +33,7 @@ export default function Sidebar({
     setFolders
 }: SidebarType): React.JSX.Element {
     const [isSidebarOpen, setIsSidebarOpen] = React.useState<boolean>(true)
+    const [createFolder, setCreateFolder] = React.useState<boolean>(false)
 
     const folderChipRef = React.useRef<HTMLDivElement>(
         null
@@ -46,8 +47,42 @@ export default function Sidebar({
 
     async function createNewNote(): Promise<void> {
         const response: Note = await window.notesApi.createNote()
+
         setNotes((prev) => [...prev, response])
     }
+
+    async function createNewFolder(name: string): Promise<void> {
+        const trimmed = name.trim()
+        if (!trimmed) return
+
+        if (folders.some((f) => f.name?.toLowerCase() === trimmed.toLowerCase())) {
+            setCreateFolder(false)
+            return
+        }
+
+        const response: Folder = await window.notesApi.createFolder({
+            id: folders.length + 1,
+            name: trimmed.charAt(0).toUpperCase() + trimmed.slice(1)
+        })
+
+        setFolders((prev) => [...prev, response])
+        setCreateFolder(false)
+    }
+
+    const foldersWithCounts = React.useMemo(() => {
+        return folders
+            .map((folder) => ({
+                ...folder,
+                noteCount: notes.filter((n) => n.folderId === folder.id).length
+            }))
+            .sort((a, b) => {
+                if (b.noteCount !== a.noteCount) {
+                    return b.noteCount - a.noteCount
+                }
+
+                return a.id - b.id
+            })
+    }, [folders, notes])
 
     return (
         <div
@@ -139,7 +174,7 @@ export default function Sidebar({
                 hidden={isTrashOpened || !isSidebarOpen}
             >
                 <FolderChip
-                    className={`${activeFolder === 'All' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].hover}`}
+                    className={`${activeFolder === 'All' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
                     onClick={() => setActiveFolder('All')}
                 >
                     <span
@@ -177,7 +212,7 @@ export default function Sidebar({
 
                 <div className={`w-px h-5 mx-1 shrink-0 bg-gray-300 dark:bg-gray-600`} />
 
-                {folders.map((folder) => (
+                {foldersWithCounts.map((folder) => (
                     <FolderChip
                         key={folder.id}
                         className={`${activeFolder === folder.name ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active} min-w-max no-drag-cursor`}
@@ -189,10 +224,41 @@ export default function Sidebar({
                             {folder.name}
                         </span>
                         <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                            {notes.filter((note) => note.folderId === folder.id).length | 0}
+                            {folder.noteCount}
                         </span>
                     </FolderChip>
                 ))}
+
+                {!createFolder ? (
+                    <Button
+                        onClick={() => setCreateFolder((prev) => !prev)}
+                        title="Create New Folder"
+                        className={`flex items-center py-1.5 rounded-lg text-light-secondaryText! dark:text-dark-primaryText! cursor-default no-drag-cursor bg-white dark:bg-[#1c1c1e] ${accentValue[activeAccent].active}`}
+                    >
+                        <Plus className="h-4 w-4" />
+                    </Button>
+                ) : (
+                    <input
+                        className={`flex-1 border py-1.5 px-1 rounded-md w-24 border-light-border dark:border-dark-border outline-none text text-xs text-light-primaryText dark:text-dark-primaryText bg-white dark:bg-[#1c1c1e]`}
+                        autoFocus
+                        placeholder="Name..."
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault()
+                                createNewFolder(e.currentTarget.value)
+                            }
+
+                            if (e.key === 'Escape') {
+                                e.preventDefault()
+                                setCreateFolder(false)
+                            }
+                        }}
+                        onBlur={(e) => {
+                            createNewFolder(e.currentTarget.value)
+                            setCreateFolder(false)
+                        }}
+                    />
+                )}
             </div>
         </div>
     )

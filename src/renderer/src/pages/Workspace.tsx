@@ -33,8 +33,6 @@ export default function Workspace({
         getAllFolders()
     }, [])
 
-    console.log(notes)
-
     return (
         <div className="h-screen w-screen flex flex-nowrap">
             <Sidebar

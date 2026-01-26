@@ -25,6 +25,7 @@
     "dependencies": {
         "@electron-toolkit/preload": "^3.0.2",
         "@electron-toolkit/utils": "^4.0.0",
+        "@headlessui/react": "^2.2.9",
         "@libsql/client": "^0.17.0",
         "@tailwindcss/postcss": "^4.1.18",
         "autoprefixer": "^10.4.23",
