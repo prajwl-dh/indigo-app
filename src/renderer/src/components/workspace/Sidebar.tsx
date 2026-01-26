@@ -63,7 +63,7 @@ export default function Sidebar({
 
             {/* Header Section */}
             <div
-                className={`flex ${isSidebarOpen ? 'flex-row justify-between' : 'flex-col gap-3 mt-1'} items-center shrink-0 p-2 cursor-default`}
+                className={`flex ${isSidebarOpen ? 'flex-row justify-between' : 'flex-col gap-3 mt-1'} items-center shrink-0 p-2 cursor-default select-none`}
             >
                 <div className={`flex flex-row items-center gap-2`} hidden={!isSidebarOpen}>
                     <span
@@ -82,6 +82,7 @@ export default function Sidebar({
                     I
                 </span>
                 <Button
+                    title="Toggle Sidebar"
                     onClick={toggleSidebar}
                     className={`p-1 rounded-md text-light-secondaryText dark:text-dark-secondaryText ${isSidebarOpen ? 'border-none' : 'border'} hover:brightness-80 dark:hover:brightness-120`}
                 >
@@ -104,11 +105,14 @@ export default function Sidebar({
                             placeholder="Search"
                             className={`flex-1 border-none outline-none text text-xs text-light-primaryText dark:text-dark-primaryText`}
                         />
-                        <X className="h-4 w-4 hover:text-light-primaryText dark:hover:text-dark-primaryText" />
+                        <button title="Clear Search">
+                            <X className="h-4 w-4 hover:text-light-primaryText dark:hover:text-dark-primaryText" />
+                        </button>
                     </div>
 
                     {/* Action Button */}
                     <Button
+                        title="Create A New Note"
                         hidden={isTrashOpened}
                         className={`flex flex-row items-center justify-center gap-1 text-white rounded-lg text-[14px] font-medium transition duration-300 ${accentValue[activeAccent].bg} ${accentValue[activeAccent].bgHover} hover:-translate-y-0.5`}
                         onClick={createNewNote}
@@ -117,6 +121,7 @@ export default function Sidebar({
                         <span>New Note</span>
                     </Button>
                     <Button
+                        title="Empty Trash"
                         hidden={!isTrashOpened}
                         className={`flex flex-row items-center justify-center gap-2 text-white rounded-lg text-[14px] font-medium transition duration-300 bg-red-500 hover:bg-red-600 hover:-translate-y-0.5`}
                     >

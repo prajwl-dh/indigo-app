@@ -27,7 +27,7 @@ export default function InitialLanding({ activeAccent }: InitialLandingType): Re
 
     return (
         <div className={`h-screen w-full flex flex-col justify-center items-center pb-10`}>
-            <div className="max-w-2xl w-full flex flex-col items-center gap-12">
+            <div className="max-w-2xl w-full flex flex-col items-center gap-12 select-none">
                 {/* Branding */}
                 <div className="flex flex-col gap-1 items-center text-center">
                     <h1 className="text-5xl font-extrabold text-light-primaryText dark:text-dark-primaryText">
