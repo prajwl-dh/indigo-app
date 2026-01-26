@@ -226,7 +226,7 @@ export default function Sidebar({
                                 left:
                                     folderChipRef.current.scrollWidth -
                                     folderChipRef.current.clientWidth +
-                                    100,
+                                    50,
                                 behavior: 'smooth'
                             })
                         }}

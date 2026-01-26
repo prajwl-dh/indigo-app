@@ -46,7 +46,7 @@ export function DialogComponent({
                     leaveTo="opacity-0"
                 >
                     <div
-                        className="fixed inset-0 bg-transparent backdrop-blur-xs"
+                        className="fixed inset-0 bg-transparent backdrop-blur-sm"
                         aria-hidden="true"
                     />
                 </TransitionChild>
