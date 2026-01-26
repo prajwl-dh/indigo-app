@@ -1,4 +1,14 @@
-import { ChevronLeft, Database, Heart, Menu, Plus, Search, Trash2, X } from 'lucide-react'
+import {
+    ChevronLeft,
+    Database,
+    Heart,
+    Menu,
+    MoreHorizontal,
+    Plus,
+    Search,
+    Trash2,
+    X
+} from 'lucide-react'
 import React from 'react'
 import { useDraggable } from 'react-use-draggable-scroll'
 import { Accent } from 'src/shared/model/accent'
@@ -13,8 +23,8 @@ type SidebarType = {
     activeAccent: Accent
     isTrashOpened: boolean
     setIsTrashOpened: React.Dispatch<React.SetStateAction<boolean>>
-    activeFolder: string
-    setActiveFolder: React.Dispatch<React.SetStateAction<string>>
+    activeFolder: Folder
+    setActiveFolder: React.Dispatch<React.SetStateAction<Folder>>
     notes: Notes
     setNotes: React.Dispatch<React.SetStateAction<Notes>>
     folders: Folders
@@ -123,7 +133,7 @@ export default function Sidebar({
                     className={`p-1 rounded-md text-light-secondaryText dark:text-dark-secondaryText ${isSidebarOpen ? 'border-none' : 'border'} hover:brightness-80 dark:hover:brightness-120`}
                 >
                     {isSidebarOpen ? (
-                        <ChevronLeft className="h-4 w-4" />
+                        <ChevronLeft className="h-4 w-4 hover:text-light-primaryText dark:hover:text-dark-primaryText" />
                     ) : (
                         <Menu className="h-5 w-5" />
                     )}
@@ -178,13 +188,13 @@ export default function Sidebar({
                     <Button
                         onClick={() => setCreateFolder((prev) => !prev)}
                         title="Create New Folder"
-                        className={`flex items-center py-1.5 rounded-lg text-light-secondaryText! dark:text-dark-primaryText! cursor-default no-drag-cursor bg-white dark:bg-[#1c1c1e] ${accentValue[activeAccent].active}`}
+                        className={`flex items-center py-1.5 rounded-lg text-light-secondaryText! dark:text-dark-primaryText! cursor-default no-drag-cursor bg-white dark:bg-[#1c1c1e] ${accentValue[activeAccent].active} no-drag-cursor`}
                     >
-                        <Plus className="h-4.5 w-4" />
+                        <Plus className="h-4.5 w-4 no-drag-cursor" />
                     </Button>
                 ) : (
                     <input
-                        className={`flex-1 border py-1.5 px-1 rounded-md w-24 border-light-border dark:border-dark-border outline-none text text-xs text-light-primaryText dark:text-dark-primaryText bg-white dark:bg-[#1c1c1e] capitalize`}
+                        className={`flex-1 border py-1.5 px-1 rounded-md w-24 border-light-border dark:border-dark-border outline-none text text-xs text-light-primaryText dark:text-dark-primaryText bg-white dark:bg-[#1c1c1e] capitalize no-drag-cursor`}
                         autoFocus
                         placeholder="Name..."
                         onKeyDown={(e) => {
@@ -201,16 +211,23 @@ export default function Sidebar({
                         onBlur={(e) => {
                             createNewFolder(e.currentTarget.value)
                             setCreateFolder(false)
+                            folderChipRef.current.scrollTo({
+                                left:
+                                    folderChipRef.current.scrollWidth -
+                                    folderChipRef.current.clientWidth +
+                                    100,
+                                behavior: 'smooth'
+                            })
                         }}
                     />
                 )}
 
                 <FolderChip
-                    className={`${activeFolder === 'All' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
-                    onClick={() => setActiveFolder('All')}
+                    className={`${activeFolder.name === 'All' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
+                    onClick={() => setActiveFolder({ id: 0, name: 'All' })}
                 >
                     <span
-                        className={`${activeFolder === 'All' ? accentValue[activeAccent].text : null}`}
+                        className={`${activeFolder.name === 'All' ? accentValue[activeAccent].text : null}`}
                     >
                         All
                     </span>
@@ -220,20 +237,20 @@ export default function Sidebar({
                 </FolderChip>
 
                 <FolderChip
-                    className={`${activeFolder === 'Favorites' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
-                    onClick={() => setActiveFolder('Favorites')}
+                    className={`${activeFolder.name === 'Favorites' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
+                    onClick={() => setActiveFolder({ id: 0, name: 'Favorites' })}
                 >
                     <Heart
-                        className={`h-3 w-3 opacity-70 ${activeFolder === 'Favorites' ? accentValue[activeAccent].text : null}`}
+                        className={`h-3 w-3 opacity-70 ${activeFolder.name === 'Favorites' ? accentValue[activeAccent].text : null}`}
                         style={{
                             fill:
-                                activeFolder === 'Favorites'
+                                activeFolder.name === 'Favorites'
                                     ? accentValue[activeAccent].hex
                                     : undefined
                         }}
                     />
                     <span
-                        className={`${activeFolder === 'Favorites' ? accentValue[activeAccent].text : null}`}
+                        className={`${activeFolder.name === 'Favorites' ? accentValue[activeAccent].text : null}`}
                     >
                         Favorites
                     </span>
@@ -242,16 +259,21 @@ export default function Sidebar({
                     </span>
                 </FolderChip>
 
-                <div className={`w-px h-5 mx-1 shrink-0 bg-gray-300 dark:bg-gray-600`} />
+                <div
+                    hidden={folders.length < 3}
+                    className={`w-px h-5 mx-1 shrink-0 bg-gray-300 dark:bg-gray-600`}
+                />
 
                 {foldersWithCounts.map((folder) => (
                     <FolderChip
                         key={folder.id}
-                        className={`${activeFolder === folder.name ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active} min-w-max no-drag-cursor`}
-                        onClick={() => folder.name && setActiveFolder(folder.name)}
+                        className={`${activeFolder.name === folder.name ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active} min-w-max no-drag-cursor`}
+                        onClick={() =>
+                            folder.name && setActiveFolder({ id: folder.id, name: folder.name })
+                        }
                     >
                         <span
-                            className={`${activeFolder === folder.name ? accentValue[activeAccent].text : null}`}
+                            className={`${activeFolder.name === folder.name ? accentValue[activeAccent].text : null}`}
                         >
                             {folder.name}
                         </span>
@@ -260,6 +282,27 @@ export default function Sidebar({
                         </span>
                     </FolderChip>
                 ))}
+            </div>
+
+            {/* Current Folder Header Bar */}
+            <div
+                className={`flex row items-center justify-between mt-2 px-2 py-1 h-8 gap-8 shrink-0 border-t border-b border-light-border dark:border-dark-border`}
+                hidden={!isSidebarOpen}
+            >
+                <span className="truncate tracking-wide text-light-secondaryText dark:text-dark-secondaryText text-[11px] font-medium">
+                    {isTrashOpened
+                        ? 'Deleted'
+                        : activeFolder.name === 'All'
+                          ? 'All Notes'
+                          : activeFolder.name}
+                </span>
+                {activeFolder.name !== 'All' && activeFolder.name !== 'Favorites' ? (
+                    <button title="Folder Options">
+                        <MoreHorizontal
+                            className={`w-4 h-5 shrink-0 text-light-secondaryText dark:text-dark-secondaryText hover:text-light-primaryText dark:hover:text-dark-primaryText`}
+                        />
+                    </button>
+                ) : null}
             </div>
         </div>
     )
