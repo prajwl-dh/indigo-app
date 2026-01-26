@@ -23,6 +23,7 @@ interface PopoverComponentProps {
     className?: string
     buttonClassName?: string
     panelClassName?: string
+    title?: string
 }
 
 export default function PopoverComponent({
@@ -31,11 +32,16 @@ export default function PopoverComponent({
     anchor = 'bottom',
     className,
     buttonClassName,
-    panelClassName
+    panelClassName,
+    title
 }: PopoverComponentProps): React.JSX.Element {
     return (
         <Popover className={twMerge('relative inline-block', className)}>
-            <PopoverButton as="div" className={twMerge('cursor-pointer', buttonClassName)}>
+            <PopoverButton
+                title={title}
+                as="div"
+                className={twMerge('cursor-pointer', buttonClassName)}
+            >
                 {trigger}
             </PopoverButton>
 

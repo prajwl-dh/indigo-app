@@ -1,6 +1,8 @@
 import {
+    AlertTriangle,
     ChevronLeft,
     Database,
+    Edit2,
     Heart,
     Menu,
     MoreHorizontal,
@@ -16,7 +18,9 @@ import { accentValue } from 'src/shared/model/accentValues'
 import { Folder, Folders, Note, Notes } from 'src/shared/model/note'
 import { capitalizeWords } from 'src/shared/util/stringUtils'
 import Button from '../ui/Button'
+import { DialogComponent } from '../ui/DialogComponent'
 import FolderChip from '../ui/FolderChip'
+import PopoverComponent from '../ui/PopOver'
 
 type SidebarType = {
     activeDatabase: string
@@ -45,6 +49,8 @@ export default function Sidebar({
 }: SidebarType): React.JSX.Element {
     const [isSidebarOpen, setIsSidebarOpen] = React.useState<boolean>(true)
     const [createFolder, setCreateFolder] = React.useState<boolean>(false)
+    const [isDeleteFolderDialogActive, setIsDeleteFolderDialogActive] =
+        React.useState<boolean>(false)
 
     const folderChipRef = React.useRef<HTMLDivElement>(
         null
@@ -94,6 +100,11 @@ export default function Sidebar({
                 return a.id - b.id
             })
     }, [folders, notes])
+
+    async function deleteFolder(): Promise<void> {
+        await window.notesApi.deleteFolder(activeFolder)
+        window.location.reload()
+    }
 
     return (
         <div
@@ -260,7 +271,7 @@ export default function Sidebar({
                 </FolderChip>
 
                 <div
-                    hidden={folders.length < 3}
+                    hidden={folders.length < 1}
                     className={`w-px h-5 mx-1 shrink-0 bg-gray-300 dark:bg-gray-600`}
                 />
 
@@ -296,13 +307,67 @@ export default function Sidebar({
                           ? 'All Notes'
                           : activeFolder.name}
                 </span>
-                {activeFolder.name !== 'All' && activeFolder.name !== 'Favorites' ? (
-                    <button title="Folder Options">
-                        <MoreHorizontal
-                            className={`w-4 h-5 shrink-0 text-light-secondaryText dark:text-dark-secondaryText hover:text-light-primaryText dark:hover:text-dark-primaryText`}
-                        />
-                    </button>
+                {activeFolder.name !== 'All' &&
+                activeFolder.name !== 'Favorites' &&
+                !isTrashOpened ? (
+                    <PopoverComponent
+                        title="Folder Options"
+                        buttonClassName="cursor-default"
+                        anchor="bottom end"
+                        panelClassName="min-w-32 border border-light-border dark:border-dark-border rounded-lg p-1"
+                        trigger={
+                            <MoreHorizontal
+                                className={`w-4 h-5 shrink-0 text-light-secondaryText dark:text-dark-secondaryText hover:text-light-primaryText dark:hover:text-dark-primaryText`}
+                            />
+                        }
+                    >
+                        <button
+                            title="Rename Folder"
+                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-md outline-none`}
+                        >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            <span className="font-medium">Rename</span>
+                        </button>
+                        <button
+                            title="Delete Folder"
+                            onClick={() => setIsDeleteFolderDialogActive(true)}
+                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-md outline-none`}
+                        >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span className="font-medium">Delete</span>
+                        </button>
+                    </PopoverComponent>
                 ) : null}
+
+                <DialogComponent
+                    open={isDeleteFolderDialogActive}
+                    onClose={() => setIsDeleteFolderDialogActive(false)}
+                    className="flex flex-col items-center text-center w-96 bg-light-foreground dark:bg-dark-foreground border border-light-border dark:border-dark-border rounded-xl"
+                    titleClassName="text-light-primaryText dark:text-dark-primaryText"
+                    descriptionClassName="text-light-secondaryText dark:text-dark-secondaryText"
+                    title={`Delete ${activeFolder.name} Folder?`}
+                    description="Notes inside this folder will not be deleted, but moved to 'All Notes'."
+                    icon={
+                        <div className="p-3 rounded-full bg-red-100 text-red-500 dark:bg-red-400/10">
+                            <AlertTriangle className="w-8 h-8" strokeWidth={1.5} />
+                        </div>
+                    }
+                >
+                    <div className="flex flex-row items-center justify-between gap-2 text-center font-medium w-full">
+                        <Button
+                            onClick={() => setIsDeleteFolderDialogActive(false)}
+                            className="w-1/2 rounded-xl bg-light-background dark:bg-dark-background text-light-primaryText dark:text-dark-primaryText"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            className="w-1/2 rounded-xl bg-red-500 hover:bg-red-600 text-white"
+                            onClick={() => deleteFolder()}
+                        >
+                            Delete Folder
+                        </Button>
+                    </div>
+                </DialogComponent>
             </div>
         </div>
     )
