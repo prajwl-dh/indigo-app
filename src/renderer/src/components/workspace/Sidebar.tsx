@@ -48,7 +48,7 @@ export default function Sidebar({
     setFolders
 }: SidebarType): React.JSX.Element {
     const [isSidebarOpen, setIsSidebarOpen] = React.useState<boolean>(true)
-    const [createFolder, setCreateFolder] = React.useState<boolean>(false)
+    const [isCreateFolderActive, setIsCreateFolderActive] = React.useState<boolean>(false)
     const [isDeleteFolderDialogActive, setIsDeleteFolderDialogActive] =
         React.useState<boolean>(false)
 
@@ -73,7 +73,7 @@ export default function Sidebar({
         if (!trimmed) return
 
         if (folders.some((f) => f.name?.toLowerCase() === trimmed.toLowerCase())) {
-            setCreateFolder(false)
+            setIsCreateFolderActive(false)
             return
         }
 
@@ -83,7 +83,7 @@ export default function Sidebar({
         })
 
         setFolders((prev) => [...prev, response])
-        setCreateFolder(false)
+        setIsCreateFolderActive(false)
     }
 
     const foldersWithCounts = React.useMemo(() => {
@@ -195,9 +195,9 @@ export default function Sidebar({
                 className={`flex row items-center gap-1 p-2 shrink-0 overflow-x-auto no-scrollbar select-none no-drag-cursor`}
                 hidden={isTrashOpened || !isSidebarOpen}
             >
-                {!createFolder ? (
+                {!isCreateFolderActive ? (
                     <Button
-                        onClick={() => setCreateFolder((prev) => !prev)}
+                        onClick={() => setIsCreateFolderActive((prev) => !prev)}
                         title="Create New Folder"
                         className={`flex items-center py-1.5 rounded-lg text-light-secondaryText! dark:text-dark-primaryText! cursor-default no-drag-cursor bg-white dark:bg-[#1c1c1e] ${accentValue[activeAccent].active} no-drag-cursor`}
                     >
@@ -216,12 +216,12 @@ export default function Sidebar({
 
                             if (e.key === 'Escape') {
                                 e.preventDefault()
-                                setCreateFolder(false)
+                                setIsCreateFolderActive(false)
                             }
                         }}
                         onBlur={(e) => {
                             createNewFolder(e.currentTarget.value)
-                            setCreateFolder(false)
+                            setIsCreateFolderActive(false)
                             folderChipRef.current.scrollTo({
                                 left:
                                     folderChipRef.current.scrollWidth -
