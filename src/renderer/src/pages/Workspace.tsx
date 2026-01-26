@@ -15,8 +15,8 @@ export default function Workspace({
 }: WorkspaceType): React.JSX.Element {
     const [isTrashOpened, setIsTrashOpened] = React.useState<boolean>(false)
     const [activeFolder, setActiveFolder] = React.useState<string>('All')
-    const [notes, setNotes] = React.useState<Notes>()
-    const [folders, setFolders] = React.useState<Folders>()
+    const [notes, setNotes] = React.useState<Notes>([])
+    const [folders, setFolders] = React.useState<Folders>([])
 
     async function getAllNotes(): Promise<void> {
         const response = await window.notesApi.getAllNotes()
@@ -33,9 +33,7 @@ export default function Workspace({
         getAllFolders()
     }, [])
 
-    if (!notes || !folders) {
-        return <></>
-    }
+    console.log(notes)
 
     return (
         <div className="h-screen w-screen flex flex-nowrap">

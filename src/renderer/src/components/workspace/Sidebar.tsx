@@ -3,7 +3,7 @@ import React from 'react'
 import { useDraggable } from 'react-use-draggable-scroll'
 import { Accent } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
-import { Folders, Notes } from 'src/shared/model/note'
+import { Folders, Note, Notes } from 'src/shared/model/note'
 import Button from '../ui/Button'
 import FolderChip from '../ui/FolderChip'
 
@@ -15,9 +15,9 @@ type SidebarType = {
     activeFolder: string
     setActiveFolder: React.Dispatch<React.SetStateAction<string>>
     notes: Notes
-    setNotes: React.Dispatch<React.SetStateAction<Notes | undefined>>
+    setNotes: React.Dispatch<React.SetStateAction<Notes>>
     folders: Folders
-    setFolders: React.Dispatch<React.SetStateAction<Folders | undefined>>
+    setFolders: React.Dispatch<React.SetStateAction<Folders>>
 }
 
 export default function Sidebar({
@@ -42,6 +42,11 @@ export default function Sidebar({
 
     function toggleSidebar(): void {
         setIsSidebarOpen((prev) => !prev)
+    }
+
+    async function createNewNote(): Promise<void> {
+        const response: Note = await window.notesApi.createNote()
+        setNotes((prev) => [...prev, response])
     }
 
     return (
@@ -106,6 +111,7 @@ export default function Sidebar({
                     <Button
                         hidden={isTrashOpened}
                         className={`flex flex-row items-center justify-center gap-1 text-white rounded-lg text-[14px] font-medium transition duration-300 ${accentValue[activeAccent].bg} ${accentValue[activeAccent].bgHover} hover:-translate-y-0.5`}
+                        onClick={createNewNote}
                     >
                         <Plus className="mb-1 h-4 w-4" />
                         <span>New Note</span>
@@ -124,24 +130,29 @@ export default function Sidebar({
             <div
                 {...events}
                 ref={folderChipRef}
-                className={`flex row items-center gap-1 p-2 shrink-0 overflow-x-auto no-scrollbar select-none cursor-default`}
+                className={`flex row items-center gap-1 p-2 shrink-0 overflow-x-auto no-scrollbar select-none no-drag-cursor`}
                 hidden={isTrashOpened || !isSidebarOpen}
             >
                 <FolderChip
                     className={`${activeFolder === 'All' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].hover}`}
+                    onClick={() => setActiveFolder('All')}
                 >
                     <span
                         className={`${activeFolder === 'All' ? accentValue[activeAccent].text : null}`}
                     >
                         All
                     </span>
-                    <span className="text-light-secondaryText dark:text-dark-secondaryText">5</span>
+                    <span className="text-light-secondaryText dark:text-dark-secondaryText">
+                        {notes.length}
+                    </span>
                 </FolderChip>
 
                 <FolderChip
                     className={`${activeFolder === 'Favorites' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
+                    onClick={() => setActiveFolder('Favorites')}
                 >
                     <Heart
+                        fill={activeFolder === 'Favorites' ? accentValue[activeAccent].hex : ''}
                         className={`h-3 w-3 opacity-70 ${activeFolder === 'Favorites' ? accentValue[activeAccent].text : null}`}
                     />
                     <span
@@ -149,32 +160,29 @@ export default function Sidebar({
                     >
                         Favorites
                     </span>
-                    <span className="text-light-secondaryText dark:text-dark-secondaryText">3</span>
+                    <span className="text-light-secondaryText dark:text-dark-secondaryText">
+                        {notes.filter((note) => note.isFavourite === true).length | 0}
+                    </span>
                 </FolderChip>
 
                 <div className={`w-px h-5 mx-1 shrink-0 bg-gray-300 dark:bg-gray-600`} />
 
-                {folders.map((folder) => {
-                    const totalNotesInAFolder = notes.filter(
-                        (note) => note.folderId === folder.id
-                    ).length
-
-                    return (
-                        <FolderChip
-                            key={folder.id}
-                            className={`${activeFolder === folder.name ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active} min-w-max`}
+                {folders.map((folder) => (
+                    <FolderChip
+                        key={folder.id}
+                        className={`${activeFolder === folder.name ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active} min-w-max no-drag-cursor`}
+                        onClick={() => folder.name && setActiveFolder(folder.name)}
+                    >
+                        <span
+                            className={`${activeFolder === folder.name ? accentValue[activeAccent].text : null}`}
                         >
-                            <span
-                                className={`${activeFolder === folder.name ? accentValue[activeAccent].text : null}`}
-                            >
-                                {folder.name}
-                            </span>
-                            <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                                {totalNotesInAFolder}
-                            </span>
-                        </FolderChip>
-                    )
-                })}
+                            {folder.name}
+                        </span>
+                        <span className="text-light-secondaryText dark:text-dark-secondaryText">
+                            {notes.filter((note) => note.folderId === folder.id).length | 0}
+                        </span>
+                    </FolderChip>
+                ))}
             </div>
         </div>
     )
