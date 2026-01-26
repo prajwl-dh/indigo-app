@@ -152,8 +152,13 @@ export default function Sidebar({
                     onClick={() => setActiveFolder('Favorites')}
                 >
                     <Heart
-                        fill={activeFolder === 'Favorites' ? accentValue[activeAccent].hex : ''}
                         className={`h-3 w-3 opacity-70 ${activeFolder === 'Favorites' ? accentValue[activeAccent].text : null}`}
+                        style={{
+                            fill:
+                                activeFolder === 'Favorites'
+                                    ? accentValue[activeAccent].hex
+                                    : undefined
+                        }}
                     />
                     <span
                         className={`${activeFolder === 'Favorites' ? accentValue[activeAccent].text : null}`}
