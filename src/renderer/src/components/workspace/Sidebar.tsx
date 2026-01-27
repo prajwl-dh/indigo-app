@@ -173,6 +173,7 @@ export default function Sidebar({
                 </Button>
             </div>
 
+            {/* Search Bar And Action Button */}
             {isSidebarOpen && (
                 <div className="flex flex-col gap-3 p-2 shrink-0">
                     <div
@@ -189,7 +190,6 @@ export default function Sidebar({
                         </button>
                     </div>
 
-                    {/* Action Button */}
                     <Button
                         title="Create A New Note"
                         hidden={isTrashOpened}
