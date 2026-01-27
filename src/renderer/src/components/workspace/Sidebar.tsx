@@ -329,7 +329,7 @@ export default function Sidebar({
                     hidden={!isRenameFolderActive}
                     className={`flex-1 py-1.5 px-1 rounded-md w-24 outline-none text capitalize no-drag-cursor tracking-wide text-light-secondaryText dark:text-dark-secondaryText text-[11px] font-medium`}
                     autoFocus
-                    placeholder="New Name..."
+                    placeholder="New Folder Name..."
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                             e.preventDefault()
