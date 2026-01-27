@@ -49,6 +49,7 @@ export default function Sidebar({
 }: SidebarType): React.JSX.Element {
     const [isSidebarOpen, setIsSidebarOpen] = React.useState<boolean>(true)
     const [isCreateFolderActive, setIsCreateFolderActive] = React.useState<boolean>(false)
+    const [isRenameFolderActive, setIsRenameFolderActive] = React.useState<boolean>(false)
     const [isDeleteFolderDialogActive, setIsDeleteFolderDialogActive] =
         React.useState<boolean>(false)
 
@@ -84,6 +85,27 @@ export default function Sidebar({
 
         setFolders((prev) => [...prev, response])
         setIsCreateFolderActive(false)
+    }
+
+    async function renameFolder(name: string): Promise<void> {
+        const trimmed = capitalizeWords(name)
+        if (!trimmed) return
+
+        if (folders.some((f) => f.name?.toLowerCase() === trimmed.toLowerCase())) {
+            setIsRenameFolderActive(false)
+            return
+        }
+
+        const response = await window.notesApi.updateFolder({ id: activeFolder.id, name: trimmed })
+
+        setFolders((prev) =>
+            prev.map((folder) =>
+                folder.id === response.id ? { ...folder, name: response.name } : folder
+            )
+        )
+
+        setIsRenameFolderActive(false)
+        setActiveFolder({ id: response.id, name: response.name })
     }
 
     const foldersWithCounts = React.useMemo(() => {
@@ -300,7 +322,36 @@ export default function Sidebar({
                 className={`flex row items-center justify-between mt-2 px-2 py-1 h-8 gap-8 shrink-0 border-t border-b border-light-border dark:border-dark-border`}
                 hidden={!isSidebarOpen}
             >
-                <span className="truncate tracking-wide text-light-secondaryText dark:text-dark-secondaryText text-[11px] font-medium">
+                <input
+                    ref={(el) => {
+                        if (el) el.focus()
+                    }}
+                    hidden={!isRenameFolderActive}
+                    className={`flex-1 py-1.5 px-1 rounded-md w-24 outline-none text capitalize no-drag-cursor tracking-wide text-light-secondaryText dark:text-dark-secondaryText text-[11px] font-medium`}
+                    autoFocus
+                    placeholder="New Name..."
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault()
+                            e.currentTarget.blur()
+                        }
+
+                        if (e.key === 'Escape') {
+                            e.preventDefault()
+                            setIsRenameFolderActive(false)
+                            e.currentTarget.value = ''
+                        }
+                    }}
+                    onBlur={(e) => {
+                        renameFolder(e.currentTarget.value)
+                        setIsRenameFolderActive(false)
+                        e.currentTarget.value = ''
+                    }}
+                />
+                <span
+                    hidden={isRenameFolderActive}
+                    className="truncate tracking-wide text-light-secondaryText dark:text-dark-secondaryText text-[11px] font-medium"
+                >
                     {isTrashOpened
                         ? 'Deleted'
                         : activeFolder.name === 'All'
@@ -324,8 +375,11 @@ export default function Sidebar({
                         <button
                             title="Rename Folder"
                             className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-md outline-none`}
+                            onClick={() => setIsRenameFolderActive(true)}
                         >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            <div>
+                                <Edit2 className="w-3.5 h-3.5" />
+                            </div>
                             <span className="font-medium">Rename</span>
                         </button>
                         <button
