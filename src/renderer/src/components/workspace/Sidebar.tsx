@@ -52,6 +52,7 @@ export default function Sidebar({
     const [isRenameFolderActive, setIsRenameFolderActive] = React.useState<boolean>(false)
     const [isDeleteFolderDialogActive, setIsDeleteFolderDialogActive] =
         React.useState<boolean>(false)
+    const [searchQuery, setSearchQuery] = React.useState<string>('')
 
     const folderChipRef = React.useRef<HTMLDivElement>(
         null
@@ -183,9 +184,15 @@ export default function Sidebar({
                         <input
                             type="text"
                             placeholder="Search"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
                             className={`flex-1 border-none outline-none text text-xs text-light-primaryText dark:text-dark-primaryText`}
                         />
-                        <button title="Clear Search">
+                        <button
+                            title="Clear Search"
+                            onClick={() => setSearchQuery('')}
+                            hidden={searchQuery.trim().length === 0}
+                        >
                             <X className="h-4 w-4 hover:text-light-primaryText dark:hover:text-dark-primaryText" />
                         </button>
                     </div>
