@@ -5,7 +5,9 @@ import {
     Edit2,
     Heart,
     Menu,
+    Monitor,
     MoreHorizontal,
+    Palette,
     Plus,
     Search,
     Trash2,
@@ -109,6 +111,11 @@ export default function Sidebar({
         setActiveFolder({ id: response.id, name: response.name })
     }
 
+    async function deleteFolder(): Promise<void> {
+        await window.notesApi.deleteFolder(activeFolder)
+        window.location.reload()
+    }
+
     const foldersWithCounts = React.useMemo(() => {
         return folders
             .map((folder) => ({
@@ -123,11 +130,6 @@ export default function Sidebar({
                 return a.id - b.id
             })
     }, [folders, notes])
-
-    async function deleteFolder(): Promise<void> {
-        await window.notesApi.deleteFolder(activeFolder)
-        window.location.reload()
-    }
 
     return (
         <div
@@ -429,6 +431,27 @@ export default function Sidebar({
                         </Button>
                     </div>
                 </DialogComponent>
+            </div>
+
+            {/* Notes List Section */}
+            <div className={`flex-1`}>
+                <div className={`overflow-y-auto px-2`} hidden={!isSidebarOpen}>
+                    All Notes
+                </div>
+            </div>
+
+            {/* Footer Section */}
+            <div
+                className={`px-2 py-3 flex ${isSidebarOpen ? 'flex-row justify-between' : 'flex-col-reverse gap-4'} items-center shrink-0 border-t w-full border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface`}
+            >
+                <span>v1.0</span>
+                <div
+                    className={`flex ${isSidebarOpen ? 'flex-row gap-4' : 'flex-col gap-4'} text-light-secondaryText dark:text-dark-secondaryText`}
+                >
+                    <Trash2 className="h-5 w-5" />
+                    <Palette className="h-5 w-5" />
+                    <Monitor className="h-5 w-5" />
+                </div>
             </div>
         </div>
     )
