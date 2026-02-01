@@ -3,7 +3,7 @@ import Store from 'electron-store'
 import { Accent, accents } from '../../shared/model/accent'
 
 function getValidAccent(accent: unknown): Accent {
-    return accents.includes(accent as Accent) ? (accent as Accent) : 'indigo'
+    return accents.includes(accent as Accent) ? (accent as Accent) : 'blue'
 }
 
 export function accentHandler(store: Store): void {
