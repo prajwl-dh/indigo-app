@@ -3,6 +3,7 @@ import {
     Archive,
     Check,
     ChevronLeft,
+    ChevronRight,
     Database,
     Edit2,
     Heart,
@@ -125,6 +126,12 @@ export default function Sidebar({
     async function deleteFolder(): Promise<void> {
         await window.notesApi.deleteFolder(activeFolder)
         window.location.reload()
+    }
+
+    const stripHtml = (html: string): string => {
+        const tmp = document.createElement('DIV')
+        tmp.innerHTML = html
+        return tmp.textContent + ' ' || tmp.innerText + ' ' || ' '
     }
 
     const foldersWithCounts = React.useMemo(() => {
@@ -450,10 +457,33 @@ export default function Sidebar({
             {/* Notes List Section */}
             <div className={`flex-1 min-h-0`}>
                 <div
-                    className={`h-full overflow-y-auto px-2 text-light-secondaryText dark:text-dark-secondaryText`}
+                    className={`h-full overflow-y-auto px-2 text-light-secondaryText dark:text-dark-secondaryText flex flex-col gap-1 py-2 select-none group`}
                     hidden={!isSidebarOpen}
                 >
-                    <p>Notes List</p>
+                    {notes.map((note) => (
+                        <div
+                            key={note.id}
+                            className={`flex flex-col p-2 gap-0.5 rounded-lg min-h-24 max-h-min-h-24 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover}`}
+                        >
+                            <div className={`flex justify-start items-center font-[450] text-sm`}>
+                                <ChevronRight
+                                    className={`h-4 w-min shrink-0 -mt-0.5 hidden`}
+                                    strokeWidth={2.5}
+                                />
+                                <span className={`truncate ${accentValue[activeAccent].hover}`}>
+                                    {note.title}
+                                </span>
+                            </div>
+                            <span
+                                className={`text-[12px] line-clamp-2 leading-relaxed font-normal text-light-secondaryText dark:text-dark-secondaryText`}
+                            >
+                                {note.body
+                                    ? stripHtml(note.body) +
+                                      "Don't forget the organic honey and the specific brand of oat milk."
+                                    : 'No additional text'}
+                            </span>
+                        </div>
+                    ))}
                 </div>
             </div>
 
