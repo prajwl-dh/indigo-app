@@ -1,5 +1,7 @@
 import {
     AlertTriangle,
+    Archive,
+    Check,
     ChevronLeft,
     Database,
     Edit2,
@@ -15,7 +17,7 @@ import {
 } from 'lucide-react'
 import React from 'react'
 import { useDraggable } from 'react-use-draggable-scroll'
-import { Accent } from 'src/shared/model/accent'
+import { Accent, accents } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
 import { Folder, Folders, Note, Notes } from 'src/shared/model/note'
 import { capitalizeWords } from 'src/shared/util/stringUtils'
@@ -35,11 +37,13 @@ type SidebarType = {
     setNotes: React.Dispatch<React.SetStateAction<Notes>>
     folders: Folders
     setFolders: React.Dispatch<React.SetStateAction<Folders>>
+    changeActiveAccent: (accent: Accent) => Promise<void>
 }
 
 export default function Sidebar({
     activeDatabase,
     activeAccent,
+    changeActiveAccent,
     isTrashOpened,
     setIsTrashOpened,
     activeFolder,
@@ -435,8 +439,11 @@ export default function Sidebar({
 
             {/* Notes List Section */}
             <div className={`flex-1`}>
-                <div className={`overflow-y-auto px-2`} hidden={!isSidebarOpen}>
-                    All Notes
+                <div
+                    className={`overflow-y-auto px-2 text-light-secondaryText dark:text-dark-secondaryText`}
+                    hidden={!isSidebarOpen}
+                >
+                    Notes List
                 </div>
             </div>
 
@@ -444,13 +451,62 @@ export default function Sidebar({
             <div
                 className={`px-2 py-3 flex ${isSidebarOpen ? 'flex-row justify-between' : 'flex-col-reverse gap-4'} items-center shrink-0 border-t w-full border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface`}
             >
-                <span>v1.0</span>
-                <div
-                    className={`flex ${isSidebarOpen ? 'flex-row gap-4' : 'flex-col gap-4'} text-light-secondaryText dark:text-dark-secondaryText`}
+                <span
+                    className={`text-xs font-normal opacity-50 text-light-secondaryText dark:text-dark-secondaryText`}
                 >
-                    <Trash2 className="h-5 w-5" />
-                    <Palette className="h-5 w-5" />
-                    <Monitor className="h-5 w-5" />
+                    v1.0
+                </span>
+                <div
+                    className={`flex ${isSidebarOpen ? 'flex-row' : 'flex-col'} gap-2 text-light-secondaryText dark:text-dark-secondaryText`}
+                >
+                    <Button
+                        title="Toggle Trash"
+                        onClick={() => {
+                            setIsTrashOpened((prev) => !prev)
+                            if (!isSidebarOpen) toggleSidebar()
+                        }}
+                        className={`p-2 border-none ${isTrashOpened ? accentValue[activeAccent].bgSubtle : null} hover:text-light-primaryText dark:hover:text-dark-primaryText`}
+                    >
+                        <Trash2 className={`h-4 w-4 ${isTrashOpened ? 'hidden' : null}`} />
+                        <Archive className={`h-4 w-4 ${!isTrashOpened ? 'hidden' : null}`} />
+                    </Button>
+                    <PopoverComponent
+                        title="App Acccent Picker"
+                        buttonClassName="cursor-default"
+                        panelClassName="p-2 min-w-32 border border-light-border dark:border-dark-border rounded-lg grid grid-cols-3 gap-2"
+                        anchor="top start"
+                        trigger={
+                            <Button
+                                className={`p-2 border-none hover:text-light-primaryText dark:hover:text-dark-primaryText`}
+                            >
+                                <Palette className="h-4 w-4" />
+                            </Button>
+                        }
+                    >
+                        {accents.map((accent) => (
+                            <button
+                                title={capitalizeWords(accent)}
+                                key={accent}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform active:scale-95 hover:scale-110 shrink-0`}
+                                style={{ background: accentValue[accent].hex }}
+                                onClick={() => changeActiveAccent(accent)}
+                            >
+                                {activeAccent === accent && (
+                                    <Check
+                                        className="w-4 h-4 text-white drop-shadow-md"
+                                        strokeWidth={3}
+                                    />
+                                )}
+                            </button>
+                        ))}
+                    </PopoverComponent>
+
+                    <Button
+                        title="Light/Dark Theme Switcher"
+                        className={`p-2 border-none hover:text-light-primaryText dark:hover:text-dark-primaryText`}
+                    >
+                        <Monitor className="h-4 w-4 flex items-center justify-center transition-transform active:scale-95 hover:scale-110 shrink-0" />
+                    </Button>
                 </div>
             </div>
         </div>

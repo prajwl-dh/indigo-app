@@ -25,6 +25,15 @@ function App(): React.JSX.Element {
         }
     }
 
+    async function changeActiveAccent(accent: Accent): Promise<void> {
+        try {
+            const response = await window.accentApi.setAccent(accent)
+            setActiveAccent(response)
+        } catch (error) {
+            throw new Error(JSON.stringify(error))
+        }
+    }
+
     React.useEffect(() => {
         getActiveDatabase()
         getActiveAccent()
@@ -38,7 +47,13 @@ function App(): React.JSX.Element {
         return <></>
     }
 
-    return <Workspace activeDatabase={activeDatabase} activeAccent={activeAccent} />
+    return (
+        <Workspace
+            activeDatabase={activeDatabase}
+            activeAccent={activeAccent}
+            changeActiveAccent={changeActiveAccent}
+        />
+    )
 }
 
 export default App

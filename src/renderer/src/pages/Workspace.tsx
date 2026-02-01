@@ -7,11 +7,13 @@ import { Folder, Folders, Notes } from 'src/shared/model/note'
 type WorkspaceType = {
     activeDatabase: string
     activeAccent: Accent
+    changeActiveAccent: (accent: Accent) => Promise<void>
 }
 
 export default function Workspace({
     activeDatabase,
-    activeAccent
+    activeAccent,
+    changeActiveAccent
 }: WorkspaceType): React.JSX.Element {
     const [isTrashOpened, setIsTrashOpened] = React.useState<boolean>(false)
     const [activeFolder, setActiveFolder] = React.useState<Folder>({ id: 0, name: 'All' })
@@ -46,6 +48,7 @@ export default function Workspace({
                 setNotes={setNotes}
                 folders={folders}
                 setFolders={setFolders}
+                changeActiveAccent={changeActiveAccent}
             />
             <Editor />
         </div>
