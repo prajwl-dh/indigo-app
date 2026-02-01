@@ -23,7 +23,7 @@ import { Accent, accents } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
 import { Folder, Folders, Note, Notes } from 'src/shared/model/note'
 import { Theme, themes } from 'src/shared/model/theme'
-import { capitalizeWords } from 'src/shared/util/stringUtils'
+import { capitalizeWords, truncateActiveDatabasePath } from 'src/shared/util/stringUtils'
 import Button from '../ui/Button'
 import { DialogComponent } from '../ui/DialogComponent'
 import FolderChip from '../ui/FolderChip'
@@ -150,7 +150,9 @@ export default function Sidebar({
             {isSidebarOpen && (
                 <div className="flex gap-2 justify-start items-center px-2 border-b border-light-border dark:border-dark-border text-[10px] font-medium text-light-secondaryText dark:text-dark-secondaryText bg-light-surface dark:bg-dark-surface">
                     <Database className="w-3 shrink-0" />
-                    <span className="cursor-default">{activeDatabase}</span>
+                    <span title={activeDatabase} className="cursor-default">
+                        {truncateActiveDatabasePath(activeDatabase, 40)}
+                    </span>
                 </div>
             )}
 
