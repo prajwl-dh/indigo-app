@@ -11,7 +11,7 @@ export default function Button({ children, className, ...props }: ButtonProps): 
         <button
             {...props}
             className={twMerge(
-                'rounded-md border border-light-border dark:border-dark-border p-2 outline-none',
+                'rounded-lg border border-light-border dark:border-dark-border p-2 outline-none',
                 className
             )}
         >

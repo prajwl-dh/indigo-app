@@ -160,7 +160,7 @@ export default function Sidebar({
             >
                 <div className={`flex flex-row items-center gap-2`} hidden={!isSidebarOpen}>
                     <span
-                        className={`w-5 h-5 p-0.5 rounded-md flex items-center justify-center text-white text-[14px] font-bold ${accentValue[activeAccent].bg}`}
+                        className={`w-5 h-5 p-0.5 rounded-lg flex items-center justify-center text-white text-[14px] font-bold ${accentValue[activeAccent].bg}`}
                     >
                         I
                     </span>
@@ -170,14 +170,14 @@ export default function Sidebar({
                 </div>
                 <span
                     hidden={isSidebarOpen}
-                    className={`w-7 h-7 p-1 rounded-md flex items-center justify-center text-white text-lg font-bold ${accentValue[activeAccent].bg}`}
+                    className={`w-7 h-7 p-1 rounded-lg flex items-center justify-center text-white text-lg font-bold ${accentValue[activeAccent].bg}`}
                 >
                     I
                 </span>
                 <Button
                     title="Toggle Sidebar"
                     onClick={toggleSidebar}
-                    className={`p-1 rounded-md text-light-secondaryText dark:text-dark-secondaryText ${isSidebarOpen ? 'border-none' : 'border'} hover:brightness-80 dark:hover:brightness-120`}
+                    className={`p-1 rounded-lg text-light-secondaryText dark:text-dark-secondaryText ${isSidebarOpen ? 'border-none' : 'border'} hover:brightness-80 dark:hover:brightness-120`}
                 >
                     {isSidebarOpen ? (
                         <ChevronLeft className="h-4 w-4 hover:text-light-primaryText dark:hover:text-dark-primaryText" />
@@ -247,7 +247,7 @@ export default function Sidebar({
                     </Button>
                 ) : (
                     <input
-                        className={`flex-1 border py-1.5 px-1 rounded-md w-24 border-light-border dark:border-dark-border outline-none text text-xs text-light-primaryText dark:text-dark-primaryText bg-white dark:bg-[#1c1c1e] capitalize no-drag-cursor`}
+                        className={`flex-1 border py-1.5 px-1 rounded-lg w-24 border-light-border dark:border-dark-border outline-none text text-xs text-light-primaryText dark:text-dark-primaryText bg-white dark:bg-[#1c1c1e] capitalize no-drag-cursor`}
                         autoFocus
                         placeholder="Name..."
                         onKeyDown={(e) => {
@@ -347,7 +347,7 @@ export default function Sidebar({
                         if (el) el.focus()
                     }}
                     hidden={!isRenameFolderActive}
-                    className={`flex-1 py-1.5 px-1 rounded-md w-24 outline-none text capitalize no-drag-cursor tracking-wide text-light-secondaryText dark:text-dark-secondaryText text-[11px] font-medium`}
+                    className={`flex-1 py-1.5 px-1 rounded-lg w-24 outline-none text capitalize no-drag-cursor tracking-wide text-light-secondaryText dark:text-dark-secondaryText text-[11px] font-medium`}
                     autoFocus
                     placeholder="New Folder Name..."
                     onKeyDown={(e) => {
@@ -394,7 +394,7 @@ export default function Sidebar({
                     >
                         <button
                             title="Rename Folder"
-                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-md outline-none`}
+                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-lg outline-none`}
                             onClick={() => setIsRenameFolderActive(true)}
                         >
                             <div>
@@ -405,7 +405,7 @@ export default function Sidebar({
                         <button
                             title="Delete Folder"
                             onClick={() => setIsDeleteFolderDialogActive(true)}
-                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-md outline-none`}
+                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-lg outline-none`}
                         >
                             <Trash2 className="w-3.5 h-3.5" />
                             <span>Delete</span>
@@ -416,7 +416,7 @@ export default function Sidebar({
                 <DialogComponent
                     open={isDeleteFolderDialogActive}
                     onClose={() => setIsDeleteFolderDialogActive(false)}
-                    className="flex flex-col items-center text-center w-96 bg-light-foreground dark:bg-dark-foreground border border-light-border dark:border-dark-border rounded-xl"
+                    className="flex flex-col items-center text-center w-96 bg-light-foreground dark:bg-dark-foreground border border-light-border dark:border-dark-border rounded-lg"
                     titleClassName="text-light-primaryText dark:text-dark-primaryText"
                     descriptionClassName="text-light-secondaryText dark:text-dark-secondaryText"
                     title={`Delete ${activeFolder.name} Folder?`}
@@ -430,12 +430,12 @@ export default function Sidebar({
                     <div className="flex flex-row items-center justify-between gap-2 text-center font-medium w-full">
                         <Button
                             onClick={() => setIsDeleteFolderDialogActive(false)}
-                            className="w-1/2 rounded-xl bg-light-background dark:bg-dark-background text-light-primaryText dark:text-dark-primaryText"
+                            className="w-1/2 rounded-lg bg-light-background dark:bg-dark-background text-light-primaryText dark:text-dark-primaryText"
                         >
                             Cancel
                         </Button>
                         <Button
-                            className="w-1/2 rounded-xl bg-red-500 hover:bg-red-600 text-white"
+                            className="w-1/2 rounded-lg bg-red-500 hover:bg-red-600 text-white"
                             onClick={() => deleteFolder()}
                         >
                             Delete Folder
@@ -533,7 +533,7 @@ export default function Sidebar({
                         {themes.map((theme) => (
                             <button
                                 key={theme}
-                                className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${activeTheme === theme && accentValue[activeAccent].bgSubtle} ${activeTheme === theme && accentValue[activeAccent].text} ${accentValue[activeAccent].hover} rounded-md outline-none`}
+                                className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${activeTheme === theme && accentValue[activeAccent].bgSubtle} ${activeTheme === theme && accentValue[activeAccent].text} ${accentValue[activeAccent].hover} rounded-lg outline-none`}
                                 onClick={() => changeActiveTheme(theme)}
                             >
                                 {theme === 'light' && <Sun className="w-4 h-4" />}

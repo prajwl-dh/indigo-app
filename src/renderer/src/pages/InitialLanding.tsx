@@ -43,11 +43,11 @@ export default function InitialLanding({ activeAccent }: InitialLandingType): Re
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row items-center min-w-max justify-between gap-6">
                     <Button
-                        className={`p-4 flex flex-col w-72 gap-2 bg-light-foreground dark:bg-dark-foreground rounded-2xl transition-all duration-300 hover:-translate-y-0.5 ${accentValue[activeAccent].hover} border border-light-border dark:border-dark-border`}
+                        className={`p-4 flex flex-col w-72 gap-2 bg-light-foreground dark:bg-dark-foreground rounded-lg transition-all duration-300 hover:-translate-y-0.5 ${accentValue[activeAccent].hover} border border-light-border dark:border-dark-border`}
                         onClick={createNew}
                     >
                         <div
-                            className={`p-3 rounded-xl w-min transition-transform group-hover:scale-110 duration-300 ${accentValue[activeAccent].bgSubtle} ${accentValue[activeAccent].text}`}
+                            className={`p-3 rounded-lg w-min transition-transform group-hover:scale-110 duration-300 ${accentValue[activeAccent].bgSubtle} ${accentValue[activeAccent].text}`}
                         >
                             <FilePlus className="w-7 h-7" />
                         </div>
@@ -63,11 +63,11 @@ export default function InitialLanding({ activeAccent }: InitialLandingType): Re
                         </div>
                     </Button>
                     <Button
-                        className={`p-4 flex flex-col w-72 gap-2 bg-light-foreground dark:bg-dark-foreground rounded-2xl transition-all duration-300 hover:-translate-y-0.5 ${accentValue[activeAccent].hover} border border-light-border dark:border-dark-border`}
+                        className={`p-4 flex flex-col w-72 gap-2 bg-light-foreground dark:bg-dark-foreground rounded-lg transition-all duration-300 hover:-translate-y-0.5 ${accentValue[activeAccent].hover} border border-light-border dark:border-dark-border`}
                         onClick={openExisting}
                     >
                         <div
-                            className={`p-3 rounded-xl w-min transition-transform group-hover:scale-110 duration-300 ${accentValue[activeAccent].bgSubtle} ${accentValue[activeAccent].text}`}
+                            className={`p-3 rounded-lg w-min transition-transform group-hover:scale-110 duration-300 ${accentValue[activeAccent].bgSubtle} ${accentValue[activeAccent].text}`}
                         >
                             <FolderOpen className="w-7 h-7" />
                         </div>

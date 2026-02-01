@@ -64,7 +64,7 @@ export function DialogComponent({
                     >
                         <DialogPanel
                             className={twMerge(
-                                'max-w-lg space-y-4 border bg-white p-6 rounded-md',
+                                'max-w-lg space-y-4 border bg-white p-6 rounded-lg',
                                 className
                             )}
                         >
