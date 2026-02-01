@@ -38,7 +38,7 @@ export function DialogComponent({
                 {/* Backdrop */}
                 <TransitionChild
                     as={Fragment}
-                    enter="ease-out duration-200"
+                    enter="ease-in duration-200"
                     enterFrom="opacity-0"
                     enterTo="opacity-100"
                     leave="ease-in duration-200"
@@ -55,10 +55,10 @@ export function DialogComponent({
                 <div className="fixed inset-0 flex w-screen items-center justify-center p-4">
                     <TransitionChild
                         as={Fragment}
-                        enter="ease-out duration-300"
+                        enter="ease-in duration-200"
                         enterFrom="opacity-0"
                         enterTo="opacity-100"
-                        leave="ease-in duration-300"
+                        leave="ease-in duration-200"
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                     >

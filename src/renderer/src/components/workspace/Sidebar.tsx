@@ -144,7 +144,7 @@ export default function Sidebar({
 
     return (
         <div
-            className={`${isSidebarOpen ? 'w-60 md:w-64 lg:w-72' : 'w-16 md:w-18 items-center'} flex shrink-0 flex-col bg-light-foreground dark:bg-dark-foreground border-r border-light-border dark:border-dark-border transition-discrete duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] overflow-hidden`}
+            className={`${isSidebarOpen ? 'w-64 md:w-72 lg:w-80' : 'w-16 md:w-18 items-center'} flex shrink-0 flex-col bg-light-foreground dark:bg-dark-foreground border-r border-light-border dark:border-dark-border transition-discrete duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] overflow-hidden`}
         >
             {/* Active Database Section */}
             {isSidebarOpen && (
@@ -213,7 +213,7 @@ export default function Sidebar({
                     <Button
                         title="Create A New Note"
                         hidden={isTrashOpened}
-                        className={`flex flex-row items-center justify-center gap-1 text-white rounded-lg text-[14px] font-medium transition duration-300 ${accentValue[activeAccent].bg} ${accentValue[activeAccent].bgHover} hover:-translate-y-0.5`}
+                        className={`flex flex-row items-center justify-center gap-1 text-white rounded-lg text-[14px] font-medium transition duration-300 ${accentValue[activeAccent].bg} ${accentValue[activeAccent].bgHover} hover:-translate-y-px`}
                         onClick={createNewNote}
                     >
                         <Plus className="mb-1 h-4 w-4" />
@@ -222,7 +222,7 @@ export default function Sidebar({
                     <Button
                         title="Empty Trash"
                         hidden={!isTrashOpened}
-                        className={`flex flex-row items-center justify-center gap-2 text-white rounded-lg text-[14px] font-medium transition duration-300 bg-red-500 hover:bg-red-600 hover:-translate-y-0.5`}
+                        className={`flex flex-row items-center justify-center gap-2 text-white rounded-lg text-[14px] font-medium transition duration-300 bg-red-500 hover:bg-red-600 hover:-translate-y-px`}
                     >
                         <Trash2 className="h-4 w-4 mb-1" />
                         <span>Empty Trash</span>
@@ -237,44 +237,6 @@ export default function Sidebar({
                 className={`flex row items-center gap-1 p-2 shrink-0 overflow-x-auto no-scrollbar select-none no-drag-cursor`}
                 hidden={isTrashOpened || !isSidebarOpen}
             >
-                {!isCreateFolderActive ? (
-                    <Button
-                        onClick={() => setIsCreateFolderActive((prev) => !prev)}
-                        title="Create New Folder"
-                        className={`flex items-center py-1.5 rounded-lg text-light-secondaryText! dark:text-dark-primaryText! cursor-default no-drag-cursor bg-white dark:bg-[#1c1c1e] ${accentValue[activeAccent].active} no-drag-cursor`}
-                    >
-                        <Plus className="h-4.5 w-4 no-drag-cursor" />
-                    </Button>
-                ) : (
-                    <input
-                        className={`flex-1 border py-1.5 px-1 rounded-lg w-24 border-light-border dark:border-dark-border outline-none text text-xs text-light-primaryText dark:text-dark-primaryText bg-white dark:bg-[#1c1c1e] capitalize no-drag-cursor`}
-                        autoFocus
-                        placeholder="Name..."
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault()
-                                e.currentTarget.blur()
-                            }
-
-                            if (e.key === 'Escape') {
-                                e.preventDefault()
-                                setIsCreateFolderActive(false)
-                            }
-                        }}
-                        onBlur={(e) => {
-                            createNewFolder(e.currentTarget.value)
-                            setIsCreateFolderActive(false)
-                            folderChipRef.current.scrollTo({
-                                left:
-                                    folderChipRef.current.scrollWidth -
-                                    folderChipRef.current.clientWidth +
-                                    50,
-                                behavior: 'smooth'
-                            })
-                        }}
-                    />
-                )}
-
                 <FolderChip
                     className={`${activeFolder.name === 'All' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
                     onClick={() => setActiveFolder({ id: 0, name: 'All' })}
@@ -335,6 +297,44 @@ export default function Sidebar({
                         </span>
                     </FolderChip>
                 ))}
+
+                {!isCreateFolderActive ? (
+                    <Button
+                        onClick={() => setIsCreateFolderActive((prev) => !prev)}
+                        title="Create New Folder"
+                        className={`flex items-center py-1.5 rounded-lg text-light-secondaryText! dark:text-dark-primaryText! cursor-default no-drag-cursor bg-white dark:bg-[#1c1c1e] ${accentValue[activeAccent].active} no-drag-cursor`}
+                    >
+                        <Plus className="h-4.5 w-4 no-drag-cursor" />
+                    </Button>
+                ) : (
+                    <input
+                        className={`flex-1 border py-1.5 px-1 rounded-lg w-24 border-light-border dark:border-dark-border outline-none text text-xs text-light-primaryText dark:text-dark-primaryText bg-white dark:bg-[#1c1c1e] capitalize no-drag-cursor`}
+                        autoFocus
+                        placeholder="Name..."
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault()
+                                e.currentTarget.blur()
+                            }
+
+                            if (e.key === 'Escape') {
+                                e.preventDefault()
+                                setIsCreateFolderActive(false)
+                            }
+                        }}
+                        onBlur={(e) => {
+                            createNewFolder(e.currentTarget.value)
+                            setIsCreateFolderActive(false)
+                            folderChipRef.current.scrollTo({
+                                left:
+                                    folderChipRef.current.scrollWidth -
+                                    folderChipRef.current.clientWidth +
+                                    50,
+                                behavior: 'smooth'
+                            })
+                        }}
+                    />
+                )}
             </div>
 
             {/* Current Folder Header Bar */}
@@ -420,7 +420,7 @@ export default function Sidebar({
                     titleClassName="text-light-primaryText dark:text-dark-primaryText"
                     descriptionClassName="text-light-secondaryText dark:text-dark-secondaryText"
                     title={`Delete ${activeFolder.name} Folder?`}
-                    description="Notes inside this folder will not be deleted, but moved to 'All Notes'."
+                    description="Notes inside this folder will not be deleted, but moved to 'All Notes'"
                     icon={
                         <div className="p-3 rounded-full bg-red-100 text-red-500 dark:bg-red-400/10">
                             <AlertTriangle className="w-8 h-8" strokeWidth={1.5} />
@@ -430,12 +430,12 @@ export default function Sidebar({
                     <div className="flex flex-row items-center justify-between gap-2 text-center font-medium w-full">
                         <Button
                             onClick={() => setIsDeleteFolderDialogActive(false)}
-                            className="w-1/2 rounded-lg bg-light-background dark:bg-dark-background text-light-primaryText dark:text-dark-primaryText"
+                            className="w-1/2 rounded-lg bg-light-surface dark:bg-dark-surface text-light-primaryText dark:text-dark-primaryText transition duration-300 hover:-translate-y-px"
                         >
                             Cancel
                         </Button>
                         <Button
-                            className="w-1/2 rounded-lg bg-red-500 hover:bg-red-600 text-white"
+                            className="w-1/2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition duration-300 hover:-translate-y-px"
                             onClick={() => deleteFolder()}
                         >
                             Delete Folder
@@ -472,7 +472,7 @@ export default function Sidebar({
                             setIsTrashOpened((prev) => !prev)
                             if (!isSidebarOpen) toggleSidebar()
                         }}
-                        className={`p-2 border-none ${isTrashOpened ? accentValue[activeAccent].bgSubtle : null} hover:text-light-primaryText dark:hover:text-dark-primaryText`}
+                        className={`p-2 border-none ${isTrashOpened ? accentValue[activeAccent].bgSubtle : null} hover:text-light-primaryText dark:hover:text-dark-primaryText transition-transform active:scale-95 hover:scale-110 shrink-0`}
                     >
                         <Trash2 className={`h-4 w-4 ${isTrashOpened ? 'hidden' : null}`} />
                         <Archive className={`h-4 w-4 ${!isTrashOpened ? 'hidden' : null}`} />
@@ -485,7 +485,7 @@ export default function Sidebar({
                         anchor={isSidebarOpen ? 'top start' : 'right'}
                         trigger={
                             <Button
-                                className={`p-2 border-none hover:text-light-primaryText dark:hover:text-dark-primaryText`}
+                                className={`p-2 border-none hover:text-light-primaryText dark:hover:text-dark-primaryText transition-transform active:scale-95 hover:scale-110 shrink-0`}
                             >
                                 <Palette className="h-4 w-4" />
                             </Button>
@@ -516,16 +516,16 @@ export default function Sidebar({
                         panelClassName="min-w-32 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1"
                         trigger={
                             <Button
-                                className={`p-2 border-none hover:text-light-primaryText dark:hover:text-dark-primaryText`}
+                                className={`p-2 border-none hover:text-light-primaryText dark:hover:text-dark-primaryText transition-transform active:scale-95 hover:scale-110 shrink-0`}
                             >
                                 <Sun
-                                    className={`h-4 w-4 flex items-center justify-center transition-transform active:scale-95 hover:scale-110 shrink-0 ${activeTheme !== 'light' ? 'hidden' : null}`}
+                                    className={`h-4 w-4 flex items-center justify-center ${activeTheme !== 'light' ? 'hidden' : null}`}
                                 />
                                 <Moon
-                                    className={`h-4 w-4 flex items-center justify-center transition-transform active:scale-95 hover:scale-110 shrink-0 ${activeTheme !== 'dark' ? 'hidden' : null}`}
+                                    className={`h-4 w-4 flex items-center justify-center ${activeTheme !== 'dark' ? 'hidden' : null}`}
                                 />
                                 <Monitor
-                                    className={`h-4 w-4 flex items-center justify-center transition-transform active:scale-95 hover:scale-110 shrink-0 ${activeTheme !== 'system' ? 'hidden' : null}`}
+                                    className={`h-4 w-4 flex items-center justify-center ${activeTheme !== 'system' ? 'hidden' : null}`}
                                 />
                             </Button>
                         }

@@ -43,7 +43,7 @@ export default function InitialLanding({ activeAccent }: InitialLandingType): Re
                 {/* Action Buttons */}
                 <div className="flex flex-col sm:flex-row items-center min-w-max justify-between gap-6">
                     <Button
-                        className={`p-4 flex flex-col w-72 gap-2 bg-light-foreground dark:bg-dark-foreground rounded-lg transition-all duration-300 hover:-translate-y-0.5 ${accentValue[activeAccent].hover} border border-light-border dark:border-dark-border`}
+                        className={`p-4 flex flex-col w-72 gap-2 bg-light-foreground dark:bg-dark-foreground rounded-lg transition-all duration-300 hover:-translate-y-px ${accentValue[activeAccent].hover} border border-light-border dark:border-dark-border`}
                         onClick={createNew}
                     >
                         <div
@@ -63,7 +63,7 @@ export default function InitialLanding({ activeAccent }: InitialLandingType): Re
                         </div>
                     </Button>
                     <Button
-                        className={`p-4 flex flex-col w-72 gap-2 bg-light-foreground dark:bg-dark-foreground rounded-lg transition-all duration-300 hover:-translate-y-0.5 ${accentValue[activeAccent].hover} border border-light-border dark:border-dark-border`}
+                        className={`p-4 flex flex-col w-72 gap-2 bg-light-foreground dark:bg-dark-foreground rounded-lg transition-all duration-300 hover:-translate-y-px ${accentValue[activeAccent].hover} border border-light-border dark:border-dark-border`}
                         onClick={openExisting}
                     >
                         <div
