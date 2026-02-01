@@ -1,21 +1,23 @@
 import { ipcMain } from 'electron'
 import Store from 'electron-store'
-import { Accent } from '../../shared/model/accent'
+import { Accent, accents } from '../../shared/model/accent'
 
-const ACCENTS = ['indigo', 'rose', 'orange', 'teal', 'blue', 'violet'] as const
-
-const isAccent = (v: unknown): v is Accent => ACCENTS.includes(v as Accent)
+function getValidAccent(accent: unknown): Accent {
+    return accents.includes(accent as Accent) ? (accent as Accent) : 'indigo'
+}
 
 export function accentHandler(store: Store): void {
+    // Initialize accent
     const savedAccent = store.get('accent')
-    store.set('accent', isAccent(savedAccent) ? savedAccent : 'indigo')
+    store.set('accent', getValidAccent(savedAccent))
 
-    ipcMain.handle('set:accent', (_, accent: Accent) => {
-        store.set('accent', accent)
+    // Handle setting a new accent
+    ipcMain.handle('set:accent', (_, accent: unknown) => {
+        const validAccent = getValidAccent(accent)
+        store.set('accent', validAccent)
         return store.get('accent')
     })
 
-    ipcMain.handle('get:accent', () => {
-        return store.get('accent')
-    })
+    // Handle getting the current accent
+    ipcMain.handle('get:accent', () => store.get('accent'))
 }

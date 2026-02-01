@@ -7,7 +7,7 @@ declare global {
     interface Window {
         electron: ElectronAPI
         themeApi: {
-            setTheme: (theme: Theme) => Promise<void>
+            setTheme: (theme: Theme) => Promise<Theme>
             getTheme: () => Promise<Theme>
         }
         accentApi: {

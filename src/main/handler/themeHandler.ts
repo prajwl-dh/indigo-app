@@ -1,21 +1,24 @@
 import { ipcMain, nativeTheme } from 'electron'
 import Store from 'electron-store'
-import { Theme } from '../../shared/model/theme'
+import { Theme, themes } from '../../shared/model/theme'
+
+function getValidTheme(theme: unknown): Theme {
+    return themes.includes(theme as Theme) ? (theme as Theme) : 'system'
+}
 
 export function themeHandler(store: Store): void {
-    const savedTheme = store.get('theme') as Theme | undefined
-    if (savedTheme) {
-        nativeTheme.themeSource = savedTheme
-    } else {
-        nativeTheme.themeSource = 'system'
-    }
+    // Initialize nativeTheme
+    const savedTheme = store.get('theme')
+    nativeTheme.themeSource = getValidTheme(savedTheme)
 
+    // Handle setting a new theme
     ipcMain.handle('set:theme', (_, theme: Theme) => {
-        nativeTheme.themeSource = theme
+        const validTheme = getValidTheme(theme)
+        nativeTheme.themeSource = validTheme
         store.set('theme', theme)
+        return store.get('theme')
     })
 
-    ipcMain.handle('get:theme', () => {
-        return nativeTheme.themeSource
-    })
+    // Handle getting the current theme
+    ipcMain.handle('get:theme', () => nativeTheme.themeSource)
 }

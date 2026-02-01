@@ -3,17 +3,22 @@ import Sidebar from '@renderer/components/workspace/Sidebar'
 import React from 'react'
 import { Accent } from 'src/shared/model/accent'
 import { Folder, Folders, Notes } from 'src/shared/model/note'
+import { Theme } from 'src/shared/model/theme'
 
 type WorkspaceType = {
     activeDatabase: string
     activeAccent: Accent
     changeActiveAccent: (accent: Accent) => Promise<void>
+    activeTheme: Theme
+    changeActiveTheme: (theme: Theme) => Promise<void>
 }
 
 export default function Workspace({
     activeDatabase,
     activeAccent,
-    changeActiveAccent
+    changeActiveAccent,
+    activeTheme,
+    changeActiveTheme
 }: WorkspaceType): React.JSX.Element {
     const [isTrashOpened, setIsTrashOpened] = React.useState<boolean>(false)
     const [activeFolder, setActiveFolder] = React.useState<Folder>({ id: 0, name: 'All' })
@@ -49,6 +54,8 @@ export default function Workspace({
                 folders={folders}
                 setFolders={setFolders}
                 changeActiveAccent={changeActiveAccent}
+                activeTheme={activeTheme}
+                changeActiveTheme={changeActiveTheme}
             />
             <Editor />
         </div>

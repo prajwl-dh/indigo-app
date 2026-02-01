@@ -8,10 +8,12 @@ import {
     Heart,
     Menu,
     Monitor,
+    Moon,
     MoreHorizontal,
     Palette,
     Plus,
     Search,
+    Sun,
     Trash2,
     X
 } from 'lucide-react'
@@ -20,6 +22,7 @@ import { useDraggable } from 'react-use-draggable-scroll'
 import { Accent, accents } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
 import { Folder, Folders, Note, Notes } from 'src/shared/model/note'
+import { Theme, themes } from 'src/shared/model/theme'
 import { capitalizeWords } from 'src/shared/util/stringUtils'
 import Button from '../ui/Button'
 import { DialogComponent } from '../ui/DialogComponent'
@@ -38,12 +41,16 @@ type SidebarType = {
     folders: Folders
     setFolders: React.Dispatch<React.SetStateAction<Folders>>
     changeActiveAccent: (accent: Accent) => Promise<void>
+    activeTheme: Theme
+    changeActiveTheme: (theme: Theme) => Promise<void>
 }
 
 export default function Sidebar({
     activeDatabase,
     activeAccent,
     changeActiveAccent,
+    activeTheme,
+    changeActiveTheme,
     isTrashOpened,
     setIsTrashOpened,
     activeFolder,
@@ -378,7 +385,7 @@ export default function Sidebar({
                         title="Folder Options"
                         buttonClassName="cursor-default"
                         anchor="bottom end"
-                        panelClassName="min-w-32 border border-light-border dark:border-dark-border rounded-lg p-1"
+                        panelClassName="min-w-32 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1"
                         trigger={
                             <MoreHorizontal
                                 className={`w-4 h-5 shrink-0 text-light-secondaryText dark:text-dark-secondaryText hover:text-light-primaryText dark:hover:text-dark-primaryText`}
@@ -393,7 +400,7 @@ export default function Sidebar({
                             <div>
                                 <Edit2 className="w-3.5 h-3.5" />
                             </div>
-                            <span className="font-medium">Rename</span>
+                            <span>Rename</span>
                         </button>
                         <button
                             title="Delete Folder"
@@ -401,7 +408,7 @@ export default function Sidebar({
                             className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-md outline-none`}
                         >
                             <Trash2 className="w-3.5 h-3.5" />
-                            <span className="font-medium">Delete</span>
+                            <span>Delete</span>
                         </button>
                     </PopoverComponent>
                 ) : null}
@@ -470,11 +477,12 @@ export default function Sidebar({
                         <Trash2 className={`h-4 w-4 ${isTrashOpened ? 'hidden' : null}`} />
                         <Archive className={`h-4 w-4 ${!isTrashOpened ? 'hidden' : null}`} />
                     </Button>
+
                     <PopoverComponent
                         title="App Acccent Picker"
                         buttonClassName="cursor-default"
                         panelClassName="p-2 min-w-32 border border-light-border dark:border-dark-border rounded-lg grid grid-cols-3 gap-2"
-                        anchor="top start"
+                        anchor={isSidebarOpen ? 'top start' : 'right'}
                         trigger={
                             <Button
                                 className={`p-2 border-none hover:text-light-primaryText dark:hover:text-dark-primaryText`}
@@ -501,12 +509,40 @@ export default function Sidebar({
                         ))}
                     </PopoverComponent>
 
-                    <Button
+                    <PopoverComponent
                         title="Light/Dark Theme Switcher"
-                        className={`p-2 border-none hover:text-light-primaryText dark:hover:text-dark-primaryText`}
+                        buttonClassName="cursor-default"
+                        anchor={isSidebarOpen ? 'top start' : 'right'}
+                        panelClassName="min-w-32 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1"
+                        trigger={
+                            <Button
+                                className={`p-2 border-none hover:text-light-primaryText dark:hover:text-dark-primaryText`}
+                            >
+                                <Sun
+                                    className={`h-4 w-4 flex items-center justify-center transition-transform active:scale-95 hover:scale-110 shrink-0 ${activeTheme !== 'light' ? 'hidden' : null}`}
+                                />
+                                <Moon
+                                    className={`h-4 w-4 flex items-center justify-center transition-transform active:scale-95 hover:scale-110 shrink-0 ${activeTheme !== 'dark' ? 'hidden' : null}`}
+                                />
+                                <Monitor
+                                    className={`h-4 w-4 flex items-center justify-center transition-transform active:scale-95 hover:scale-110 shrink-0 ${activeTheme !== 'system' ? 'hidden' : null}`}
+                                />
+                            </Button>
+                        }
                     >
-                        <Monitor className="h-4 w-4 flex items-center justify-center transition-transform active:scale-95 hover:scale-110 shrink-0" />
-                    </Button>
+                        {themes.map((theme) => (
+                            <button
+                                key={theme}
+                                className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${activeTheme === theme && accentValue[activeAccent].bgSubtle} ${activeTheme === theme && accentValue[activeAccent].text} ${accentValue[activeAccent].hover} rounded-md outline-none`}
+                                onClick={() => changeActiveTheme(theme)}
+                            >
+                                {theme === 'light' && <Sun className="w-4 h-4" />}
+                                {theme === 'dark' && <Moon className="w-4 h-4" />}
+                                {theme === 'system' && <Monitor className="w-4 h-4" />}
+                                {capitalizeWords(theme)}
+                            </button>
+                        ))}
+                    </PopoverComponent>
                 </div>
             </div>
         </div>
