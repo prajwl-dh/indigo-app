@@ -419,8 +419,8 @@ export default function Sidebar({
                     className="flex flex-col items-center text-center w-96 bg-light-foreground dark:bg-dark-foreground border border-light-border dark:border-dark-border rounded-lg"
                     titleClassName="text-light-primaryText dark:text-dark-primaryText"
                     descriptionClassName="text-light-secondaryText dark:text-dark-secondaryText"
-                    title={`Delete ${activeFolder.name} Folder?`}
-                    description="Notes inside this folder will not be deleted, but moved to 'All Notes'"
+                    title={`Delete '${activeFolder.name}' Folder ?`}
+                    description="The folder will be removed, and any notes it contains will be moved to 'All Notes'"
                     icon={
                         <div className="p-3 rounded-full bg-red-100 text-red-500 dark:bg-red-400/10">
                             <AlertTriangle className="w-8 h-8" strokeWidth={1.5} />
