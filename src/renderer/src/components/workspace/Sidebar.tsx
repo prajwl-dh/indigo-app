@@ -212,7 +212,7 @@ export default function Sidebar({
                             placeholder="Search"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className={`flex-1 border-none outline-none text text-xs text-light-primaryText dark:text-dark-primaryText`}
+                            className={`flex-1 border-none outline-none text text-xs text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].selection}`}
                         />
                         <button
                             title="Clear Search"
@@ -493,7 +493,7 @@ export default function Sidebar({
                 className={`px-2 py-3 flex ${isSidebarOpen ? 'flex-row justify-between' : 'flex-col-reverse gap-4'} items-center shrink-0 border-t w-full border-light-border dark:border-dark-border bg-light-surface dark:bg-dark-surface`}
             >
                 <span
-                    className={`text-xs font-normal opacity-50 text-light-secondaryText dark:text-dark-secondaryText`}
+                    className={`text-xs font-normal opacity-50 text-light-secondaryText dark:text-dark-secondaryText select-none`}
                 >
                     v1.0
                 </span>
