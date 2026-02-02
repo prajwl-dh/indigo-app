@@ -8,7 +8,6 @@ interface AccentConfig {
     bgHover: string
     bgSubtle: string
     hover: string
-    ring: string
     selection: string
     border: string
     active: string
@@ -22,50 +21,10 @@ export const accentValue: Record<Accent, AccentConfig> = {
         bg: 'bg-indigo-600 dark:bg-indigo-500',
         bgHover: 'hover:bg-indigo-700 dark:hover:bg-indigo-600',
         bgSubtle: 'bg-indigo-500/10 dark:bg-indigo-500/10',
-        hover: 'hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300',
-        ring: 'ring-indigo-200 dark:ring-indigo-500/30',
+        hover: 'hover:bg-indigo-500/10 hover:text-indigo-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400',
         selection: 'selection:bg-indigo-100 dark:selection:bg-indigo-500/30',
-        border: 'border-indigo-100 dark:border-indigo-500/20',
-        active: 'hover:border-indigo-200 hover:dark:border-indigo-500/30'
-    },
-    rose: {
-        label: 'Rose',
-        hex: '#e11d48',
-        text: 'text-rose-600 dark:text-rose-400',
-        bg: 'bg-rose-600 dark:bg-rose-500',
-        bgHover: 'hover:bg-rose-700 dark:hover:bg-rose-600',
-        bgSubtle: 'bg-rose-500/10 dark:bg-rose-500/10',
-        hover: 'hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-500/10 dark:hover:text-rose-300',
-        ring: 'ring-rose-200 dark:ring-rose-500/30',
-        selection: 'selection:bg-rose-100 dark:selection:bg-rose-500/30',
-        border: 'border-rose-100 dark:border-rose-500/20',
-        active: 'hover:border-rose-200 hover:dark:border-rose-500/30'
-    },
-    orange: {
-        label: 'Orange',
-        hex: '#9a3412',
-        text: 'text-orange-800 dark:text-orange-400',
-        bg: 'bg-orange-800 dark:bg-orange-500',
-        bgHover: 'hover:bg-orange-900 dark:hover:bg-orange-600',
-        bgSubtle: 'bg-orange-500/10 dark:bg-orange-500/10',
-        hover: 'hover:bg-orange-50 hover:text-orange-900 dark:hover:bg-orange-500/10 dark:hover:text-orange-300',
-        ring: 'ring-orange-200 dark:ring-orange-500/30',
-        selection: 'selection:bg-orange-100 dark:selection:bg-orange-500/30',
-        border: 'border-orange-100 dark:border-orange-500/20',
-        active: 'hover:border-orange-200 hover:dark:border-orange-500/30'
-    },
-    teal: {
-        label: 'Teal',
-        hex: '#115e59',
-        text: 'text-teal-800 dark:text-teal-400',
-        bg: 'bg-teal-800 dark:bg-teal-500',
-        bgHover: 'hover:bg-teal-900 dark:hover:bg-teal-600',
-        bgSubtle: 'bg-teal-500/10 dark:bg-teal-500/10',
-        hover: 'hover:bg-teal-50 hover:text-teal-900 dark:hover:bg-teal-500/10 dark:hover:text-teal-300',
-        ring: 'ring-teal-200 dark:ring-teal-500/30',
-        selection: 'selection:bg-teal-100 dark:selection:bg-teal-500/30',
-        border: 'border-teal-100 dark:border-teal-500/20',
-        active: 'hover:border-teal-200 hover:dark:border-teal-500/30'
+        border: 'border-indigo-300 dark:border-indigo-500/50',
+        active: 'hover:border-indigo-300 hover:dark:border-indigo-500/50'
     },
     blue: {
         label: 'Blue',
@@ -74,23 +33,57 @@ export const accentValue: Record<Accent, AccentConfig> = {
         bg: 'bg-blue-600 dark:bg-blue-500',
         bgHover: 'hover:bg-blue-700 dark:hover:bg-blue-600',
         bgSubtle: 'bg-blue-500/10 dark:bg-blue-500/10',
-        hover: 'hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300',
-        ring: 'ring-blue-200 dark:ring-blue-500/30',
+        hover: 'hover:bg-blue-500/10 hover:text-blue-600 dark:hover:bg-blue-500/10 dark:hover:text-blue-400',
         selection: 'selection:bg-blue-100 dark:selection:bg-blue-500/30',
-        border: 'border-blue-100 dark:border-blue-500/20',
-        active: 'hover:border-blue-200 hover:dark:border-blue-500/30'
+        border: 'border-blue-300 dark:border-blue-500/50',
+        active: 'hover:border-blue-300 hover:dark:border-blue-500/50'
     },
-    violet: {
-        label: 'Violet',
-        hex: '#7c3aed',
-        text: 'text-violet-600 dark:text-violet-400',
-        bg: 'bg-violet-600 dark:bg-violet-500',
-        bgHover: 'hover:bg-violet-700 dark:hover:bg-violet-600',
-        bgSubtle: 'bg-violet-500/10 dark:bg-violet-500/10',
-        hover: 'hover:bg-violet-50 hover:text-violet-700 dark:hover:bg-violet-500/10 dark:hover:text-violet-300',
-        ring: 'ring-violet-200 dark:ring-violet-500/30',
-        selection: 'selection:bg-violet-100 dark:selection:bg-violet-500/30',
-        border: 'border-violet-100 dark:border-violet-500/20',
-        active: 'hover:border-violet-200 hover:dark:border-violet-500/30'
+    cyan: {
+        label: 'Cyan',
+        hex: '#0092b9',
+        text: 'text-cyan-600 dark:text-cyan-400',
+        bg: 'bg-cyan-600 dark:bg-cyan-500',
+        bgHover: 'hover:bg-cyan-700 dark:hover:bg-cyan-600',
+        bgSubtle: 'bg-cyan-500/10 dark:bg-cyan-500/10',
+        hover: 'hover:bg-cyan-500/10 hover:text-cyan-600 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-400',
+        selection: 'selection:bg-cyan-100 dark:selection:bg-cyan-500/30',
+        border: 'border-cyan-300 dark:border-cyan-500/50',
+        active: 'hover:border-cyan-300 hover:dark:border-cyan-500/50'
+    },
+    orange: {
+        label: 'Orange',
+        hex: '#9a3412',
+        text: 'text-orange-600 dark:text-orange-400',
+        bg: 'bg-orange-600 dark:bg-orange-500',
+        bgHover: 'hover:bg-orange-700 dark:hover:bg-orange-600',
+        bgSubtle: 'bg-orange-500/10 dark:bg-orange-500/10',
+        hover: 'hover:bg-orange-500/10 hover:text-orange-600 dark:hover:bg-orange-500/10 dark:hover:text-orange-400',
+        selection: 'selection:bg-orange-100 dark:selection:bg-orange-500/30',
+        border: 'border-orange-300 dark:border-orange-500/50',
+        active: 'hover:border-orange-300 hover:dark:border-orange-500/50'
+    },
+    green: {
+        label: 'Green',
+        hex: '#016630',
+        text: 'text-green-600 dark:text-green-400',
+        bg: 'bg-green-600 dark:bg-green-500',
+        bgHover: 'hover:bg-green-700 dark:hover:bg-green-600',
+        bgSubtle: 'bg-green-500/10 dark:bg-green-500/10',
+        hover: 'hover:bg-green-500/10 hover:text-green-600 dark:hover:bg-green-500/10 dark:hover:text-green-400',
+        selection: 'selection:bg-green-100 dark:selection:bg-green-500/30',
+        border: 'border-green-300 dark:border-green-500/50',
+        active: 'hover:border-green-300 hover:dark:border-green-500/50'
+    },
+    purple: {
+        label: 'Purple',
+        hex: '#990ffa',
+        text: 'text-purple-600 dark:text-purple-400',
+        bg: 'bg-purple-600 dark:bg-purple-500',
+        bgHover: 'hover:bg-purple-700 dark:hover:bg-purple-600',
+        bgSubtle: 'bg-purple-500/10 dark:bg-purple-500/10',
+        hover: 'hover:bg-purple-500/10 hover:text-purple-600 dark:hover:bg-purple-500/10 dark:hover:text-purple-400',
+        selection: 'selection:bg-purple-100 dark:selection:bg-purple-500/30',
+        border: 'border-purple-300 dark:border-purple-500/50',
+        active: 'hover:border-purple-300 hover:dark:border-purple-500/50'
     }
 }

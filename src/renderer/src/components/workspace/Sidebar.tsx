@@ -157,7 +157,10 @@ export default function Sidebar({
             {isSidebarOpen && (
                 <div className="flex gap-2 justify-start items-center px-2 border-b border-light-border dark:border-dark-border text-[10px] font-medium text-light-secondaryText dark:text-dark-secondaryText bg-light-surface dark:bg-dark-surface">
                     <Database className="w-3 shrink-0" />
-                    <span title={activeDatabase} className="cursor-default">
+                    <span
+                        title={activeDatabase}
+                        className={`cursor-default ${accentValue[activeAccent].selection}`}
+                    >
                         {truncateActiveDatabasePath(activeDatabase, 40)}
                     </span>
                 </div>
@@ -470,9 +473,7 @@ export default function Sidebar({
                                     className={`h-4 w-min shrink-0 -mt-0.5 hidden`}
                                     strokeWidth={2.5}
                                 />
-                                <span className={`truncate ${accentValue[activeAccent].hover}`}>
-                                    {note.title}
-                                </span>
+                                <span className={`truncate`}>{note.title}</span>
                             </div>
                             <span
                                 className={`text-[12px] line-clamp-2 leading-relaxed font-normal text-light-secondaryText dark:text-dark-secondaryText`}
@@ -566,7 +567,7 @@ export default function Sidebar({
                         {themes.map((theme) => (
                             <button
                                 key={theme}
-                                className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${activeTheme === theme && accentValue[activeAccent].bgSubtle} ${activeTheme === theme && accentValue[activeAccent].text} ${accentValue[activeAccent].hover} rounded-lg outline-none`}
+                                className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 ${activeTheme === theme && accentValue[activeAccent].bgSubtle} ${activeTheme === theme ? accentValue[activeAccent].text : 'text-light-primaryText dark:text-dark-primaryText'} ${accentValue[activeAccent].hover} rounded-lg outline-none`}
                                 onClick={() => changeActiveTheme(theme)}
                             >
                                 {theme === 'light' && <Sun className="w-4 h-4" />}

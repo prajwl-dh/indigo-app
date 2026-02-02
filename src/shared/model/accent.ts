@@ -1,3 +1,3 @@
-export type Accent = 'indigo' | 'rose' | 'orange' | 'teal' | 'blue' | 'violet'
+export type Accent = 'indigo' | 'blue' | 'cyan' | 'orange' | 'green' | 'purple'
 
-export const accents: Accent[] = ['blue', 'indigo', 'rose', 'orange', 'teal', 'violet']
+export const accents: Accent[] = ['indigo', 'blue', 'cyan', 'orange', 'green', 'purple']
