@@ -19,6 +19,8 @@ import {
     X
 } from 'lucide-react'
 import React from 'react'
+import ReactTimeAgo from 'react-time-ago'
+import 'react-time-ago/locale/en'
 import { useDraggable } from 'react-use-draggable-scroll'
 import { Accent, accents } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
@@ -126,6 +128,11 @@ export default function Sidebar({
     async function deleteFolder(): Promise<void> {
         await window.notesApi.deleteFolder(activeFolder)
         window.location.reload()
+    }
+
+    function getFolderNameFromId(id: number | undefined): string {
+        const name = folders.find((folder) => folder.id === id)?.name
+        return typeof name === 'string' ? name : ''
     }
 
     const stripHtml = (html: string): string => {
@@ -476,13 +483,34 @@ export default function Sidebar({
                                 <span className={`truncate`}>{note.title}</span>
                             </div>
                             <span
-                                className={`text-[12px] line-clamp-2 leading-relaxed font-normal text-light-secondaryText dark:text-dark-secondaryText`}
+                                className={`text-[12px] line-clamp-2 leading-4 font-normal text-light-secondaryText dark:text-dark-secondaryText`}
                             >
                                 {note.body
                                     ? stripHtml(note.body) +
                                       "Don't forget the organic honey and the specific brand of oat milk."
                                     : 'No additional text'}
                             </span>
+                            <div className={`flex flex-row justify-between mt-2 items-center`}>
+                                {note.lastModified && (
+                                    <span
+                                        className={`text-[10px] font-normal text-light-tertiaryText dark:text-dark-tertiaryText`}
+                                    >
+                                        <ReactTimeAgo
+                                            date={new Date(note.lastModified)}
+                                            locale="en"
+                                        />
+                                    </span>
+                                )}
+                                {(activeFolder.name === 'All' ||
+                                    activeFolder.name === 'Favorites') &&
+                                    getFolderNameFromId(note.folderId) && (
+                                        <span
+                                            className={`text-[9px] px-1.5 py-0.5 rounded-md truncate max-w-20 text-light-tertiaryText dark:text-dark-tertiaryText bg-slate-100 dark:bg-white/5`}
+                                        >
+                                            {getFolderNameFromId(note.folderId)}
+                                        </span>
+                                    )}
+                            </div>
                         </div>
                     ))}
                 </div>

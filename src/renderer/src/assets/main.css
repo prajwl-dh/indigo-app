@@ -14,6 +14,7 @@
     --color-light-surface: #f9fafc;
     --color-light-primaryText: #2b323b;
     --color-light-secondaryText: #64748b;
+    --color-light-tertiaryText: #8996a9;
     --color-light-border: #e7ecf3;
 
     --color-dark-background: #0f0f12;
@@ -21,6 +22,7 @@
     --color-dark-surface: #19191b;
     --color-dark-primaryText: #f3f4f6;
     --color-dark-secondaryText: #9ca3af;
+    --color-dark-tertiaryText: #808999;
     --color-dark-border: #222224;
 }
 
