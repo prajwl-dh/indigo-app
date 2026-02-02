@@ -16,7 +16,7 @@ interface AccentConfig {
 export const accentValue: Record<Accent, AccentConfig> = {
     indigo: {
         label: 'Indigo',
-        hex: '#4f46e5',
+        hex: '#4f39f6',
         text: 'text-indigo-600 dark:text-indigo-400',
         bg: 'bg-indigo-600 dark:bg-indigo-500',
         bgHover: 'hover:bg-indigo-700 dark:hover:bg-indigo-600',
@@ -28,7 +28,7 @@ export const accentValue: Record<Accent, AccentConfig> = {
     },
     blue: {
         label: 'Blue',
-        hex: '#2563eb',
+        hex: '#165dfc',
         text: 'text-blue-600 dark:text-blue-400',
         bg: 'bg-blue-600 dark:bg-blue-500',
         bgHover: 'hover:bg-blue-700 dark:hover:bg-blue-600',
@@ -52,7 +52,7 @@ export const accentValue: Record<Accent, AccentConfig> = {
     },
     orange: {
         label: 'Orange',
-        hex: '#9a3412',
+        hex: '#f54900',
         text: 'text-orange-600 dark:text-orange-400',
         bg: 'bg-orange-600 dark:bg-orange-500',
         bgHover: 'hover:bg-orange-700 dark:hover:bg-orange-600',
@@ -64,7 +64,7 @@ export const accentValue: Record<Accent, AccentConfig> = {
     },
     green: {
         label: 'Green',
-        hex: '#016630',
+        hex: '#00a63d',
         text: 'text-green-600 dark:text-green-400',
         bg: 'bg-green-600 dark:bg-green-500',
         bgHover: 'hover:bg-green-700 dark:hover:bg-green-600',
