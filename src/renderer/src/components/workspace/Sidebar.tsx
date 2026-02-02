@@ -505,7 +505,7 @@ export default function Sidebar({
                                     activeFolder.name === 'Favorites') &&
                                     getFolderNameFromId(note.folderId) && (
                                         <span
-                                            className={`text-[9px] px-1.5 py-0.5 rounded-md truncate max-w-20 text-light-tertiaryText dark:text-dark-tertiaryText bg-slate-100 dark:bg-white/5`}
+                                            className={`text-[9px] px-1.5 py-0.5 rounded-md truncate max-w-40 text-light-tertiaryText dark:text-dark-tertiaryText bg-slate-100 dark:bg-white/5`}
                                         >
                                             {getFolderNameFromId(note.folderId)}
                                         </span>
