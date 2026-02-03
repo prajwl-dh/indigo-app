@@ -26,7 +26,11 @@ import { Accent, accents } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
 import { Folder, Folders, Note, Notes } from 'src/shared/model/note'
 import { Theme, themes } from 'src/shared/model/theme'
-import { capitalizeWords, truncateActiveDatabasePath } from 'src/shared/util/stringUtils'
+import {
+    capitalizeWords,
+    normalizeNoSpace,
+    truncateActiveDatabasePath
+} from 'src/shared/util/stringUtils'
 import Button from '../ui/Button'
 import { DialogComponent } from '../ui/DialogComponent'
 import FolderChip from '../ui/FolderChip'
@@ -141,11 +145,15 @@ export default function Sidebar({
         return tmp.textContent + ' ' || tmp.innerText + ' ' || ' '
     }
 
+    const currentList = !isTrashOpened
+        ? notes.filter((note) => !note.isInTrash)
+        : notes.filter((note) => note.isInTrash)
+
     const foldersWithCounts = React.useMemo(() => {
         return folders
             .map((folder) => ({
                 ...folder,
-                noteCount: notes.filter((n) => n.folderId === folder.id).length
+                noteCount: currentList.filter((n) => n.folderId === folder.id).length
             }))
             .sort((a, b) => {
                 if (b.noteCount !== a.noteCount) {
@@ -154,7 +162,28 @@ export default function Sidebar({
 
                 return a.id - b.id
             })
-    }, [folders, notes])
+    }, [folders, currentList])
+
+    const filteredNotes = currentList.filter((note) => {
+        const query = normalizeNoSpace(searchQuery)
+        if (query) {
+            const title = normalizeNoSpace((note.title || '').toLowerCase())
+            const body = normalizeNoSpace(stripHtml(note.body || '').toLowerCase())
+
+            if (!title.includes(query) && !body.includes(query)) {
+                return false
+            }
+        }
+
+        // Folder filter
+        if (isTrashOpened) return true
+
+        if (activeFolder.name === 'All') return true
+        if (activeFolder.name === 'Favorites') return note.isFavourite
+        return note.folderId === activeFolder.id
+    })
+
+    console.log(filteredNotes)
 
     return (
         <div
@@ -267,7 +296,7 @@ export default function Sidebar({
                         All
                     </span>
                     <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                        {notes.length}
+                        {filteredNotes.length}
                     </span>
                 </FolderChip>
 
@@ -470,10 +499,10 @@ export default function Sidebar({
                     className={`h-full overflow-y-auto px-2 text-light-secondaryText dark:text-dark-secondaryText flex flex-col gap-1 py-2 select-none group`}
                     hidden={!isSidebarOpen}
                 >
-                    {notes.map((note) => (
+                    {filteredNotes.map((note) => (
                         <div
                             key={note.id}
-                            className={`flex flex-col p-2 gap-0.5 rounded-lg min-h-24 max-h-min-h-24 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover}`}
+                            className={`flex flex-col justify-between p-2 gap-0.5 rounded-lg min-h-25 max-h-25 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover}`}
                         >
                             <div className={`flex justify-start items-center font-[450] text-sm`}>
                                 <ChevronRight
@@ -483,12 +512,9 @@ export default function Sidebar({
                                 <span className={`truncate`}>{note.title}</span>
                             </div>
                             <span
-                                className={`text-[12px] line-clamp-2 leading-4 font-normal text-light-secondaryText dark:text-dark-secondaryText`}
+                                className={`text-[12px] mt-[0.5px] line-clamp-2 leading-4 font-normal text-light-secondaryText dark:text-dark-secondaryText`}
                             >
-                                {note.body
-                                    ? stripHtml(note.body) +
-                                      "Don't forget the organic honey and the specific brand of oat milk."
-                                    : 'No additional text'}
+                                {note.body ? stripHtml(note.body) : 'No additional text'}
                             </span>
                             <div className={`flex flex-row justify-between mt-2 items-center`}>
                                 {note.lastModified && (

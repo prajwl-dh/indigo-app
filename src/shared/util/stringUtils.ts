@@ -7,6 +7,10 @@ export function capitalizeWords(value: string): string {
         .join(' ')
 }
 
+export function normalizeNoSpace(text: string): string {
+    return text.toLowerCase().replace(/\s+/g, '')
+}
+
 export function truncateActiveDatabasePath(filePath: string, maxLength = 20): string {
     if (filePath.length <= maxLength) return filePath
 
