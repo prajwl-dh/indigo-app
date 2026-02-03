@@ -11,7 +11,7 @@ export async function createDatabase(dbPath: string): Promise<void> {
             title TEXT NOT NULL,
             body TEXT NOT NULL,
             last_modified TEXT NOT NULL,
-            is_favourite INTEGER NOT NULL DEFAULT 0,
+            is_favorite INTEGER NOT NULL DEFAULT 0,
             folder_id INTEGER NOT NULL DEFAULT 0,
             is_in_trash INTEGER NOT NULL DEFAULT 0
           );

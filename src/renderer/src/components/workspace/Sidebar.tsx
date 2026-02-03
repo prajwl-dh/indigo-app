@@ -93,9 +93,13 @@ export default function Sidebar({
     }
 
     async function createNewNote(): Promise<void> {
-        const response: Note = await window.notesApi.createNote()
+        const isFavorite = activeFolder.name === 'Favorites'
+        const folderId = isFavorite || activeFolder.name === 'All' ? 0 : activeFolder.id
 
+        const response = await window.notesApi.createNote(folderId, isFavorite)
         setNotes((prev) => [...prev, response])
+
+        setActiveNote(response)
     }
 
     async function createNewFolder(name: string): Promise<void> {
@@ -113,6 +117,7 @@ export default function Sidebar({
         })
 
         setFolders((prev) => [...prev, response])
+        setActiveFolder({ id: response.id, name: response.name })
         setIsCreateFolderActive(false)
     }
 
@@ -196,7 +201,7 @@ export default function Sidebar({
         if (isTrashOpened) return true
 
         if (activeFolder.name === 'All') return true
-        if (activeFolder.name === 'Favorites') return note.isFavourite
+        if (activeFolder.name === 'Favorites') return note.isFavorite
         return note.folderId === activeFolder.id
     })
 
@@ -335,7 +340,7 @@ export default function Sidebar({
                         Favorites
                     </span>
                     <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                        {currentList.filter((note) => note.isFavourite === true).length | 0}
+                        {currentList.filter((note) => note.isFavorite === true).length | 0}
                     </span>
                 </FolderChip>
 

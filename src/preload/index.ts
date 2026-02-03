@@ -23,7 +23,8 @@ const databaseApi = {
 }
 
 const notesApi = {
-    createNote: () => ipcRenderer.invoke('create:note'),
+    createNote: (folderId: number, isFavorite: boolean) =>
+        ipcRenderer.invoke('create:note', folderId, isFavorite),
     updateNote: (payload: Note) => ipcRenderer.invoke('update:note', payload),
     deleteNote: (payload: Note) => ipcRenderer.invoke('delete:note', payload),
     deleteAllNoteInTrash: () => ipcRenderer.invoke('delete:allNoteInTrash'),

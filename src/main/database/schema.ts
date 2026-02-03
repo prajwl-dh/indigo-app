@@ -5,7 +5,7 @@ export const notes = sqliteTable('notes', {
     title: text('title').notNull(),
     body: text('body').notNull(),
     lastModified: text('last_modified').notNull(),
-    isFavourite: integer('is_favourite', { mode: 'boolean' }).notNull().default(false),
+    isFavorite: integer('is_favorite', { mode: 'boolean' }).notNull().default(false),
     folderId: integer('folder_id').notNull(),
     isInTrash: integer('is_in_trash', { mode: 'boolean' }).notNull().default(false)
 })

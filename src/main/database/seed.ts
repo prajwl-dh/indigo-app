@@ -10,7 +10,7 @@ export async function seedDatabase(sqlite: Client): Promise<void> {
     `)
 
     await sqlite.execute(`
-    INSERT INTO notes (title, body, last_modified, is_favourite, folder_id, is_in_trash) VALUES 
+    INSERT INTO notes (title, body, last_modified, is_favorite, folder_id, is_in_trash) VALUES 
     (
         'Weekly Grocery Shopping List',
         'Milk (2L), free-range eggs, whole wheat bread, ground coffee beans, bananas, chicken breast, and olive oil. Check for discounts.',

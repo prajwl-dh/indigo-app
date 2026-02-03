@@ -21,7 +21,7 @@ declare global {
             deleteActiveDatabasePath: () => Promise<void>
         }
         notesApi: {
-            createNote: () => Promise<Note>
+            createNote: (folderId: number, isFavorite: boolean) => Promise<Note>
             updateNote: (payload: Note) => Promise<Note>
             deleteNote: (payload: Note) => Promise<boolean>
             deleteAllNoteInTrash: () => Promise<boolean>

@@ -15,16 +15,16 @@ export async function notesHandler(store: Store): Promise<void> {
     const connection = createDatabaseConnection(activeDatabase)
 
     // create a new note
-    ipcMain.handle('create:note', async () => {
+    ipcMain.handle('create:note', async (_event, folderId: number, isFavorite: boolean) => {
         try {
             const [inserted] = await connection.db
                 .insert(notes)
                 .values({
-                    title: 'Welcome',
-                    body: 'Your notes database is ready.',
+                    title: 'Untitled Note',
+                    body: '',
                     lastModified: new Date().toISOString(),
-                    isFavourite: false,
-                    folderId: 0,
+                    isFavorite: isFavorite || false,
+                    folderId: folderId || 0,
                     isInTrash: false
                 })
                 .returning()
@@ -39,14 +39,14 @@ export async function notesHandler(store: Store): Promise<void> {
     // update a note
     ipcMain.handle('update:note', async (_event, payload: Note) => {
         try {
-            const { id, title, body, isFavourite, folderId, isInTrash } = payload
+            const { id, title, body, isFavorite, folderId, isInTrash } = payload
 
             const [updated] = await connection.db
                 .update(notes)
                 .set({
                     title,
                     body,
-                    isFavourite,
+                    isFavorite,
                     folderId,
                     isInTrash,
                     lastModified: new Date().toISOString()

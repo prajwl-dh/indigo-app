@@ -41,6 +41,10 @@ export default function Workspace({
         getAllFolders()
     }, [])
 
+    const sortedNotes = [...notes].sort(
+        (a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime()
+    )
+
     return (
         <div className="h-screen w-screen flex flex-nowrap">
             <Sidebar
@@ -50,7 +54,7 @@ export default function Workspace({
                 setIsTrashOpened={setIsTrashOpened}
                 activeFolder={activeFolder}
                 setActiveFolder={setActiveFolder}
-                notes={notes}
+                notes={sortedNotes}
                 setNotes={setNotes}
                 folders={folders}
                 setFolders={setFolders}
