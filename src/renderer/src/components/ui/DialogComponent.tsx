@@ -58,7 +58,7 @@ export function DialogComponent({
                         enter="ease-in duration-200"
                         enterFrom="opacity-0"
                         enterTo="opacity-100"
-                        leave="ease-in duration-200"
+                        leave="ease-in"
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                     >

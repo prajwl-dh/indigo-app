@@ -26,6 +26,7 @@ const notesApi = {
     createNote: () => ipcRenderer.invoke('create:note'),
     updateNote: (payload: Note) => ipcRenderer.invoke('update:note', payload),
     deleteNote: (payload: Note) => ipcRenderer.invoke('delete:note', payload),
+    deleteAllNoteInTrash: () => ipcRenderer.invoke('delete:allNoteInTrash'),
     getNote: (id: number) => ipcRenderer.invoke('get:note', id),
     getAllNotes: () => ipcRenderer.invoke('get:notes'),
     getFolder: (id: number) => ipcRenderer.invoke('get:folder', id),

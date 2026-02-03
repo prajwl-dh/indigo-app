@@ -50,6 +50,10 @@ type SidebarType = {
     changeActiveAccent: (accent: Accent) => Promise<void>
     activeTheme: Theme
     changeActiveTheme: (theme: Theme) => Promise<void>
+    activeNote: Note | undefined
+    setActiveNote: React.Dispatch<React.SetStateAction<Note | undefined>>
+    reloadAllNotes: () => Promise<void>
+    reloadAllFolders: () => Promise<void>
 }
 
 export default function Sidebar({
@@ -65,7 +69,11 @@ export default function Sidebar({
     notes,
     setNotes,
     folders,
-    setFolders
+    setFolders,
+    activeNote,
+    setActiveNote,
+    reloadAllNotes,
+    reloadAllFolders
 }: SidebarType): React.JSX.Element {
     const [isSidebarOpen, setIsSidebarOpen] = React.useState<boolean>(true)
     const [isCreateFolderActive, setIsCreateFolderActive] = React.useState<boolean>(false)
@@ -131,7 +139,16 @@ export default function Sidebar({
 
     async function deleteFolder(): Promise<void> {
         await window.notesApi.deleteFolder(activeFolder)
-        window.location.reload()
+        setIsDeleteFolderDialogActive(false)
+        await reloadAllNotes()
+        await reloadAllFolders()
+        setActiveFolder({ id: 0, name: 'All' })
+        folderChipRef.current.scrollTo({ left: 0, behavior: 'smooth' })
+    }
+
+    async function emptyTrash(): Promise<void> {
+        await window.notesApi.deleteAllNoteInTrash()
+        await reloadAllNotes()
     }
 
     function getFolderNameFromId(id: number | undefined): string {
@@ -183,8 +200,6 @@ export default function Sidebar({
         return note.folderId === activeFolder.id
     })
 
-    console.log(filteredNotes)
-
     return (
         <div
             className={`${isSidebarOpen ? 'w-64 md:w-72 lg:w-80' : 'w-16 md:w-18 items-center'} flex shrink-0 flex-col bg-light-foreground dark:bg-dark-foreground border-r border-light-border dark:border-dark-border transition-discrete duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] overflow-hidden`}
@@ -226,7 +241,7 @@ export default function Sidebar({
                 <Button
                     title="Toggle Sidebar"
                     onClick={toggleSidebar}
-                    className={`p-1 rounded-lg text-light-secondaryText dark:text-dark-secondaryText ${isSidebarOpen ? 'border-none' : 'border'} hover:brightness-80 dark:hover:brightness-120`}
+                    className={`p-1 rounded-lg text-light-secondaryText dark:text-dark-secondaryText ${isSidebarOpen ? 'border-none' : 'border mt-1'} hover:brightness-80 dark:hover:brightness-120`}
                 >
                     {isSidebarOpen ? (
                         <ChevronLeft className="h-4 w-4 hover:text-light-primaryText dark:hover:text-dark-primaryText" />
@@ -270,6 +285,7 @@ export default function Sidebar({
                     </Button>
                     <Button
                         title="Empty Trash"
+                        onClick={() => emptyTrash()}
                         hidden={!isTrashOpened}
                         className={`flex flex-row items-center justify-center gap-2 text-white rounded-lg text-[14px] font-medium transition duration-300 bg-red-500 hover:bg-red-600 hover:-translate-y-px`}
                     >
@@ -296,7 +312,7 @@ export default function Sidebar({
                         All
                     </span>
                     <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                        {filteredNotes.length}
+                        {currentList.length}
                     </span>
                 </FolderChip>
 
@@ -319,7 +335,7 @@ export default function Sidebar({
                         Favorites
                     </span>
                     <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                        {notes.filter((note) => note.isFavourite === true).length | 0}
+                        {currentList.filter((note) => note.isFavourite === true).length | 0}
                     </span>
                 </FolderChip>
 
@@ -421,12 +437,20 @@ export default function Sidebar({
                     hidden={isRenameFolderActive}
                     className="truncate tracking-wide text-light-secondaryText dark:text-dark-secondaryText text-[11px] font-medium"
                 >
-                    {isTrashOpened
-                        ? 'Deleted'
-                        : activeFolder.name === 'All'
-                          ? 'All Notes'
-                          : activeFolder.name}
+                    {isTrashOpened ? (
+                        <>
+                            Trash
+                            <span className="ml-1 text-light-secondaryText dark:text-dark-secondaryText font-normal">
+                                {currentList.filter((note) => note.isInTrash === true).length}
+                            </span>
+                        </>
+                    ) : activeFolder.name === 'All' ? (
+                        'All Notes'
+                    ) : (
+                        activeFolder.name
+                    )}
                 </span>
+
                 {activeFolder.name !== 'All' &&
                 activeFolder.name !== 'Favorites' &&
                 !isTrashOpened ? (
@@ -502,11 +526,14 @@ export default function Sidebar({
                     {filteredNotes.map((note) => (
                         <div
                             key={note.id}
-                            className={`flex flex-col justify-between p-2 gap-0.5 rounded-lg min-h-25 max-h-25 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover}`}
+                            className={`flex flex-col justify-between p-2 gap-0.5 rounded-lg min-h-26 max-h-28 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} ${activeNote && activeNote.id === note.id && accentValue[activeAccent].bgSubtle}`}
+                            onClick={() => setActiveNote(note)}
                         >
-                            <div className={`flex justify-start items-center font-[450] text-sm`}>
+                            <div
+                                className={`flex justify-start items-center gap-1 font-[440] text-sm ${activeNote?.id === note.id && accentValue[activeAccent].text}`}
+                            >
                                 <ChevronRight
-                                    className={`h-4 w-min shrink-0 -mt-0.5 hidden`}
+                                    className={`h-4 w-min shrink-0 -mt-0.5 ${activeNote?.id !== note.id && 'hidden'}`}
                                     strokeWidth={2.5}
                                 />
                                 <span className={`truncate`}>{note.title}</span>
@@ -558,9 +585,9 @@ export default function Sidebar({
                         title="Toggle Trash"
                         onClick={() => {
                             setIsTrashOpened((prev) => !prev)
-                            if (!isSidebarOpen) toggleSidebar()
+                            setActiveNote(undefined)
                         }}
-                        className={`p-2 border-none ${isTrashOpened ? accentValue[activeAccent].bgSubtle : null} hover:text-light-primaryText dark:hover:text-dark-primaryText transition-transform active:scale-95 hover:scale-110 shrink-0`}
+                        className={`p-2 border-none ${isTrashOpened ? accentValue[activeAccent].bgSubtle : null} hover:text-light-primaryText dark:hover:text-dark-primaryText transition-transform active:scale-95 hover:scale-110 shrink-0 ${!isSidebarOpen && 'hidden'}`}
                     >
                         <Trash2 className={`h-4 w-4 ${isTrashOpened ? 'hidden' : null}`} />
                         <Archive className={`h-4 w-4 ${!isTrashOpened ? 'hidden' : null}`} />

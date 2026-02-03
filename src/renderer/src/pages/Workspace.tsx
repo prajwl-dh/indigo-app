@@ -2,7 +2,7 @@ import Editor from '@renderer/components/workspace/Editor'
 import Sidebar from '@renderer/components/workspace/Sidebar'
 import React from 'react'
 import { Accent } from 'src/shared/model/accent'
-import { Folder, Folders, Notes } from 'src/shared/model/note'
+import { Folder, Folders, Note, Notes } from 'src/shared/model/note'
 import { Theme } from 'src/shared/model/theme'
 
 type WorkspaceType = {
@@ -24,6 +24,7 @@ export default function Workspace({
     const [activeFolder, setActiveFolder] = React.useState<Folder>({ id: 0, name: 'All' })
     const [notes, setNotes] = React.useState<Notes>([])
     const [folders, setFolders] = React.useState<Folders>([])
+    const [activeNote, setActiveNote] = React.useState<Note>()
 
     async function getAllNotes(): Promise<void> {
         const response = await window.notesApi.getAllNotes()
@@ -56,6 +57,10 @@ export default function Workspace({
                 changeActiveAccent={changeActiveAccent}
                 activeTheme={activeTheme}
                 changeActiveTheme={changeActiveTheme}
+                activeNote={activeNote}
+                setActiveNote={setActiveNote}
+                reloadAllNotes={getAllNotes}
+                reloadAllFolders={getAllFolders}
             />
             <Editor />
         </div>

@@ -72,6 +72,17 @@ export async function notesHandler(store: Store): Promise<void> {
         }
     })
 
+    // empty the trash
+    ipcMain.handle('delete:allNoteInTrash', async () => {
+        try {
+            await connection.db.delete(notes).where(eq(notes.isInTrash, true))
+            return true
+        } catch (error: unknown) {
+            console.error('[delete:allNoteInTrash]', error)
+            throw new Error('Failed to delete all notes in trash')
+        }
+    })
+
     // get a single note by id
     ipcMain.handle('get:note', async (_event, id: number) => {
         try {

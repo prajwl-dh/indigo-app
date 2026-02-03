@@ -24,6 +24,7 @@ declare global {
             createNote: () => Promise<Note>
             updateNote: (payload: Note) => Promise<Note>
             deleteNote: (payload: Note) => Promise<boolean>
+            deleteAllNoteInTrash: () => Promise<boolean>
             getNote: (id: number) => Promise<Note>
             getAllNotes: () => Promise<Notes>
             getFolder: (id: number) => Promise<Folder>
