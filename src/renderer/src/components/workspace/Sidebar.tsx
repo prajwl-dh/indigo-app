@@ -526,14 +526,26 @@ export default function Sidebar({
                             onClick={() => setActiveNote(note)}
                         >
                             <div
-                                className={`flex justify-start items-center gap-1 font-[440] text-sm ${activeNote?.id === note.id && accentValue[activeAccent].text}`}
+                                className={`flex items-center gap-0 font-[440] text-sm transition-colors duration-200 ${
+                                    activeNote?.id === note.id && accentValue[activeAccent].text
+                                }`}
                             >
                                 <ChevronRight
-                                    className={`h-4 w-min shrink-0 -mt-0.5 ${activeNote?.id !== note.id && 'hidden'}`}
+                                    className={`
+                                        overflow-hidden shrink-0 -mt-0.5
+                                        transition-[width,opacity,transform,margin] duration-200 ease-out
+                                        ${
+                                            activeNote?.id === note.id
+                                                ? 'w-4 opacity-100 translate-x-0 mr-1'
+                                                : 'w-0 opacity-0 -translate-x-2 mr-0'
+                                        }
+                                        `}
                                     strokeWidth={2.5}
                                 />
-                                <span className={`truncate`}>{note.title}</span>
+
+                                <span className="truncate">{note.title}</span>
                             </div>
+
                             <span
                                 className={`text-[12px] mt-[0.5px] line-clamp-2 leading-4 font-normal text-light-secondaryText dark:text-dark-secondaryText`}
                             >
