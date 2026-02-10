@@ -167,24 +167,20 @@ export default function Sidebar({
         return tmp.textContent + ' ' || tmp.innerText + ' ' || ' '
     }
 
-    const currentList = !isTrashOpened
-        ? notes.filter((note) => !note.isInTrash)
-        : notes.filter((note) => note.isInTrash)
+    const baseNotes = notes.filter((note) => (isTrashOpened ? note.isInTrash : !note.isInTrash))
 
-    const filteredNotes = currentList.filter((note) => {
+    const searchedNotes = baseNotes.filter((note) => {
         const query = normalizeNoSpace(searchQuery)
-        if (query) {
-            const title = normalizeNoSpace((note.title || '').toLowerCase())
-            const body = normalizeNoSpace(stripHtml(note.body || '').toLowerCase())
+        if (!query) return true
 
-            if (!title.includes(query) && !body.includes(query)) {
-                return false
-            }
-        }
+        const title = normalizeNoSpace((note.title || '').toLowerCase())
+        const body = normalizeNoSpace(stripHtml(note.body || '').toLowerCase())
 
-        // Folder filter
+        return title.includes(query) || body.includes(query)
+    })
+
+    const filteredNotes = searchedNotes.filter((note) => {
         if (isTrashOpened) return true
-
         if (activeFolder.name === 'All') return true
         if (activeFolder.name === 'Favorites') return note.isFavorite
         return note.folderId === activeFolder.id
@@ -193,13 +189,10 @@ export default function Sidebar({
     const foldersWithCounts = folders
         .map((folder) => ({
             ...folder,
-            noteCount: filteredNotes.filter((n) => n.folderId === folder.id).length
+            noteCount: searchedNotes.filter((n) => n.folderId === folder.id).length
         }))
         .sort((a, b) => {
-            if (b.noteCount !== a.noteCount) {
-                return b.noteCount - a.noteCount
-            }
-
+            if (b.noteCount !== a.noteCount) return b.noteCount - a.noteCount
             return a.id - b.id
         })
 
@@ -315,7 +308,7 @@ export default function Sidebar({
                         All
                     </span>
                     <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                        {filteredNotes.length}
+                        {searchedNotes.length}
                     </span>
                 </FolderChip>
 
@@ -338,7 +331,7 @@ export default function Sidebar({
                         Favorites
                     </span>
                     <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                        {filteredNotes.filter((note) => note.isFavorite === true).length | 0}
+                        {searchedNotes.filter((note) => note.isFavorite === true).length | 0}
                     </span>
                 </FolderChip>
 
@@ -444,7 +437,7 @@ export default function Sidebar({
                         <>
                             Trash
                             <span className="ml-1 text-light-secondaryText dark:text-dark-secondaryText font-normal">
-                                {currentList.filter((note) => note.isInTrash === true).length}
+                                {searchedNotes.length}
                             </span>
                         </>
                     ) : activeFolder.name === 'All' ? (
