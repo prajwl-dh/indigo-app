@@ -171,21 +171,6 @@ export default function Sidebar({
         ? notes.filter((note) => !note.isInTrash)
         : notes.filter((note) => note.isInTrash)
 
-    const foldersWithCounts = React.useMemo(() => {
-        return folders
-            .map((folder) => ({
-                ...folder,
-                noteCount: currentList.filter((n) => n.folderId === folder.id).length
-            }))
-            .sort((a, b) => {
-                if (b.noteCount !== a.noteCount) {
-                    return b.noteCount - a.noteCount
-                }
-
-                return a.id - b.id
-            })
-    }, [folders, currentList])
-
     const filteredNotes = currentList.filter((note) => {
         const query = normalizeNoSpace(searchQuery)
         if (query) {
@@ -204,6 +189,19 @@ export default function Sidebar({
         if (activeFolder.name === 'Favorites') return note.isFavorite
         return note.folderId === activeFolder.id
     })
+
+    const foldersWithCounts = folders
+        .map((folder) => ({
+            ...folder,
+            noteCount: filteredNotes.filter((n) => n.folderId === folder.id).length
+        }))
+        .sort((a, b) => {
+            if (b.noteCount !== a.noteCount) {
+                return b.noteCount - a.noteCount
+            }
+
+            return a.id - b.id
+        })
 
     return (
         <div
@@ -317,7 +315,7 @@ export default function Sidebar({
                         All
                     </span>
                     <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                        {currentList.length}
+                        {filteredNotes.length}
                     </span>
                 </FolderChip>
 
@@ -340,7 +338,7 @@ export default function Sidebar({
                         Favorites
                     </span>
                     <span className="text-light-secondaryText dark:text-dark-secondaryText">
-                        {currentList.filter((note) => note.isFavorite === true).length | 0}
+                        {filteredNotes.filter((note) => note.isFavorite === true).length | 0}
                     </span>
                 </FolderChip>
 
