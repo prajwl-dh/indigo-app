@@ -1,5 +1,5 @@
-import Editor from '@renderer/components/workspace/Editor'
-import Sidebar from '@renderer/components/workspace/Sidebar'
+import Editor from '@renderer/components/workspace/editor/Editor'
+import Sidebar from '@renderer/components/workspace/sidebar/Sidebar'
 import React from 'react'
 import { Accent } from 'src/shared/model/accent'
 import { Folder, Folders, Note, Notes } from 'src/shared/model/note'
@@ -66,7 +66,12 @@ export default function Workspace({
                 reloadAllNotes={getAllNotes}
                 reloadAllFolders={getAllFolders}
             />
-            <Editor />
+            <Editor
+                isTrashOpened={isTrashOpened}
+                setIsTrashOpened={setIsTrashOpened}
+                activeNote={activeNote}
+                setActiveNote={setActiveNote}
+            />
         </div>
     )
 }

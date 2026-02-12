@@ -31,10 +31,10 @@ import {
     normalizeNoSpace,
     truncateActiveDatabasePath
 } from 'src/shared/util/stringUtils'
-import Button from '../ui/Button'
-import { DialogComponent } from '../ui/DialogComponent'
-import FolderChip from '../ui/FolderChip'
-import PopoverComponent from '../ui/PopOver'
+import Button from '../../ui/Button'
+import { DialogComponent } from '../../ui/DialogComponent'
+import FolderChip from '../../ui/FolderChip'
+import PopoverComponent from '../../ui/PopOver'
 
 type SidebarType = {
     activeDatabase: string
