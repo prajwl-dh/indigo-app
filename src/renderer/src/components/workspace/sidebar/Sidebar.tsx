@@ -517,23 +517,35 @@ export default function Sidebar({
 
             {/* Notes List Section */}
             <div className={`flex-1 min-h-0`}>
-                <div
-                    className={`h-full overflow-y-auto px-2 text-light-secondaryText dark:text-dark-secondaryText flex flex-col gap-1 py-2 select-none group`}
-                    hidden={!isSidebarOpen}
-                >
-                    {filteredNotes.map((note) => (
-                        <div
-                            key={note.id}
-                            className={`flex flex-col justify-between p-2 gap-0.5 rounded-lg min-h-26 max-h-28 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} ${activeNote && activeNote.id === note.id && accentValue[activeAccent].bgSubtle}`}
-                            onClick={() => setActiveNote(note)}
-                        >
+                {filteredNotes.length < 1 ? (
+                    <div
+                        className={`h-full overflow-y-auto text-light-secondaryText dark:text-dark-secondaryText px-5 py-8 text-center text-xs`}
+                        hidden={!isSidebarOpen}
+                    >
+                        {searchQuery.trim().length > 0
+                            ? 'No notes match your search'
+                            : isTrashOpened
+                              ? 'No notes in trash'
+                              : 'No notes yet'}
+                    </div>
+                ) : (
+                    <div
+                        className={`h-full overflow-y-auto px-2 text-light-secondaryText dark:text-dark-secondaryText flex flex-col gap-1 py-2 select-none group`}
+                        hidden={!isSidebarOpen}
+                    >
+                        {filteredNotes.map((note) => (
                             <div
-                                className={`flex items-center gap-0 font-[440] text-sm transition-colors duration-200 ${
-                                    activeNote?.id === note.id && accentValue[activeAccent].text
-                                }`}
+                                key={note.id}
+                                className={`flex flex-col justify-between p-2 gap-0.5 rounded-lg min-h-26 max-h-28 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} ${activeNote && activeNote.id === note.id && accentValue[activeAccent].bgSubtle}`}
+                                onClick={() => setActiveNote(note)}
                             >
-                                <ChevronRight
-                                    className={`
+                                <div
+                                    className={`flex items-center gap-0 font-[440] text-sm transition-colors duration-200 ${
+                                        activeNote?.id === note.id && accentValue[activeAccent].text
+                                    }`}
+                                >
+                                    <ChevronRight
+                                        className={`
                                         overflow-hidden shrink-0 -mt-0.5
                                         transition-[width,opacity,transform,margin] duration-200 ease-out
                                         ${
@@ -542,41 +554,42 @@ export default function Sidebar({
                                                 : 'w-0 opacity-0 -translate-x-2 mr-0'
                                         }
                                         `}
-                                    strokeWidth={2.5}
-                                />
+                                        strokeWidth={2.5}
+                                    />
 
-                                <span className="truncate">{note.title}</span>
-                            </div>
+                                    <span className="truncate">{note.title}</span>
+                                </div>
 
-                            <span
-                                className={`text-[12px] mt-[0.5px] line-clamp-2 leading-4 font-normal text-light-secondaryText dark:text-dark-secondaryText`}
-                            >
-                                {note.body ? stripHtml(note.body) : 'No additional text'}
-                            </span>
-                            <div className={`flex flex-row justify-between mt-2 items-center`}>
-                                {note.lastModified && (
-                                    <span
-                                        className={`text-[10px] font-normal text-light-tertiaryText dark:text-dark-tertiaryText`}
-                                    >
-                                        <ReactTimeAgo
-                                            date={new Date(note.lastModified)}
-                                            locale="en"
-                                        />
-                                    </span>
-                                )}
-                                {(activeFolder.name === 'All' ||
-                                    activeFolder.name === 'Favorites') &&
-                                    getFolderNameFromId(note.folderId) && (
+                                <span
+                                    className={`text-[12px] mt-[0.5px] line-clamp-2 leading-4 font-normal text-light-secondaryText dark:text-dark-secondaryText`}
+                                >
+                                    {note.body ? stripHtml(note.body) : 'No additional text'}
+                                </span>
+                                <div className={`flex flex-row justify-between mt-2 items-center`}>
+                                    {note.lastModified && (
                                         <span
-                                            className={`text-[9px] px-1.5 py-0.5 rounded-md truncate max-w-40 text-light-tertiaryText dark:text-dark-tertiaryText bg-slate-100 dark:bg-white/5`}
+                                            className={`text-[10px] font-normal text-light-tertiaryText dark:text-dark-tertiaryText`}
                                         >
-                                            {getFolderNameFromId(note.folderId)}
+                                            <ReactTimeAgo
+                                                date={new Date(note.lastModified)}
+                                                locale="en"
+                                            />
                                         </span>
                                     )}
+                                    {(activeFolder.name === 'All' ||
+                                        activeFolder.name === 'Favorites') &&
+                                        getFolderNameFromId(note.folderId) && (
+                                            <span
+                                                className={`text-[9px] px-1.5 py-0.5 rounded-md truncate max-w-40 text-light-tertiaryText dark:text-dark-tertiaryText bg-slate-100 dark:bg-white/5`}
+                                            >
+                                                {getFolderNameFromId(note.folderId)}
+                                            </span>
+                                        )}
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Footer Section */}
