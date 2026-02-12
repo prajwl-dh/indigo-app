@@ -71,6 +71,7 @@ export default function Workspace({
                 setIsTrashOpened={setIsTrashOpened}
                 activeNote={activeNote}
                 setActiveNote={setActiveNote}
+                activeAccent={activeAccent}
             />
         </div>
     )

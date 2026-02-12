@@ -1,4 +1,5 @@
 import React from 'react'
+import { Accent } from 'src/shared/model/accent'
 import { Note } from 'src/shared/model/note'
 import EmptyPage from './EmptyPage'
 
@@ -7,21 +8,24 @@ type EditorType = {
     setIsTrashOpened: React.Dispatch<React.SetStateAction<boolean>>
     activeNote: Note | undefined
     setActiveNote: React.Dispatch<React.SetStateAction<Note | undefined>>
+    activeAccent: Accent
 }
 
 export default function Editor({
     isTrashOpened,
     setIsTrashOpened,
     activeNote,
-    setActiveNote
+    setActiveNote,
+    activeAccent
 }: EditorType): React.JSX.Element {
-    if (isTrashOpened || !activeNote) {
+    if (!activeNote) {
         return (
             <EmptyPage
                 isTrashOpened={isTrashOpened}
                 setIsTrashOpened={setIsTrashOpened}
                 activeNote={activeNote}
                 setActiveNote={setActiveNote}
+                activeAccent={activeAccent}
             />
         )
     }
