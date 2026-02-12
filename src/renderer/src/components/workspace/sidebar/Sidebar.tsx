@@ -169,6 +169,13 @@ export default function Sidebar({
         return tmp.textContent + ' ' || tmp.innerText + ' ' || ' '
     }
 
+    function isTrashEmpty(): boolean {
+        const notesInTrashCount = notes.filter((note) => note.isInTrash).length
+        if (notesInTrashCount > 0) return false
+
+        return true
+    }
+
     const baseNotes = notes.filter((note) => (isTrashOpened ? note.isInTrash : !note.isInTrash))
 
     const searchedNotes = baseNotes.filter((note) => {
@@ -285,7 +292,8 @@ export default function Sidebar({
                         title="Empty Trash"
                         onClick={() => emptyTrash()}
                         hidden={!isTrashOpened}
-                        className={`flex flex-row items-center justify-center gap-2 text-white rounded-lg text-[14px] font-medium transition duration-300 bg-red-500 hover:bg-red-600 hover:-translate-y-px`}
+                        disabled={isTrashEmpty()}
+                        className={`flex flex-row items-center justify-center gap-2 text-white rounded-lg text-[14px] font-medium transition duration-300 ${isTrashEmpty() ? 'disabled:bg-red-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 hover:-translate-y-px'}`}
                     >
                         <Trash2 className="h-4 w-4 mb-1" />
                         <span>Empty Trash</span>
@@ -519,7 +527,7 @@ export default function Sidebar({
             <div className={`flex-1 min-h-0`}>
                 {filteredNotes.length < 1 ? (
                     <div
-                        className={`h-full overflow-y-auto text-light-secondaryText dark:text-dark-secondaryText px-5 py-8 text-center text-xs`}
+                        className={`h-full overflow-y-auto text-light-secondaryText dark:text-dark-secondaryText px-5 py-8 text-center text-xs select-none`}
                         hidden={!isSidebarOpen}
                     >
                         {searchQuery.trim().length > 0

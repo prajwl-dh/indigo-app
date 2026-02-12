@@ -72,6 +72,7 @@ export default function Workspace({
                 activeNote={activeNote}
                 setActiveNote={setActiveNote}
                 activeAccent={activeAccent}
+                notes={notes}
             />
         </div>
     )
