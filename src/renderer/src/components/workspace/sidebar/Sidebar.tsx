@@ -548,7 +548,7 @@ export default function Sidebar({
                                 onClick={() => setActiveNote(note)}
                             >
                                 <div
-                                    className={`flex items-center gap-0 font-[440] text-sm transition-colors duration-200 ${
+                                    className={`flex items-center gap-0 font-[440] text-sm transition-transform duration-200 ${
                                         activeNote?.id === note.id && accentValue[activeAccent].text
                                     }`}
                                 >
