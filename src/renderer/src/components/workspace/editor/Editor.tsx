@@ -30,5 +30,9 @@ export default function Editor({
         )
     }
 
-    return <div className="w-full text-white flex-1">Editor</div>
+    return (
+        <div className="w-full h-full text-light-primaryText dark:text-dark-primaryText flex-1">
+            Editor
+        </div>
+    )
 }

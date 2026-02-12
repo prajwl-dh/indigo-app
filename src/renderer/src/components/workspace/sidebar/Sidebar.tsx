@@ -1,3 +1,5 @@
+import TimeAgo from 'javascript-time-ago'
+import en from 'javascript-time-ago/locale/en.json'
 import {
     AlertTriangle,
     Archive,
@@ -20,7 +22,6 @@ import {
 } from 'lucide-react'
 import React from 'react'
 import ReactTimeAgo from 'react-time-ago'
-import 'react-time-ago/locale/en'
 import { useDraggable } from 'react-use-draggable-scroll'
 import { Accent, accents } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
@@ -35,6 +36,7 @@ import Button from '../../ui/Button'
 import { DialogComponent } from '../../ui/DialogComponent'
 import FolderChip from '../../ui/FolderChip'
 import PopoverComponent from '../../ui/PopOver'
+TimeAgo.addDefaultLocale(en)
 
 type SidebarType = {
     activeDatabase: string

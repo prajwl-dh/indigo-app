@@ -18,7 +18,7 @@ export default function EmptyPage({
     activeAccent
 }: EmptyPageType): React.JSX.Element {
     return (
-        <div className="w-full h-full flex flex-col gap-2 items-center justify-center text-center -mt-4">
+        <div className="w-full h-full flex flex-col gap-2 items-center justify-center text-center -mt-4 flex-1">
             <div
                 className={`w-20 h-20 rounded-2xl flex items-center justify-center ${isTrashOpened ? 'bg-red-500/10 dark:bg-red-500/10' : accentValue[activeAccent].bgSubtle} ${isTrashOpened ? 'text-red-600 dark:text-red-400' : accentValue[activeAccent].text}`}
             >
