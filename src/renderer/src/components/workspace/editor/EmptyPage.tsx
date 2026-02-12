@@ -18,7 +18,7 @@ export default function EmptyPage({
     activeAccent
 }: EmptyPageType): React.JSX.Element {
     return (
-        <div className="w-full h-full flex flex-col gap-2 items-center justify-center text-center -mt-4 flex-1">
+        <div className="w-full h-full flex flex-col gap-2 items-center justify-center text-center -mt-4 flex-1 select-none">
             <div
                 className={`w-20 h-20 rounded-2xl flex items-center justify-center ${isTrashOpened ? 'bg-red-500/10 dark:bg-red-500/10' : accentValue[activeAccent].bgSubtle} ${isTrashOpened ? 'text-red-600 dark:text-red-400' : accentValue[activeAccent].text}`}
             >
@@ -31,17 +31,12 @@ export default function EmptyPage({
             <h3
                 className={`text-lg font-semibold mt-1 text-light-primaryText dark:text-dark-primaryText`}
             >
-                {isTrashOpened
-                    ? !activeNote
-                        ? 'Select a Deleted Note'
-                        : 'Trash is Empty'
-                    : 'Select a Note'}
+                {isTrashOpened ? !activeNote && 'Select a Deleted Note' : 'Select a Note'}
             </h3>
             <p className={`max-w-xs text-sm text-light-secondaryText dark:text-dark-secondaryText`}>
                 {isTrashOpened
-                    ? !activeNote
-                        ? 'Select a note from the sidebar to view it or restore it.'
-                        : 'Notes you delete are moved here. You can restore them anytime.'
+                    ? !activeNote &&
+                      'Select a deleted note from the sidebar to view it or restore it.'
                     : 'Select a note from the sidebar to view it, or create a new one to get started.'}
             </p>
         </div>
