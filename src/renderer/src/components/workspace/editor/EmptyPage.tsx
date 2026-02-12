@@ -29,7 +29,7 @@ export default function EmptyPage({
                 )}
             </div>
             <h3
-                className={`text-lg font-semibold text-light-primaryText dark:text-dark-primaryText`}
+                className={`text-lg font-semibold mt-1 text-light-primaryText dark:text-dark-primaryText`}
             >
                 {isTrashOpened
                     ? !activeNote
