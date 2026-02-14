@@ -72,7 +72,10 @@ export function DialogComponent({
 
                             {title && (
                                 <DialogTitle
-                                    className={twMerge('text-lg font-bold', titleClassName)}
+                                    className={twMerge(
+                                        'text-lg font-bold line-clamp-3 overflow-hidden',
+                                        titleClassName
+                                    )}
                                 >
                                     {title}
                                 </DialogTitle>
