@@ -83,6 +83,7 @@ export default function Sidebar({
     const [isDeleteFolderDialogActive, setIsDeleteFolderDialogActive] =
         React.useState<boolean>(false)
     const [searchQuery, setSearchQuery] = React.useState<string>('')
+    const [isEmptyTrashDialogActive, setIsEmptyTrashDialogActive] = React.useState<boolean>(false)
 
     const folderChipRef = React.useRef<HTMLDivElement>(
         null
@@ -156,6 +157,7 @@ export default function Sidebar({
     async function emptyTrash(): Promise<void> {
         await window.notesApi.deleteAllNoteInTrash()
         await reloadAllNotes()
+        setIsEmptyTrashDialogActive(false)
     }
 
     function getFolderNameFromId(id: number | undefined): string {
@@ -280,7 +282,6 @@ export default function Sidebar({
                     </div>
 
                     <Button
-                        title="Create A New Note"
                         hidden={isTrashOpened}
                         className={`flex flex-row items-center justify-center gap-1 text-white rounded-lg text-[14px] font-medium transition duration-300 ${accentValue[activeAccent].bg} ${accentValue[activeAccent].bgHover} hover:-translate-y-px`}
                         onClick={createNewNote}
@@ -289,15 +290,43 @@ export default function Sidebar({
                         <span>New Note</span>
                     </Button>
                     <Button
-                        title="Empty Trash"
-                        onClick={() => emptyTrash()}
+                        onClick={() => setIsEmptyTrashDialogActive(true)}
                         hidden={!isTrashOpened}
                         disabled={isTrashEmpty()}
-                        className={`flex flex-row items-center justify-center gap-2 text-white rounded-lg text-[14px] font-medium transition duration-300 ${isTrashEmpty() ? 'disabled:bg-red-400 cursor-not-allowed' : 'bg-red-500 hover:bg-red-600 hover:-translate-y-px'}`}
+                        className={`flex flex-row items-center justify-center gap-2 text-white rounded-lg text-[14px] font-medium transition duration-300 ${isTrashEmpty() ? 'disabled:bg-red-400' : 'bg-red-500 hover:bg-red-600 hover:-translate-y-px'}`}
                     >
                         <Trash2 className="h-4 w-4 mb-1" />
                         <span>Empty Trash</span>
                     </Button>
+                    <DialogComponent
+                        open={isEmptyTrashDialogActive}
+                        onClose={() => setIsEmptyTrashDialogActive(false)}
+                        className="flex flex-col items-center text-center w-96 bg-light-foreground dark:bg-dark-foreground border border-light-border dark:border-dark-border rounded-lg"
+                        titleClassName="text-light-primaryText dark:text-dark-primaryText"
+                        descriptionClassName="text-light-secondaryText dark:text-dark-secondaryText"
+                        title={`Empty Trash ?`}
+                        description="All notes in the trash will be permanently deleted. This action cannot be undone"
+                        icon={
+                            <div className="p-3 rounded-full bg-red-100 text-red-500 dark:bg-red-400/10">
+                                <AlertTriangle className="w-8 h-8" strokeWidth={1.5} />
+                            </div>
+                        }
+                    >
+                        <div className="flex flex-row items-center justify-between gap-2 text-center font-medium w-full">
+                            <Button
+                                onClick={() => setIsEmptyTrashDialogActive(false)}
+                                className="w-1/2 rounded-lg bg-light-surface dark:bg-dark-surface text-light-primaryText dark:text-dark-primaryText transition duration-300 hover:-translate-y-px"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                className="w-1/2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition duration-300 hover:-translate-y-px"
+                                onClick={() => emptyTrash()}
+                            >
+                                Confirm
+                            </Button>
+                        </div>
+                    </DialogComponent>
                 </div>
             )}
 
