@@ -6,6 +6,7 @@ import {
     Check,
     ChevronLeft,
     ChevronRight,
+    Copy,
     Database,
     Edit2,
     Heart,
@@ -567,22 +568,24 @@ export default function Sidebar({
                     </div>
                 ) : (
                     <div
-                        className={`h-full overflow-y-auto px-2 text-light-secondaryText dark:text-dark-secondaryText flex flex-col gap-1 py-2 select-none group`}
+                        className={`h-full overflow-y-auto px-2 text-light-secondaryText dark:text-dark-secondaryText flex flex-col gap-1 py-2 select-none`}
                         hidden={!isSidebarOpen}
                     >
                         {filteredNotes.map((note) => (
                             <div
                                 key={note.id}
-                                className={`flex flex-col justify-between p-2 gap-0.5 rounded-lg min-h-26 max-h-28 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} ${activeNote && activeNote.id === note.id && accentValue[activeAccent].bgSubtle}`}
+                                className={`group flex flex-col justify-between p-2 gap-0.5 rounded-lg min-h-26 max-h-28 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} ${activeNote && activeNote.id === note.id && accentValue[activeAccent].bgSubtle}`}
                                 onClick={() => setActiveNote(note)}
                             >
-                                <div
-                                    className={`flex items-center gap-0 font-[440] text-sm transition-transform duration-200 ${
-                                        activeNote?.id === note.id && accentValue[activeAccent].text
-                                    }`}
-                                >
-                                    <ChevronRight
-                                        className={`
+                                <div className="flex flex-row justify-between items-center gap-1">
+                                    <div
+                                        className={`flex items-center gap-0 font-[440] text-sm transition-transform duration-200 truncate ${
+                                            activeNote?.id === note.id &&
+                                            accentValue[activeAccent].text
+                                        }`}
+                                    >
+                                        <ChevronRight
+                                            className={`
                                         overflow-hidden shrink-0 -mt-0.5
                                         transition-[width,opacity,transform,margin] duration-200 ease-out
                                         ${
@@ -591,10 +594,64 @@ export default function Sidebar({
                                                 : 'w-0 opacity-0 -translate-x-2 mr-0'
                                         }
                                         `}
-                                        strokeWidth={2.5}
-                                    />
+                                            strokeWidth={2.5}
+                                        />
 
-                                    <span className="truncate">{note.title}</span>
+                                        <span className="truncate">{note.title}</span>
+                                    </div>
+                                    <PopoverComponent
+                                        title="Options"
+                                        buttonClassName="cursor-default"
+                                        anchor="right start"
+                                        panelClassName="min-w-32 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1"
+                                        trigger={
+                                            <MoreHorizontal
+                                                className={`w-4 h-5 shrink-0 text-light-secondaryText dark:text-dark-secondaryText hover:text-light-primaryText dark:hover:text-dark-primaryText ${activeNote?.id !== note.id && 'hidden'}`}
+                                            />
+                                        }
+                                    >
+                                        <button
+                                            title={
+                                                note.isFavorite
+                                                    ? 'Unfavorite note'
+                                                    : 'Favorite note'
+                                            }
+                                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 ${accentValue[activeAccent].text} ${accentValue[activeAccent].hover} rounded-lg outline-none`}
+                                        >
+                                            <div>
+                                                <Heart
+                                                    className="w-3.5 h-3.5"
+                                                    style={{
+                                                        fill: note.isFavorite
+                                                            ? accentValue[activeAccent].hex
+                                                            : undefined
+                                                    }}
+                                                />
+                                            </div>
+                                            <span className="text-light-primaryText dark:text-dark-primaryText">
+                                                {note.isFavorite ? 'Unfavorite' : 'Favorite'}
+                                            </span>
+                                        </button>
+                                        <button
+                                            title="Duplicate Note"
+                                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-lg outline-none`}
+                                        >
+                                            <div>
+                                                <Copy className="w-3.5 h-3.5" />
+                                            </div>
+                                            <span>Duplicate</span>
+                                        </button>
+                                        <div
+                                            className={`h-px my-1 mx-2 bg-light-border dark:bg-dark-border`}
+                                        />
+                                        <button
+                                            title="Move note to trash"
+                                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-lg outline-none`}
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                            <span>Move To Trash</span>
+                                        </button>
+                                    </PopoverComponent>
                                 </div>
 
                                 <span
