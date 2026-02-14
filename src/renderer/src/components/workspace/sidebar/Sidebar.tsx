@@ -606,7 +606,7 @@ export default function Sidebar({
                                         panelClassName="min-w-32 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1"
                                         trigger={
                                             <MoreHorizontal
-                                                className={`w-4 h-5 shrink-0 text-light-secondaryText dark:text-dark-secondaryText hover:text-light-primaryText dark:hover:text-dark-primaryText ${activeNote?.id !== note.id && 'hidden'}`}
+                                                className={`w-4 h-5 shrink-0 text-light-secondaryText dark:text-dark-secondaryText hover:text-light-primaryText dark:hover:text-dark-primaryText ${activeNote?.id !== note.id && 'opacity-0 group-hover:opacity-100'}`}
                                             />
                                         }
                                     >
