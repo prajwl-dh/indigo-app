@@ -618,9 +618,11 @@ export default function Sidebar({
                                                     ? 'Unfavorite note'
                                                     : 'Favorite note'
                                             }
-                                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 ${accentValue[activeAccent].text} ${accentValue[activeAccent].hover} rounded-lg outline-none`}
+                                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-lg outline-none`}
                                         >
-                                            <div>
+                                            <div
+                                                className={`${note.isFavorite && accentValue[activeAccent].text}`}
+                                            >
                                                 <Heart
                                                     className="w-3.5 h-3.5"
                                                     style={{
@@ -630,7 +632,7 @@ export default function Sidebar({
                                                     }}
                                                 />
                                             </div>
-                                            <span className="text-light-primaryText dark:text-dark-primaryText">
+                                            <span className={``}>
                                                 {note.isFavorite ? 'Unfavorite' : 'Favorite'}
                                             </span>
                                         </button>
