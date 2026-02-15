@@ -338,44 +338,6 @@ export default function Sidebar({
                 className={`flex row items-center gap-1 p-2 shrink-0 overflow-x-auto no-scrollbar select-none no-drag-cursor`}
                 hidden={isTrashOpened || !isSidebarOpen}
             >
-                {!isCreateFolderActive ? (
-                    <Button
-                        onClick={() => setIsCreateFolderActive((prev) => !prev)}
-                        title="Create New Folder"
-                        className={`flex items-center py-1.5 rounded-lg text-light-secondaryText! dark:text-dark-primaryText! cursor-default no-drag-cursor bg-white dark:bg-[#1c1c1e] ${accentValue[activeAccent].active} no-drag-cursor`}
-                    >
-                        <Plus className="h-4.5 w-4 no-drag-cursor" />
-                    </Button>
-                ) : (
-                    <input
-                        className={`flex-1 border py-1.5 px-1 rounded-lg w-24 border-light-border dark:border-dark-border outline-none text text-xs text-light-primaryText dark:text-dark-primaryText bg-white dark:bg-[#1c1c1e] capitalize no-drag-cursor`}
-                        autoFocus
-                        placeholder="Name..."
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault()
-                                e.currentTarget.blur()
-                            }
-
-                            if (e.key === 'Escape') {
-                                e.preventDefault()
-                                setIsCreateFolderActive(false)
-                            }
-                        }}
-                        onBlur={(e) => {
-                            createNewFolder(e.currentTarget.value)
-                            setIsCreateFolderActive(false)
-                            folderChipRef.current.scrollTo({
-                                left:
-                                    folderChipRef.current.scrollWidth -
-                                    folderChipRef.current.clientWidth +
-                                    50,
-                                behavior: 'smooth'
-                            })
-                        }}
-                    />
-                )}
-
                 <FolderChip
                     className={`${activeFolder.name === 'All' ? `${accentValue[activeAccent].border} ${accentValue[activeAccent].bgSubtle}` : accentValue[activeAccent].active}`}
                     onClick={() => setActiveFolder({ id: 0, name: 'All' })}
@@ -436,6 +398,44 @@ export default function Sidebar({
                         </span>
                     </FolderChip>
                 ))}
+
+                {!isCreateFolderActive ? (
+                    <Button
+                        onClick={() => setIsCreateFolderActive((prev) => !prev)}
+                        title="Create New Folder"
+                        className={`flex items-center py-1.5 rounded-lg text-light-secondaryText! dark:text-dark-primaryText! cursor-default no-drag-cursor bg-white dark:bg-[#1c1c1e] ${accentValue[activeAccent].active} no-drag-cursor`}
+                    >
+                        <Plus className="h-4.5 w-4 no-drag-cursor" />
+                    </Button>
+                ) : (
+                    <input
+                        className={`flex-1 border py-1.5 px-1 rounded-lg w-24 border-light-border dark:border-dark-border outline-none text text-xs text-light-primaryText dark:text-dark-primaryText bg-white dark:bg-[#1c1c1e] capitalize no-drag-cursor`}
+                        autoFocus
+                        placeholder="Name..."
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault()
+                                e.currentTarget.blur()
+                            }
+
+                            if (e.key === 'Escape') {
+                                e.preventDefault()
+                                setIsCreateFolderActive(false)
+                            }
+                        }}
+                        onBlur={(e) => {
+                            createNewFolder(e.currentTarget.value)
+                            setIsCreateFolderActive(false)
+                            folderChipRef.current.scrollTo({
+                                left:
+                                    folderChipRef.current.scrollWidth -
+                                    folderChipRef.current.clientWidth +
+                                    50,
+                                behavior: 'smooth'
+                            })
+                        }}
+                    />
+                )}
             </div>
 
             {/* Current Folder Header Bar */}
