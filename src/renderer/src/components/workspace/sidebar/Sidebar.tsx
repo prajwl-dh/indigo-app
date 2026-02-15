@@ -1,4 +1,4 @@
-import MoveToFolderComponent from '@renderer/components/ui/MoveToFolderComponent'
+import NoteOptionsComponent from '@renderer/components/ui/NoteOptionsComponent'
 import TimeAgo from 'javascript-time-ago'
 import en from 'javascript-time-ago/locale/en.json'
 import {
@@ -7,7 +7,6 @@ import {
     Check,
     ChevronLeft,
     ChevronRight,
-    Copy,
     Database,
     Edit2,
     Heart,
@@ -600,70 +599,16 @@ export default function Sidebar({
 
                                         <span className="truncate">{note.title}</span>
                                     </div>
-                                    <PopoverComponent
-                                        title="Options"
-                                        buttonClassName="cursor-default"
-                                        anchor="right start"
-                                        panelClassName="w-48 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1"
-                                        trigger={
-                                            <MoreHorizontal
-                                                onClick={() => setActiveNote(note)}
-                                                className={`w-4 h-5 shrink-0 text-light-secondaryText dark:text-dark-secondaryText hover:text-light-primaryText dark:hover:text-dark-primaryText ${activeNote?.id !== note.id && 'opacity-0 group-hover:opacity-100'}`}
-                                            />
-                                        }
-                                    >
-                                        <button
-                                            title={
-                                                note.isFavorite
-                                                    ? 'Unfavorite note'
-                                                    : 'Favorite note'
-                                            }
-                                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-lg outline-none`}
-                                        >
-                                            <div
-                                                className={`${note.isFavorite && accentValue[activeAccent].text}`}
-                                            >
-                                                <Heart
-                                                    className="w-3.5 h-3.5"
-                                                    style={{
-                                                        fill: note.isFavorite
-                                                            ? accentValue[activeAccent].hex
-                                                            : undefined
-                                                    }}
-                                                />
-                                            </div>
-                                            <span className={``}>
-                                                {note.isFavorite ? 'Unfavorite' : 'Favorite'}
-                                            </span>
-                                        </button>
-                                        <button
-                                            title="Duplicate Note"
-                                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-lg outline-none`}
-                                        >
-                                            <div>
-                                                <Copy className="w-3.5 h-3.5" />
-                                            </div>
-                                            <span>Duplicate</span>
-                                        </button>
-                                        <div
-                                            className={`h-px my-1 mx-2 bg-light-border dark:bg-dark-border`}
-                                        />
-                                        <MoveToFolderComponent
-                                            activeAccent={activeAccent}
-                                            folders={folders}
-                                            note={note}
-                                        />
-                                        <div
-                                            className={`h-px my-1 mx-2 bg-light-border dark:bg-dark-border`}
-                                        />
-                                        <button
-                                            title="Move note to trash"
-                                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-lg outline-none`}
-                                        >
-                                            <Trash2 className="w-3.5 h-3.5" />
-                                            <span>Move To Trash</span>
-                                        </button>
-                                    </PopoverComponent>
+                                    <NoteOptionsComponent
+                                        activeAccent={activeAccent}
+                                        folders={folders}
+                                        note={note}
+                                        reloadAllNotes={reloadAllNotes}
+                                        activeNote={activeNote}
+                                        setActiveNote={setActiveNote}
+                                        isTrashOpened={isTrashOpened}
+                                        setIsTrashOpened={setIsTrashOpened}
+                                    />
                                 </div>
 
                                 <span
