@@ -73,6 +73,8 @@ export default function Workspace({
                 setActiveNote={setActiveNote}
                 activeAccent={activeAccent}
                 notes={notes}
+                folders={folders}
+                reloadAllNotes={getAllNotes}
             />
         </div>
     )

@@ -594,6 +594,7 @@ export default function Sidebar({
                                         setActiveNote={setActiveNote}
                                         isTrashOpened={isTrashOpened}
                                         setIsTrashOpened={setIsTrashOpened}
+                                        anchor="bottom end"
                                     />
                                 </div>
 

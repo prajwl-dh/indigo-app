@@ -20,6 +20,20 @@ import Button from '../ui/Button'
 import { DialogComponent } from './DialogComponent'
 import PopoverComponent from './PopOver'
 
+type Anchor =
+    | 'bottom'
+    | 'bottom start'
+    | 'bottom end'
+    | 'top'
+    | 'top start'
+    | 'top end'
+    | 'left'
+    | 'left start'
+    | 'left end'
+    | 'right'
+    | 'right start'
+    | 'right end'
+
 type NoteOptionsComponentProps = {
     activeAccent: Accent
     folders: Folders
@@ -29,6 +43,7 @@ type NoteOptionsComponentProps = {
     setActiveNote: React.Dispatch<React.SetStateAction<Note | undefined>>
     isTrashOpened: boolean
     setIsTrashOpened: React.Dispatch<React.SetStateAction<boolean>>
+    anchor: Anchor
 }
 
 export default function NoteOptionsComponent({
@@ -39,7 +54,8 @@ export default function NoteOptionsComponent({
     activeNote,
     setActiveNote,
     isTrashOpened,
-    setIsTrashOpened
+    setIsTrashOpened,
+    anchor
 }: NoteOptionsComponentProps): React.JSX.Element {
     const [moveToFolderSearchQuery, setMoveToFolderSearchQuery] = React.useState<string>('')
     const [isPermanentlyDeleteNoteDialogActive, setIsPermanentlyDeleteNoteDialogActive] =
@@ -119,7 +135,7 @@ export default function NoteOptionsComponent({
             <PopoverComponent
                 title="Options"
                 buttonClassName="cursor-default"
-                anchor="right start"
+                anchor={anchor}
                 panelClassName="w-48 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1"
                 trigger={
                     <MoreHorizontal
