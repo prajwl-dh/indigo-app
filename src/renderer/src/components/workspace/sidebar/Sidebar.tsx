@@ -6,7 +6,6 @@ import {
     Archive,
     Check,
     ChevronLeft,
-    ChevronRight,
     Database,
     Edit2,
     Heart,
@@ -584,19 +583,6 @@ export default function Sidebar({
                                             accentValue[activeAccent].text
                                         }`}
                                     >
-                                        <ChevronRight
-                                            className={`
-                                        overflow-hidden shrink-0 -mt-0.5
-                                        transition-[width,opacity,transform,margin] duration-200 ease-out
-                                        ${
-                                            activeNote?.id === note.id
-                                                ? 'w-4 opacity-100 translate-x-0 mr-1'
-                                                : 'w-0 opacity-0 -translate-x-2 mr-0'
-                                        }
-                                        `}
-                                            strokeWidth={2.5}
-                                        />
-
                                         <span className="truncate">{note.title}</span>
                                     </div>
                                     <NoteOptionsComponent
