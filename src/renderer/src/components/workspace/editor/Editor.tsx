@@ -52,7 +52,7 @@ export default function Editor({
                     <span
                         className={`text-[10px] font-medium uppercase tracking-wider text-light-secondaryText dark:text-dark-tertext-light-secondaryText`}
                     >
-                        {isTrashOpened ? 'Trashed: ' : 'Last Edited: '}
+                        {isTrashOpened ? 'Moved to Trash: ' : 'Last Edited: '}
                     </span>
                     <span
                         className={`text-[11px] font-medium text-light-primaryText dark:text-dark-primaryText`}

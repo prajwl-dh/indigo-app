@@ -614,15 +614,24 @@ export default function Sidebar({
                                             />
                                         </span>
                                     )}
-                                    {(activeFolder.name === 'All' ||
-                                        activeFolder.name === 'Favorites') &&
-                                        getFolderNameFromId(note.folderId) && (
+                                    <div className="flex flex-row items-center gap-1">
+                                        {activeFolder.name !== 'Favorites' && note.isFavorite && (
                                             <span
-                                                className={`text-[9px] px-1.5 py-0.5 rounded-md truncate max-w-40 text-light-tertiaryText dark:text-dark-tertiaryText bg-slate-100 dark:bg-white/5`}
+                                                className={`text-[9px] px-1.5 py-0.5 rounded-md truncate max-w-40 text-light-secondaryText dark:text-dark-secondaryText bg-slate-100 dark:bg-white/5`}
                                             >
-                                                {getFolderNameFromId(note.folderId)}
+                                                Favorite
                                             </span>
                                         )}
+                                        {(activeFolder.name === 'All' ||
+                                            activeFolder.name === 'Favorites') &&
+                                            getFolderNameFromId(note.folderId) && (
+                                                <span
+                                                    className={`text-[9px] px-1.5 py-0.5 rounded-md truncate max-w-20 text-light-secondaryText dark:text-dark-secondaryText bg-slate-100 dark:bg-white/5`}
+                                                >
+                                                    {getFolderNameFromId(note.folderId)}
+                                                </span>
+                                            )}
+                                    </div>
                                 </div>
                             </div>
                         ))}
