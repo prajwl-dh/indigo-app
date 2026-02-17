@@ -76,8 +76,12 @@ export default function NoteOptionsComponent({
     })
 
     async function favoriteOrUnfavoriteNote(): Promise<void> {
-        await window.notesApi.updateNote({ ...note, isFavorite: !note.isFavorite })
+        const updatedNote = await window.notesApi.updateNote({
+            ...note,
+            isFavorite: !note.isFavorite
+        })
         await reloadAllNotes()
+        setActiveNote(updatedNote)
     }
 
     async function duplicateANote(): Promise<void> {
@@ -99,8 +103,9 @@ export default function NoteOptionsComponent({
     async function moveNoteToADifferentFolder(newFolderId: number): Promise<void> {
         if (note.folderId === newFolderId) return
 
-        await window.notesApi.updateNote({ ...note, folderId: newFolderId })
+        const updatedNote = await window.notesApi.updateNote({ ...note, folderId: newFolderId })
         await reloadAllNotes()
+        setActiveNote(updatedNote)
     }
 
     async function moveToTrash(): Promise<void> {
