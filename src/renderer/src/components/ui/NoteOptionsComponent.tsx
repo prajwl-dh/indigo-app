@@ -178,9 +178,12 @@ export default function NoteOptionsComponent({
                 </PopoverButton>
                 <div
                     className={`h-px my-1 mx-2 bg-light-border dark:bg-dark-border`}
-                    hidden={isTrashOpened}
+                    hidden={isTrashOpened || filteredFolder.length < 1}
                 />
-                <div className={`px-3 -mt-1 flex flex-col gap-1`} hidden={isTrashOpened}>
+                <div
+                    className={`px-3 -mt-1 flex flex-col gap-1`}
+                    hidden={isTrashOpened || filteredFolder.length < 1}
+                >
                     <span className="text-light-tertiaryText dark:text-dark-tertiaryText text-[10px] uppercase font-medium tracking-wider">
                         Move To
                     </span>

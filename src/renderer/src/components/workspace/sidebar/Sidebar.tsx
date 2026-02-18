@@ -209,7 +209,7 @@ export default function Sidebar({
 
     return (
         <div
-            className={`${isSidebarOpen ? 'w-64 md:w-72 lg:w-80' : 'w-16 md:w-18 items-center'} flex shrink-0 flex-col bg-light-foreground dark:bg-dark-foreground border-r border-light-border dark:border-dark-border transition-discrete duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] overflow-hidden`}
+            className={`${isSidebarOpen ? 'w-64 md:w-72 lg:w-80' : 'w-16 md:w-18 items-center'} flex shrink-0 flex-col bg-light-foreground dark:bg-dark-foreground border-r border-light-border dark:border-dark-border transition-discrete duration-300 ease-[cubic-bezier(0.25,1,0.5,1)] overflow-hidden z-50`}
         >
             {/* Active Database Section */}
             {isSidebarOpen && (
@@ -583,7 +583,9 @@ export default function Sidebar({
                                             accentValue[activeAccent].text
                                         }`}
                                     >
-                                        <span className="truncate">{note.title}</span>
+                                        <span className="truncate">
+                                            {note.title || 'Untitled Note'}
+                                        </span>
                                     </div>
                                     <NoteOptionsComponent
                                         activeAccent={activeAccent}
@@ -619,7 +621,7 @@ export default function Sidebar({
                                             <span
                                                 className={`text-[9px] px-1.5 py-0.5 rounded-md truncate max-w-40 text-light-secondaryText dark:text-dark-secondaryText bg-slate-100 dark:bg-white/5`}
                                             >
-                                                Favorite
+                                                Favorites
                                             </span>
                                         )}
                                         {(activeFolder.name === 'All' ||

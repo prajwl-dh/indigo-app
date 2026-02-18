@@ -30,7 +30,16 @@ export default function Editor({
     folders,
     reloadAllNotes
 }: EditorType): React.JSX.Element {
-    const [title, setTitle] = React.useState<string | undefined>('Welcome To My Notes')
+    async function updateNoteTitle(updatedTitle: string): Promise<void> {
+        if (!activeNote) return
+
+        const updatedNote = await window.notesApi.updateNote({
+            ...activeNote,
+            title: updatedTitle
+        })
+        await reloadAllNotes()
+        setActiveNote(updatedNote)
+    }
 
     if (!activeNote) {
         return (
@@ -46,50 +55,56 @@ export default function Editor({
     }
 
     return (
-        <div className="w-full h-full text-light-primaryText dark:text-dark-primaryText flex-1">
-            <div className={`flex flex-row items-center gap-4 justify-end px-10 xl:px-12 py-6`}>
-                <div className={`flex flex-row items-center gap-2`}>
-                    <span
-                        className={`text-[10px] font-medium uppercase tracking-wider text-light-secondaryText dark:text-dark-tertext-light-secondaryText`}
-                    >
-                        {isTrashOpened ? 'Moved to Trash: ' : 'Last Edited: '}
-                    </span>
-                    <span
-                        className={`text-[11px] font-medium text-light-primaryText dark:text-dark-primaryText`}
-                    >
-                        <ReactTimeAgo date={new Date(activeNote.lastModified)} locale="en" />
-                    </span>
+        <div className="w-full h-full text-light-primaryText dark:text-dark-primaryText overflow-x-hidden">
+            <div className="fixed right-0 w-full bg-light-background dark:bg-dark-background">
+                <div
+                    className={`flex flex-row items-center gap-4 justify-end px-4 xl:px-12 pt-4 pb-1 select-none`}
+                >
+                    <div className={`flex flex-row items-center gap-2`}>
+                        <span
+                            className={`text-[10px] font-medium uppercase tracking-wider text-light-secondaryText dark:text-dark-tertext-light-secondaryText`}
+                        >
+                            {isTrashOpened ? 'Moved to Trash: ' : 'Last Edited: '}
+                        </span>
+                        <span
+                            className={`text-[11px] font-medium text-light-primaryText dark:text-dark-primaryText`}
+                        >
+                            <ReactTimeAgo date={new Date(activeNote.lastModified)} locale="en" />
+                        </span>
+                    </div>
+                    <NoteOptionsComponent
+                        activeAccent={activeAccent}
+                        activeNote={activeNote}
+                        folders={folders}
+                        isTrashOpened={isTrashOpened}
+                        note={activeNote}
+                        reloadAllNotes={reloadAllNotes}
+                        setActiveNote={setActiveNote}
+                        setIsTrashOpened={setIsTrashOpened}
+                        anchor="top end"
+                    />
                 </div>
-                <NoteOptionsComponent
-                    activeAccent={activeAccent}
-                    activeNote={activeNote}
-                    folders={folders}
-                    isTrashOpened={isTrashOpened}
-                    note={activeNote}
-                    reloadAllNotes={reloadAllNotes}
-                    setActiveNote={setActiveNote}
-                    setIsTrashOpened={setIsTrashOpened}
-                    anchor="top end"
-                />
             </div>
-            <TextareaAutosize
-                placeholder="Untitled Note"
-                className="mt-16 flex-1 px-12 xl:px-28 w-full wrap-break-word text-2xl lg:text-3xl font-extrabold border-none outline-none bg-transparent placeholder-opacity-40 resize-none"
-                value={title}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault()
-                    }
-                }}
-                onChange={(e) => {
-                    setTitle(e.target.value)
-                }}
-            />
-            <p
-                className={`mt-10 px-12 xl:px-28 w-full wrap-break-word outline-none text-lg leading-relaxed`}
-            >
-                {activeNote.body}
-            </p>
+            <div className="flex flex-col items-center justify-center">
+                <TextareaAutosize
+                    placeholder="Untitled Note"
+                    className="mt-16 px-12 2xl:px-0 w-full max-w-4xl wrap-break-word text-2xl 2xl:text-3xl tracking-wide font-extrabold border-none outline-none bg-transparent placeholder-opacity-40 resize-none"
+                    value={activeNote.title}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault()
+                        }
+                    }}
+                    onChange={(e) => {
+                        updateNoteTitle(e.target.value)
+                    }}
+                />
+                <p
+                    className={`mt-6 flex-1 px-12 2xl:px-0 w-full max-w-4xl wrap-break-word outline-none text-lg leading-relaxed`}
+                >
+                    {activeNote.body}
+                </p>
+            </div>
         </div>
     )
 }
