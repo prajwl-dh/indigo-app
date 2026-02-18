@@ -1,6 +1,7 @@
 import NoteOptionsComponent from '@renderer/components/ui/NoteOptionsComponent'
 import TimeAgo from 'javascript-time-ago'
 import en from 'javascript-time-ago/locale/en.json'
+import { debounce } from 'lodash'
 import React from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import ReactTimeAgo from 'react-time-ago'
@@ -30,16 +31,25 @@ export default function Editor({
     folders,
     reloadAllNotes
 }: EditorType): React.JSX.Element {
-    async function updateNoteTitle(updatedTitle: string): Promise<void> {
-        if (!activeNote) return
+    const debouncedUpdateRef = React.useRef(
+        debounce(async (note: Note, updatedTitle: string) => {
+            const updatedNote = await window.notesApi.updateNote({
+                ...note,
+                title: updatedTitle
+            })
 
-        const updatedNote = await window.notesApi.updateNote({
-            ...activeNote,
-            title: updatedTitle
-        })
-        await reloadAllNotes()
-        setActiveNote(updatedNote)
-    }
+            await reloadAllNotes()
+            setActiveNote(updatedNote)
+        }, 400)
+    )
+
+    React.useEffect(() => {
+        const debounced = debouncedUpdateRef.current
+
+        return () => {
+            debounced.cancel()
+        }
+    }, [])
 
     if (!activeNote) {
         return (
@@ -96,7 +106,11 @@ export default function Editor({
                         }
                     }}
                     onChange={(e) => {
-                        updateNoteTitle(e.target.value)
+                        if (!activeNote) return
+                        const newTitle = e.target.value
+
+                        setActiveNote({ ...activeNote, title: newTitle })
+                        debouncedUpdateRef.current(activeNote, newTitle)
                     }}
                 />
                 <p
