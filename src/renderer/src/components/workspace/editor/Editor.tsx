@@ -67,9 +67,9 @@ export default function Editor({
 
     return (
         <div className="w-full h-full text-light-primaryText dark:text-dark-primaryText overflow-x-hidden">
-            <div className="fixed right-0 w-full bg-light-background dark:bg-dark-background">
+            <div className="fixed top-1 right-2 max-w-80 bg-transparent dark:bg-transparent backdrop-blur-sm z-50 rounded-lg border-light-border dark:border-dark-border">
                 <div
-                    className={`flex flex-row items-center gap-4 justify-end px-4 xl:px-12 pt-4 pb-1 select-none`}
+                    className={`flex flex-row items-center gap-4 justify-end py-1 px-3 select-none`}
                 >
                     <div className={`flex flex-row items-center gap-2`}>
                         <span
@@ -92,7 +92,8 @@ export default function Editor({
                         reloadAllNotes={reloadAllNotes}
                         setActiveNote={setActiveNote}
                         setIsTrashOpened={setIsTrashOpened}
-                        anchor="top end"
+                        anchor="bottom end"
+                        className="mt-2"
                     />
                 </div>
             </div>

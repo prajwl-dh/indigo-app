@@ -16,6 +16,7 @@ import { Accent } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
 import { Folders, Note } from 'src/shared/model/note'
 import { normalizeNoSpace } from 'src/shared/util/stringUtils'
+import { twMerge } from 'tailwind-merge'
 import Button from '../ui/Button'
 import { DialogComponent } from './DialogComponent'
 import PopoverComponent from './PopOver'
@@ -44,6 +45,7 @@ type NoteOptionsComponentProps = {
     isTrashOpened: boolean
     setIsTrashOpened: React.Dispatch<React.SetStateAction<boolean>>
     anchor: Anchor
+    className?: string
 }
 
 export default function NoteOptionsComponent({
@@ -55,7 +57,8 @@ export default function NoteOptionsComponent({
     setActiveNote,
     isTrashOpened,
     setIsTrashOpened,
-    anchor
+    anchor,
+    className
 }: NoteOptionsComponentProps): React.JSX.Element {
     const [moveToFolderSearchQuery, setMoveToFolderSearchQuery] = React.useState<string>('')
     const [isPermanentlyDeleteNoteDialogActive, setIsPermanentlyDeleteNoteDialogActive] =
@@ -141,7 +144,10 @@ export default function NoteOptionsComponent({
                 title="Options"
                 buttonClassName="cursor-default"
                 anchor={anchor}
-                panelClassName="w-48 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1"
+                panelClassName={twMerge(
+                    'w-48 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1',
+                    className
+                )}
                 trigger={
                     <MoreHorizontal
                         onClick={() => setActiveNote(note)}
