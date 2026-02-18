@@ -49,7 +49,7 @@ export default function PopoverComponent({
                 onClick={(e) => e.stopPropagation()}
                 anchor={anchor}
                 className={twMerge(
-                    'z-50 rounded-lg bg-white dark:bg-[#1c1c1e]',
+                    'z-50 rounded-lg bg-white dark:bg-[#1f1f1f]',
                     'data-closed:opacity-0 data-closed:scale-95 transition',
                     panelClassName
                 )}

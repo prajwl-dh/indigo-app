@@ -7,6 +7,7 @@ import TextareaAutosize from 'react-textarea-autosize'
 import ReactTimeAgo from 'react-time-ago'
 import { Accent } from 'src/shared/model/accent'
 import { Folders, Note, Notes } from 'src/shared/model/note'
+import BlockEditor from './BlockEditor'
 import EmptyPage from './EmptyPage'
 TimeAgo.addDefaultLocale(en)
 
@@ -98,7 +99,7 @@ export default function Editor({
             <div className="flex flex-col items-center justify-center">
                 <TextareaAutosize
                     placeholder="Untitled Note"
-                    className="mt-16 px-12 2xl:px-0 w-full max-w-4xl wrap-break-word text-2xl 2xl:text-3xl tracking-wide font-extrabold border-none outline-none bg-transparent placeholder-opacity-40 resize-none"
+                    className="mt-32 px-12 2xl:px-0 w-full max-w-4xl wrap-break-word text-2xl 2xl:text-3xl tracking-wide font-extrabold border-none outline-none bg-transparent placeholder-opacity-40 resize-none"
                     value={activeNote.title}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -113,11 +114,7 @@ export default function Editor({
                         debouncedUpdateRef.current(activeNote, newTitle)
                     }}
                 />
-                <p
-                    className={`mt-6 flex-1 px-12 2xl:px-0 w-full max-w-4xl wrap-break-word outline-none text-lg leading-relaxed`}
-                >
-                    {activeNote.body}
-                </p>
+                <BlockEditor className={`mt-6 flex-1 w-full max-w-4xl`} />
             </div>
         </div>
     )
