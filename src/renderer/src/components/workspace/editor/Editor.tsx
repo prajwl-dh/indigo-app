@@ -99,7 +99,7 @@ export default function Editor({
             <div className="flex flex-col items-center justify-center">
                 <TextareaAutosize
                     placeholder="Untitled Note"
-                    className="mt-32 px-12 2xl:px-0 w-full max-w-4xl wrap-break-word text-2xl 2xl:text-3xl tracking-wide font-extrabold border-none outline-none bg-transparent placeholder-opacity-40 resize-none"
+                    className="mt-32 px-13 w-full max-w-4xl wrap-break-word text-2xl 2xl:text-3xl tracking-wide font-extrabold border-none outline-none bg-transparent placeholder-opacity-40 resize-none"
                     value={activeNote.title}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
