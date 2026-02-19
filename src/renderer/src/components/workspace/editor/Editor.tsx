@@ -115,7 +115,7 @@ export default function Editor({
                         debouncedUpdateRef.current(activeNote, newTitle)
                     }}
                 />
-                <BlockEditor className={`mt-6 flex-1 w-full max-w-4xl`} />
+                <BlockEditor className={`mt-6 mb-20 flex-1 w-full max-w-4xl`} />
             </div>
         </div>
     )

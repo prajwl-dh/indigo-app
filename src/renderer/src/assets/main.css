@@ -54,6 +54,18 @@
     ::-webkit-scrollbar-thumb {
         @apply rounded-lg bg-gray-300 dark:bg-[#4a4a4f] cursor-auto;
     }
+
+    ::-webkit-scrollbar:horizontal {
+        @apply h-[5px];
+    }
+
+    ::-webkit-scrollbar-thumb:horizontal {
+        @apply rounded-lg bg-gray-300 dark:bg-[#4a4a4f];
+    }
+
+    ::-webkit-scrollbar-track:horizontal {
+        @apply rounded-lg bg-transparent;
+    }
 }
 
 body {

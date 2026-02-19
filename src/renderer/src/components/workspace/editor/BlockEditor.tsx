@@ -46,7 +46,7 @@ export default function BlockEditor({ className }: BlockEditorType): React.JSX.E
     return (
         <BlockNoteView
             className={twMerge(
-                `bg-light-background dark:bg-dark-background no-scrollbar z-40 overflow-y-auto`,
+                `bg-light-background dark:bg-dark-background z-40 overflow-y-auto`,
                 className
             )}
             editor={editor}
