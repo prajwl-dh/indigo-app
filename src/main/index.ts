@@ -9,7 +9,7 @@ import { databaseHandler } from './handler/databaseHandler'
 import { notesHandler } from './handler/notesHandler'
 import { themeHandler } from './handler/themeHandler'
 
-contextMenu({ showInspectElement: false })
+contextMenu({ showInspectElement: false, showSelectAll: false })
 
 const store = new Store()
 
