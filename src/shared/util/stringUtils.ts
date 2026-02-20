@@ -34,3 +34,9 @@ export function truncateActiveDatabasePath(filePath: string, maxLength = 20): st
         return `${start}${sep}${fileName}`
     }
 }
+
+export const stripHtml = (html: string): string => {
+    const tmp = document.createElement('DIV')
+    tmp.innerHTML = html
+    return tmp.textContent + ' ' || tmp.innerText + ' ' || ' '
+}
