@@ -54,10 +54,10 @@ export default function EmptyPage({
             >
                 {isTrashOpened
                     ? !activeNote &&
-                      'Select a deleted note from the sidebar to view it or restore it.'
+                      'Select a deleted note from the sidebar to view it or restore it'
                     : noNotes
-                      ? 'Create your first note and start capturing your ideas.'
-                      : 'Select a note from the sidebar to start editing, or create a new one.'}
+                      ? 'Create your first note and start capturing your ideas'
+                      : 'Select a note from the sidebar to start editing, or create a new one'}
             </p>
         </div>
     )

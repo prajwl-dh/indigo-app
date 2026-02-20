@@ -2,7 +2,7 @@ export type Note = {
     id: number
     title?: string
     body?: string
-    lastModified: string
+    lastModified?: string
     isFavorite?: boolean
     folderId?: number
     isInTrash?: boolean

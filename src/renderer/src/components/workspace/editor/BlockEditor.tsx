@@ -13,6 +13,7 @@ interface BlockEditorType extends React.HTMLAttributes<HTMLDivElement> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     updateNoteBody: React.RefObject<any>
     note: Note
+    isTrashOpened: boolean
 }
 
 const theme = {
@@ -37,7 +38,8 @@ const theme = {
 export default function BlockEditor({
     className,
     updateNoteBody,
-    note
+    note,
+    isTrashOpened
 }: BlockEditorType): React.JSX.Element {
     const editor = useCreateBlockNote(
         {
@@ -57,6 +59,7 @@ export default function BlockEditor({
 
     return (
         <BlockNoteView
+            editable={!isTrashOpened}
             key={note.id}
             className={twMerge(
                 `bg-light-background dark:bg-dark-background z-40 overflow-y-auto`,
@@ -65,7 +68,10 @@ export default function BlockEditor({
             editor={editor}
             theme={theme}
             autoFocus
-            onChange={() => updateNoteBody.current(note, JSON.stringify(editor.document))}
+            onChange={() => {
+                if (isTrashOpened) return
+                updateNoteBody.current(note.id, JSON.stringify(editor.document))
+            }}
         />
     )
 }

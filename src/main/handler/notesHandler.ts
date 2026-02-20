@@ -20,7 +20,7 @@ export async function notesHandler(store: Store): Promise<void> {
             const [inserted] = await connection.db
                 .insert(notes)
                 .values({
-                    title: 'Untitled Note',
+                    title: '',
                     body: '',
                     lastModified: new Date().toISOString(),
                     isFavorite: isFavorite || false,

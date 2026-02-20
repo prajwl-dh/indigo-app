@@ -46,9 +46,9 @@ export default function Editor({
     )
 
     const updateNoteBody = React.useRef(
-        debounce(async (note: Note, updatedBody: string) => {
+        debounce(async (id: number, updatedBody: string) => {
             const updatedNote = await window.notesApi.updateNote({
-                ...note,
+                id,
                 body: updatedBody
             })
 
@@ -95,7 +95,10 @@ export default function Editor({
                         <span
                             className={`text-[11px] font-medium text-light-primaryText dark:text-dark-primaryText`}
                         >
-                            <ReactTimeAgo date={new Date(activeNote.lastModified)} locale="en" />
+                            <ReactTimeAgo
+                                date={new Date(activeNote.lastModified || '')}
+                                locale="en"
+                            />
                         </span>
                     </div>
                     <NoteOptionsComponent
@@ -114,6 +117,7 @@ export default function Editor({
             </div>
             <div className="flex flex-col items-center justify-center">
                 <TextareaAutosize
+                    disabled={isTrashOpened}
                     placeholder="Untitled Note"
                     className={`mt-32 px-13 w-full max-w-4xl wrap-break-word text-2xl 2xl:text-3xl tracking-wide font-extrabold border-none outline-none bg-transparent placeholder-opacity-40 resize-none ${accentValue[activeAccent].selection}`}
                     value={activeNote.title}
@@ -134,6 +138,7 @@ export default function Editor({
                     updateNoteBody={updateNoteBody}
                     note={activeNote}
                     className={`mt-6 mb-20 flex-1 w-full max-w-4xl ${accentValue[activeAccent].selection}`}
+                    isTrashOpened={isTrashOpened}
                 />
             </div>
         </div>

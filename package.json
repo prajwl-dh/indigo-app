@@ -33,6 +33,7 @@
         "@tailwindcss/postcss": "^4.1.18",
         "autoprefixer": "^10.4.24",
         "drizzle-orm": "^0.45.1",
+        "electron-context-menu": "^4.1.1",
         "electron-store": "^11.0.2",
         "javascript-time-ago": "^2.6.2",
         "lodash": "^4.17.23",

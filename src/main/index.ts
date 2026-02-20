@@ -1,5 +1,6 @@
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { app, BrowserWindow, nativeTheme, shell } from 'electron'
+import contextMenu from 'electron-context-menu'
 import Store from 'electron-store'
 import { join } from 'path'
 import icon from '../../resources/icon.png?asset'
@@ -7,6 +8,8 @@ import { accentHandler } from './handler/accentHandler'
 import { databaseHandler } from './handler/databaseHandler'
 import { notesHandler } from './handler/notesHandler'
 import { themeHandler } from './handler/themeHandler'
+
+contextMenu({ showInspectElement: false })
 
 const store = new Store()
 
