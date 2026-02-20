@@ -8,6 +8,14 @@
     font-display: swap;
 }
 
+@font-face {
+    font-family: 'Inter';
+    src: url('./Inter-VariableFont_wght.ttf') format('truetype');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
 @theme {
     --color-light-background: #ffffff;
     --color-light-foreground: #fbfbfd;
@@ -70,4 +78,8 @@
 
 body {
     font-family: 'Rubik', sans-serif;
+}
+
+#titleTextArea {
+    font-family: 'Inter', sans-serif;
 }

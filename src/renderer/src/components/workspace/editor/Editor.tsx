@@ -152,6 +152,7 @@ export default function Editor({
             </div>
             <div className="flex flex-col items-center justify-center">
                 <TextareaAutosize
+                    id="titleTextArea"
                     disabled={isTrashOpened}
                     placeholder="Untitled Note"
                     className={`${isTrashOpened ? 'mt-10' : 'mt-32'} px-13 w-full max-w-4xl wrap-break-word text-2xl 2xl:text-3xl tracking-wide font-extrabold border-none outline-none bg-transparent placeholder-opacity-40 resize-none ${accentValue[activeAccent].selection}`}
