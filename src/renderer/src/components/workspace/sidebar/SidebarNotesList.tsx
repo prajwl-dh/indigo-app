@@ -61,7 +61,7 @@ export default function SidebarNotesList({
                     {filteredNotes.map((note) => (
                         <div
                             key={note.id}
-                            className={`group flex flex-col justify-between p-2 gap-0.5 rounded-lg min-h-26 max-h-28 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} ${activeNote && activeNote.id === note.id && accentValue[activeAccent].bgSubtle}`}
+                            className={`group flex flex-col justify-between p-2 rounded-lg max-h-28 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} ${activeNote && activeNote.id === note.id && accentValue[activeAccent].bgSubtle}`}
                             onClick={() => setActiveNote(note)}
                         >
                             <div className="flex flex-row justify-between items-center gap-1">
@@ -89,9 +89,10 @@ export default function SidebarNotesList({
                             </div>
 
                             <span
-                                className={`text-[12px] mt-[0.5px] line-clamp-2 leading-4 font-normal text-light-secondaryText dark:text-dark-secondaryText`}
+                                hidden={note.body ? false : true}
+                                className={`text-[12px] mt-1 line-clamp-2 leading-4 font-normal text-light-secondaryText dark:text-dark-secondaryText`}
                             >
-                                {note.body ? stripHtml(note.body) : 'No additional text'}
+                                {note.body && stripHtml(note.body)}
                             </span>
                             <div className={`flex flex-row justify-between mt-2 items-center`}>
                                 {note.lastModified && (

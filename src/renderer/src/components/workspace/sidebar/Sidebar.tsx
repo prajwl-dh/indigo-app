@@ -46,7 +46,6 @@ export default function Sidebar({
     activeFolder,
     setActiveFolder,
     notes,
-    setNotes,
     folders,
     setFolders,
     activeNote,
