@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { ipcMain } from 'electron'
 import Store from 'electron-store'
 import { Folder, Note } from '../../shared/model/note'
@@ -17,6 +17,9 @@ export async function notesHandler(store: Store): Promise<void> {
     // create a new note
     ipcMain.handle('create:note', async (_event, folderId: number, isFavorite: boolean) => {
         try {
+            // Remove notes that have no title and no body to prevent empty/untitled notes
+            await connection.db.delete(notes).where(and(eq(notes.title, ''), eq(notes.body, '')))
+
             const [inserted] = await connection.db
                 .insert(notes)
                 .values({

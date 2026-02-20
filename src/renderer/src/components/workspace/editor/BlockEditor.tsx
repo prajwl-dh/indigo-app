@@ -81,6 +81,24 @@ const sanitizeBlocks = (blocks: Block[] | PartialBlock[]): PartialBlock[] => {
     })
 }
 
+const isBlocksEmpty = (blocks: PartialBlock[]): boolean => {
+    return blocks.every((block) => {
+        const childrenEmpty = block.children
+            ? isBlocksEmpty(block.children as PartialBlock[])
+            : true
+
+        let contentEmpty = true
+
+        if (Array.isArray(block.content)) {
+            contentEmpty = block.content.length === 0
+        } else if (typeof block.content === 'object' && block.content !== null) {
+            contentEmpty = false
+        }
+
+        return contentEmpty && childrenEmpty
+    })
+}
+
 export default function BlockEditor({
     className,
     updateNoteBody,
@@ -137,7 +155,9 @@ export default function BlockEditor({
 
                 const currentDoc = editor.document
                 const cleanDoc = sanitizeBlocks(currentDoc)
-                updateNoteBody.current(note.id, JSON.stringify(cleanDoc))
+
+                const empty = isBlocksEmpty(cleanDoc)
+                updateNoteBody.current(note.id, empty ? '' : JSON.stringify(cleanDoc))
             }}
         >
             <FormattingToolbarController

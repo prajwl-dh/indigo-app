@@ -70,7 +70,7 @@ export default function Sidebar({
         const isFavorite = activeFolder.name === 'Favorites'
         const folderId = isFavorite || activeFolder.name === 'All' ? 0 : activeFolder.id
         const response = await window.notesApi.createNote(folderId, isFavorite)
-        setNotes((prev) => [...prev, response])
+        reloadAllNotes()
         setActiveNote(response)
     }
 
