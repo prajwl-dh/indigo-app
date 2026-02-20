@@ -8,7 +8,7 @@ import { Theme } from 'src/shared/model/theme'
 import { normalizeNoSpace, stripHtml } from 'src/shared/util/stringUtils'
 
 import SidebarCurrentFolder from './SidebarCurrentFolder'
-import SidebarFolders from './SidebarFolderChips'
+import SidebarFolderChips from './SidebarFolderChips'
 import SidebarFooter from './SidebarFooter'
 import SidebarHeader from './SidebarHeader'
 import SidebarNotesList from './SidebarNotesList'
@@ -111,7 +111,7 @@ export default function Sidebar({
                 setActiveNote={setActiveNote}
             />
 
-            <SidebarFolders
+            <SidebarFolderChips
                 isTrashOpened={isTrashOpened}
                 isSidebarOpen={isSidebarOpen}
                 folderChipRef={folderChipRef}
