@@ -1,9 +1,21 @@
 import { codeBlockOptions } from '@blocknote/code-block'
-import { BlockNoteSchema, createCodeBlockSpec, PartialBlock } from '@blocknote/core'
+import {
+    Block,
+    BlockNoteSchema,
+    createCodeBlockSpec,
+    createHeadingBlockSpec,
+    defaultBlockSpecs,
+    PartialBlock
+} from '@blocknote/core'
 import '@blocknote/core/fonts/inter.css'
 import { BlockNoteView } from '@blocknote/mantine'
 import '@blocknote/mantine/style.css'
-import { useCreateBlockNote } from '@blocknote/react'
+import {
+    blockTypeSelectItems,
+    FormattingToolbar,
+    FormattingToolbarController,
+    useCreateBlockNote
+} from '@blocknote/react'
 import React from 'react'
 import { Note } from 'src/shared/model/note'
 import { twMerge } from 'tailwind-merge'
@@ -35,6 +47,40 @@ const theme = {
     }
 }
 
+const schema = BlockNoteSchema.create({
+    blockSpecs: {
+        ...defaultBlockSpecs,
+
+        heading: createHeadingBlockSpec({
+            levels: [3, 4, 5, 6]
+        }),
+
+        codeBlock: createCodeBlockSpec(codeBlockOptions)
+    }
+})
+
+const sanitizeBlocks = (blocks: Block[] | PartialBlock[]): PartialBlock[] => {
+    return blocks.map((block) => {
+        const partialBlock: PartialBlock = { ...block }
+
+        if (partialBlock.type === 'heading' && partialBlock.props) {
+            const level = partialBlock.props.level as number
+            if (level === 1 || level === 2) {
+                partialBlock.props = {
+                    ...partialBlock.props,
+                    level: 3
+                }
+            }
+        }
+
+        if (partialBlock.children && partialBlock.children.length > 0) {
+            partialBlock.children = sanitizeBlocks(partialBlock.children as Block[])
+        }
+
+        return partialBlock
+    })
+}
+
 export default function BlockEditor({
     className,
     updateNoteBody,
@@ -43,15 +89,32 @@ export default function BlockEditor({
 }: BlockEditorType): React.JSX.Element {
     const editor = useCreateBlockNote(
         {
-            schema: BlockNoteSchema.create().extend({
-                blockSpecs: {
-                    codeBlock: createCodeBlockSpec(codeBlockOptions)
-                }
-            }),
+            schema,
             initialContent: note.body ? (JSON.parse(note.body) as PartialBlock[]) : undefined
         },
         [note.id]
     )
+
+    const filteredBlockTypeItems = React.useMemo(() => {
+        if (!editor) return []
+        return blockTypeSelectItems(editor.dictionary).filter((item) => {
+            if (item.type === 'heading' && (item.props?.level === 1 || item.props?.level === 2)) {
+                return false
+            }
+
+            const hiddenNames = [
+                'Heading 1',
+                'Heading 2',
+                'Heading 1 (Toggle)',
+                'Heading 2 (Toggle)'
+            ]
+            if (hiddenNames.includes(item.name)) {
+                return false
+            }
+
+            return true
+        })
+    }, [editor])
 
     if (!editor) {
         return <></>
@@ -59,6 +122,7 @@ export default function BlockEditor({
 
     return (
         <BlockNoteView
+            formattingToolbar={false}
             editable={!isTrashOpened}
             key={note.id}
             className={twMerge(
@@ -70,8 +134,17 @@ export default function BlockEditor({
             autoFocus
             onChange={() => {
                 if (isTrashOpened) return
-                updateNoteBody.current(note.id, JSON.stringify(editor.document))
+
+                const currentDoc = editor.document
+                const cleanDoc = sanitizeBlocks(currentDoc)
+                updateNoteBody.current(note.id, JSON.stringify(cleanDoc))
             }}
-        />
+        >
+            <FormattingToolbarController
+                formattingToolbar={(props) => (
+                    <FormattingToolbar {...props} blockTypeSelectItems={filteredBlockTypeItems} />
+                )}
+            />
+        </BlockNoteView>
     )
 }
