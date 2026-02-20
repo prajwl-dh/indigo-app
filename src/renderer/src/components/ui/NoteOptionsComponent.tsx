@@ -14,7 +14,7 @@ import {
 import React from 'react'
 import { Accent } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
-import { Folders, Note } from 'src/shared/model/note'
+import { Folder as FolderType, Folders, Note } from 'src/shared/model/note'
 import { normalizeNoSpace } from 'src/shared/util/stringUtils'
 import { twMerge } from 'tailwind-merge'
 import Button from '../ui/Button'
@@ -46,6 +46,7 @@ type NoteOptionsComponentProps = {
     setIsTrashOpened: React.Dispatch<React.SetStateAction<boolean>>
     anchor: Anchor
     className?: string
+    setActiveFolder: React.Dispatch<React.SetStateAction<FolderType>>
 }
 
 export default function NoteOptionsComponent({
@@ -58,7 +59,8 @@ export default function NoteOptionsComponent({
     isTrashOpened,
     setIsTrashOpened,
     anchor,
-    className
+    className,
+    setActiveFolder
 }: NoteOptionsComponentProps): React.JSX.Element {
     const [moveToFolderSearchQuery, setMoveToFolderSearchQuery] = React.useState<string>('')
     const [isPermanentlyDeleteNoteDialogActive, setIsPermanentlyDeleteNoteDialogActive] =
@@ -130,6 +132,7 @@ export default function NoteOptionsComponent({
         await reloadAllNotes()
         setIsTrashOpened(false)
         setActiveNote(restoredNote)
+        setActiveFolder({ id: 0, name: 'Al l' })
     }
 
     async function permanentlyDeleteANote(): Promise<void> {
@@ -159,7 +162,7 @@ export default function NoteOptionsComponent({
                     hidden={isTrashOpened}
                     title={note.isFavorite ? 'Unfavorite note' : 'Favorite note'}
                     onClick={() => favoriteOrUnfavoriteNote()}
-                    className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-lg outline-none`}
+                    className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-lg outline-none select-none`}
                 >
                     <div className={`${note.isFavorite && accentValue[activeAccent].text}`}>
                         <Heart
@@ -175,7 +178,7 @@ export default function NoteOptionsComponent({
                     hidden={isTrashOpened}
                     title="Duplicate Note"
                     onClick={() => duplicateANote()}
-                    className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-lg outline-none`}
+                    className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-lg outline-none select-none`}
                 >
                     <div>
                         <Copy className="w-3.5 h-3.5" />
@@ -184,13 +187,13 @@ export default function NoteOptionsComponent({
                 </PopoverButton>
                 <div
                     className={`h-px my-1 mx-2 bg-light-border dark:bg-dark-border`}
-                    hidden={isTrashOpened || filteredFolder.length < 1}
+                    hidden={isTrashOpened || folders.length < 1}
                 />
                 <div
                     className={`px-3 -mt-1 flex flex-col gap-1`}
-                    hidden={isTrashOpened || filteredFolder.length < 1}
+                    hidden={isTrashOpened || folders.length < 1}
                 >
-                    <span className="text-light-tertiaryText dark:text-dark-tertiaryText text-[10px] uppercase font-medium tracking-wider">
+                    <span className="text-light-tertiaryText dark:text-dark-tertiaryText text-[10px] uppercase font-medium tracking-wider select-none">
                         Move To
                     </span>
                     <div className="flex flex-col max-h-32 overflow-x-hidden">
@@ -224,7 +227,7 @@ export default function NoteOptionsComponent({
                                 <PopoverButton
                                     title={folder.name}
                                     key={folder.id}
-                                    className={`w-full px-3 mt-1 py-1 text-[13px] flex items-center justify-between ${accentValue[activeAccent].hover} rounded-lg outline-none ${note.folderId === folder.id ? `${accentValue[activeAccent].text}` : `text-light-primaryText dark:text-dark-primaryText`}`}
+                                    className={`w-full px-3 mt-1 py-1 text-[13px] flex items-center justify-between ${accentValue[activeAccent].hover} rounded-lg outline-none ${note.folderId === folder.id ? `${accentValue[activeAccent].text}` : `text-light-primaryText dark:text-dark-primaryText`} select-none`}
                                     onClick={() => moveNoteToADifferentFolder(folder.id)}
                                 >
                                     <div className="flex items-center gap-2.5 truncate">
@@ -249,7 +252,7 @@ export default function NoteOptionsComponent({
                     hidden={isTrashOpened}
                     title="Move note to trash"
                     onClick={() => moveToTrash()}
-                    className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-lg outline-none`}
+                    className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-lg outline-none select-none`}
                 >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Move To Trash</span>
@@ -258,7 +261,7 @@ export default function NoteOptionsComponent({
                     hidden={!isTrashOpened}
                     title="Restore This Note"
                     onClick={() => restoreNote()}
-                    className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-lg outline-none`}
+                    className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-lg outline-none select-none`}
                 >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Restore</span>
@@ -267,7 +270,7 @@ export default function NoteOptionsComponent({
                     hidden={!isTrashOpened}
                     title="Permanently Delete This Note"
                     onClick={() => setIsPermanentlyDeleteNoteDialogActive(true)}
-                    className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-lg outline-none`}
+                    className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-lg outline-none select-none`}
                 >
                     <Trash2 className="w-3.5 h-3.5" />
                     <span>Delete Permanently</span>
@@ -276,7 +279,7 @@ export default function NoteOptionsComponent({
             <DialogComponent
                 open={isPermanentlyDeleteNoteDialogActive}
                 onClose={() => setIsPermanentlyDeleteNoteDialogActive(false)}
-                className="flex flex-col items-center text-center w-96 bg-light-foreground dark:bg-dark-foreground border border-light-border dark:border-dark-border rounded-lg"
+                className="flex flex-col items-center text-center w-96 bg-light-foreground dark:bg-dark-foreground border border-light-border dark:border-dark-border rounded-lg select-none"
                 titleClassName="text-light-primaryText dark:text-dark-primaryText"
                 descriptionClassName="text-light-secondaryText dark:text-dark-secondaryText"
                 title={`Delete Note?`}

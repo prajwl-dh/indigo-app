@@ -42,7 +42,8 @@ export default function Workspace({
     }, [])
 
     const sortedNotes = [...notes].sort(
-        (a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime()
+        (a, b) =>
+            new Date(b.lastModified || '').getTime() - new Date(a.lastModified || '').getTime()
     )
 
     return (
@@ -75,6 +76,7 @@ export default function Workspace({
                 notes={notes}
                 folders={folders}
                 reloadAllNotes={getAllNotes}
+                setActiveFolder={setActiveFolder}
             />
         </div>
     )

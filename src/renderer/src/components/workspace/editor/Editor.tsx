@@ -7,7 +7,7 @@ import TextareaAutosize from 'react-textarea-autosize'
 import ReactTimeAgo from 'react-time-ago'
 import { Accent } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
-import { Folders, Note, Notes } from 'src/shared/model/note'
+import { Folder, Folders, Note, Notes } from 'src/shared/model/note'
 import BlockEditor from './BlockEditor'
 import EmptyPage from './EmptyPage'
 TimeAgo.addDefaultLocale(en)
@@ -21,6 +21,7 @@ type EditorType = {
     notes: Notes
     folders: Folders
     reloadAllNotes: () => Promise<void>
+    setActiveFolder: React.Dispatch<React.SetStateAction<Folder>>
 }
 
 export default function Editor({
@@ -31,7 +32,8 @@ export default function Editor({
     activeAccent,
     notes,
     folders,
-    reloadAllNotes
+    reloadAllNotes,
+    setActiveFolder
 }: EditorType): React.JSX.Element {
     const updateNoteTitle = React.useRef(
         debounce(async (note: Note, updatedTitle: string) => {
@@ -112,6 +114,7 @@ export default function Editor({
                         setIsTrashOpened={setIsTrashOpened}
                         anchor="bottom end"
                         className="mt-2"
+                        setActiveFolder={setActiveFolder}
                     />
                 </div>
             </div>

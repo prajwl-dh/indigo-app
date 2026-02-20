@@ -283,7 +283,7 @@ export default function Sidebar({
 
                     <Button
                         hidden={isTrashOpened}
-                        className={`flex flex-row items-center justify-center gap-1 text-white rounded-lg text-[14px] font-medium transition duration-300 ${accentValue[activeAccent].bg} ${accentValue[activeAccent].bgHover} hover:-translate-y-px`}
+                        className={`flex flex-row items-center justify-center gap-1 text-white rounded-lg text-[14px] font-medium transition duration-300 ${accentValue[activeAccent].bg} ${accentValue[activeAccent].bgHover} hover:-translate-y-px select-none`}
                         onClick={createNewNote}
                     >
                         <Plus className="mb-1 h-4 w-4" />
@@ -293,7 +293,7 @@ export default function Sidebar({
                         onClick={() => setIsEmptyTrashDialogActive(true)}
                         hidden={!isTrashOpened}
                         disabled={isTrashEmpty()}
-                        className={`flex flex-row items-center justify-center gap-2 text-white rounded-lg text-[14px] font-medium transition duration-300 ${isTrashEmpty() ? 'disabled:bg-red-400' : 'bg-red-500 hover:bg-red-600 hover:-translate-y-px'}`}
+                        className={`flex flex-row items-center justify-center gap-2 text-white rounded-lg text-[14px] font-medium transition duration-300 ${isTrashEmpty() ? 'disabled:bg-red-400' : 'bg-red-500 hover:bg-red-600 hover:-translate-y-px'} select-none`}
                     >
                         <Trash2 className="h-4 w-4 mb-1" />
                         <span>Empty Trash</span>
@@ -470,7 +470,7 @@ export default function Sidebar({
                 />
                 <span
                     hidden={isRenameFolderActive}
-                    className="truncate tracking-wide text-light-secondaryText dark:text-dark-secondaryText text-[11px] font-medium"
+                    className="truncate tracking-wide text-light-secondaryText dark:text-dark-secondaryText text-[11px] font-medium select-none"
                 >
                     {isTrashOpened ? (
                         <>
@@ -493,7 +493,7 @@ export default function Sidebar({
                         title="Folder Options"
                         buttonClassName="cursor-default"
                         anchor="bottom end"
-                        panelClassName="min-w-32 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1"
+                        panelClassName="min-w-32 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1 select-none"
                         trigger={
                             <MoreHorizontal
                                 className={`w-4 h-5 shrink-0 text-light-secondaryText dark:text-dark-secondaryText hover:text-light-primaryText dark:hover:text-dark-primaryText`}
@@ -524,7 +524,7 @@ export default function Sidebar({
                 <DialogComponent
                     open={isDeleteFolderDialogActive}
                     onClose={() => setIsDeleteFolderDialogActive(false)}
-                    className="flex flex-col items-center text-center w-96 bg-light-foreground dark:bg-dark-foreground border border-light-border dark:border-dark-border rounded-lg"
+                    className="flex flex-col items-center text-center w-96 bg-light-foreground dark:bg-dark-foreground border border-light-border dark:border-dark-border rounded-lg select-none"
                     titleClassName="text-light-primaryText dark:text-dark-primaryText"
                     descriptionClassName="text-light-secondaryText dark:text-dark-secondaryText"
                     title={`Delete Folder '${activeFolder.name}' ?`}
@@ -597,6 +597,7 @@ export default function Sidebar({
                                         isTrashOpened={isTrashOpened}
                                         setIsTrashOpened={setIsTrashOpened}
                                         anchor="bottom end"
+                                        setActiveFolder={setActiveFolder}
                                     />
                                 </div>
 
@@ -700,7 +701,7 @@ export default function Sidebar({
                         title="Light/Dark Theme Switcher"
                         buttonClassName="cursor-default"
                         anchor={isSidebarOpen ? 'top start' : 'right'}
-                        panelClassName="min-w-32 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1"
+                        panelClassName="min-w-32 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1 select-none"
                         trigger={
                             <Button
                                 className={`p-2 border-none hover:text-light-primaryText dark:hover:text-dark-primaryText transition-transform active:scale-95 hover:scale-110 shrink-0`}
