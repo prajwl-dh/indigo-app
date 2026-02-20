@@ -6,6 +6,7 @@ import React from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import ReactTimeAgo from 'react-time-ago'
 import { Accent } from 'src/shared/model/accent'
+import { accentValue } from 'src/shared/model/accentValues'
 import { Folders, Note, Notes } from 'src/shared/model/note'
 import BlockEditor from './BlockEditor'
 import EmptyPage from './EmptyPage'
@@ -32,7 +33,7 @@ export default function Editor({
     folders,
     reloadAllNotes
 }: EditorType): React.JSX.Element {
-    const debouncedUpdateRef = React.useRef(
+    const updateNoteTitle = React.useRef(
         debounce(async (note: Note, updatedTitle: string) => {
             const updatedNote = await window.notesApi.updateNote({
                 ...note,
@@ -44,11 +45,25 @@ export default function Editor({
         }, 400)
     )
 
+    const updateNoteBody = React.useRef(
+        debounce(async (note: Note, updatedBody: string) => {
+            const updatedNote = await window.notesApi.updateNote({
+                ...note,
+                body: updatedBody
+            })
+
+            await reloadAllNotes()
+            setActiveNote(updatedNote)
+        }, 400)
+    )
+
     React.useEffect(() => {
-        const debounced = debouncedUpdateRef.current
+        const debouncedTitle = updateNoteTitle.current
+        const debouncedBody = updateNoteBody.current
 
         return () => {
-            debounced.cancel()
+            debouncedTitle.cancel()
+            debouncedBody.cancel()
         }
     }, [])
 
@@ -100,7 +115,7 @@ export default function Editor({
             <div className="flex flex-col items-center justify-center">
                 <TextareaAutosize
                     placeholder="Untitled Note"
-                    className="mt-32 px-13 w-full max-w-4xl wrap-break-word text-2xl 2xl:text-3xl tracking-wide font-extrabold border-none outline-none bg-transparent placeholder-opacity-40 resize-none"
+                    className={`mt-32 px-13 w-full max-w-4xl wrap-break-word text-2xl 2xl:text-3xl tracking-wide font-extrabold border-none outline-none bg-transparent placeholder-opacity-40 resize-none ${accentValue[activeAccent].selection}`}
                     value={activeNote.title}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
@@ -112,10 +127,14 @@ export default function Editor({
                         const newTitle = e.target.value
 
                         setActiveNote({ ...activeNote, title: newTitle })
-                        debouncedUpdateRef.current(activeNote, newTitle)
+                        updateNoteTitle.current(activeNote, newTitle)
                     }}
                 />
-                <BlockEditor className={`mt-6 mb-20 flex-1 w-full max-w-4xl`} />
+                <BlockEditor
+                    updateNoteBody={updateNoteBody}
+                    note={activeNote}
+                    className={`mt-6 mb-20 flex-1 w-full max-w-4xl ${accentValue[activeAccent].selection}`}
+                />
             </div>
         </div>
     )
