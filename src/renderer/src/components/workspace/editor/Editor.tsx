@@ -134,16 +134,16 @@ export default function Editor({
                 {/* Note In Trash Indicator */}
                 {isTrashOpened && (
                     <div
-                        className={`mt-32 p-4 w-full max-w-4xl rounded-xl flex items-center justify-between border ${accentValue[activeAccent].text} ${accentValue[activeAccent].bgSubtle} ${accentValue[activeAccent].border}`}
+                        className={`mt-32 p-4 w-full max-w-4xl rounded-xl flex items-center justify-between border ${accentValue[activeAccent].text} ${accentValue[activeAccent].bgSubtle} ${accentValue[activeAccent].border} select-none`}
                     >
                         <div className="flex items-center gap-3">
                             <Trash2 className="w-5 h-5 opacity-70" />
-                            <span className="text-sm font-normal">This note is in the trash</span>
+                            <span className="text-sm font-normal">This note is in trash</span>
                         </div>
                         <button
                             onClick={() => restoreNote(activeNote)}
                             title="Restore Note"
-                            className={`text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors ${accentValue[activeAccent].bgSubtle}`}
+                            className={`text-xs font-medium uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors ${accentValue[activeAccent].bgSubtle}`}
                         >
                             Restore
                         </button>
