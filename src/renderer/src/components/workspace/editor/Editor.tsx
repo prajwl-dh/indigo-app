@@ -2,6 +2,7 @@ import NoteOptionsComponent from '@renderer/components/ui/NoteOptionsComponent'
 import TimeAgo from 'javascript-time-ago'
 import en from 'javascript-time-ago/locale/en.json'
 import { debounce } from 'lodash'
+import { Trash2 } from 'lucide-react'
 import React from 'react'
 import TextareaAutosize from 'react-textarea-autosize'
 import ReactTimeAgo from 'react-time-ago'
@@ -35,6 +36,17 @@ export default function Editor({
     reloadAllNotes,
     setActiveFolder
 }: EditorType): React.JSX.Element {
+    async function restoreNote(note: Note): Promise<void> {
+        const restoredNote = await window.notesApi.updateNote({
+            ...note,
+            isInTrash: false
+        })
+        await reloadAllNotes()
+        setIsTrashOpened(false)
+        setActiveNote(restoredNote)
+        setActiveFolder({ id: 0, name: 'All' })
+    }
+
     const updateNoteTitle = React.useRef(
         debounce(async (note: Note, updatedTitle: string) => {
             const updatedNote = await window.notesApi.updateNote({
@@ -118,11 +130,31 @@ export default function Editor({
                     />
                 </div>
             </div>
+            <div className="flex flex-col items-center justify-center mx-12">
+                {/* Note In Trash Indicator */}
+                {isTrashOpened && (
+                    <div
+                        className={`mt-32 p-4 w-full max-w-4xl rounded-xl flex items-center justify-between border ${accentValue[activeAccent].text} ${accentValue[activeAccent].bgSubtle} ${accentValue[activeAccent].border}`}
+                    >
+                        <div className="flex items-center gap-3">
+                            <Trash2 className="w-5 h-5 opacity-70" />
+                            <span className="text-sm font-normal">This note is in the trash</span>
+                        </div>
+                        <button
+                            onClick={() => restoreNote(activeNote)}
+                            title="Restore Note"
+                            className={`text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg transition-colors ${accentValue[activeAccent].bgSubtle}`}
+                        >
+                            Restore
+                        </button>
+                    </div>
+                )}
+            </div>
             <div className="flex flex-col items-center justify-center">
                 <TextareaAutosize
                     disabled={isTrashOpened}
                     placeholder="Untitled Note"
-                    className={`mt-32 px-13 w-full max-w-4xl wrap-break-word text-2xl 2xl:text-3xl tracking-wide font-extrabold border-none outline-none bg-transparent placeholder-opacity-40 resize-none ${accentValue[activeAccent].selection}`}
+                    className={`${isTrashOpened ? 'mt-10' : 'mt-32'} px-13 w-full max-w-4xl wrap-break-word text-2xl 2xl:text-3xl tracking-wide font-extrabold border-none outline-none bg-transparent placeholder-opacity-40 resize-none ${accentValue[activeAccent].selection}`}
                     value={activeNote.title}
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {

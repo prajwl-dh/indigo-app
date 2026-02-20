@@ -158,6 +158,7 @@ export default function Sidebar({
         await window.notesApi.deleteAllNoteInTrash()
         await reloadAllNotes()
         setIsEmptyTrashDialogActive(false)
+        setActiveNote(undefined)
     }
 
     function getFolderNameFromId(id: number | undefined): string {

@@ -132,7 +132,7 @@ export default function NoteOptionsComponent({
         await reloadAllNotes()
         setIsTrashOpened(false)
         setActiveNote(restoredNote)
-        setActiveFolder({ id: 0, name: 'Al l' })
+        setActiveFolder({ id: 0, name: 'All' })
     }
 
     async function permanentlyDeleteANote(): Promise<void> {
