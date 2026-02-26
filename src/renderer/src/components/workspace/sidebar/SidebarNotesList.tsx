@@ -1,10 +1,12 @@
 import NoteOptionsComponent from '@renderer/components/ui/NoteOptionsComponent'
+import { PartialBlock } from 'node_modules/@blocknote/core/types/src/blocks/defaultBlocks'
 import React from 'react'
 import ReactTimeAgo from 'react-time-ago'
+import removeMd from 'remove-markdown'
 import { Accent } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
 import { Folder, Folders, Note, Notes } from 'src/shared/model/note'
-import { stripHtml } from 'src/shared/util/stringUtils'
+import { convertBlockNoteToMarkdown } from 'src/shared/util/blockNoteUtils'
 
 type SidebarNotesListProps = {
     filteredNotes: Notes
@@ -92,7 +94,12 @@ export default function SidebarNotesList({
                                 hidden={note.body ? false : true}
                                 className={`text-[12px] mt-1 line-clamp-2 leading-4 font-normal text-light-secondaryText dark:text-dark-secondaryText`}
                             >
-                                {note.body && stripHtml(note.body)}
+                                {note.body &&
+                                    removeMd(
+                                        convertBlockNoteToMarkdown(
+                                            JSON.parse(note.body) as PartialBlock[]
+                                        )
+                                    )}
                             </span>
                             <div className={`flex flex-row justify-between mt-2 items-center`}>
                                 {note.lastModified && (

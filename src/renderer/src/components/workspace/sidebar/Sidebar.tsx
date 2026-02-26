@@ -5,8 +5,11 @@ import { useDraggable } from 'react-use-draggable-scroll'
 import { Accent } from 'src/shared/model/accent'
 import { Folder, Folders, Note, Notes } from 'src/shared/model/note'
 import { Theme } from 'src/shared/model/theme'
-import { normalizeNoSpace, stripHtml } from 'src/shared/util/stringUtils'
+import { normalizeNoSpace } from 'src/shared/util/stringUtils'
 
+import { PartialBlock } from '@blocknote/core'
+import removeMd from 'remove-markdown'
+import { convertBlockNoteToMarkdown } from 'src/shared/util/blockNoteUtils'
 import SidebarCurrentFolder from './SidebarCurrentFolder'
 import SidebarFolderChips from './SidebarFolderChips'
 import SidebarFooter from './SidebarFooter'
@@ -80,7 +83,13 @@ export default function Sidebar({
         if (!query) return true
 
         const title = normalizeNoSpace((note.title || '').toLowerCase())
-        const body = normalizeNoSpace(stripHtml(note.body || '').toLowerCase())
+        const body = normalizeNoSpace(
+            removeMd(
+                convertBlockNoteToMarkdown(
+                    JSON.parse(note.body || '') as PartialBlock[]
+                ).toLowerCase()
+            )
+        )
 
         return title.includes(query) || body.includes(query)
     })
