@@ -96,7 +96,7 @@ export default function Editor({
 
     return (
         <div className="w-full h-full text-light-primaryText dark:text-dark-primaryText overflow-x-hidden">
-            <div className="fixed top-1 right-2 max-w-80 bg-transparent dark:bg-transparent backdrop-blur-sm z-50 rounded-lg border-light-border dark:border-dark-border">
+            <div className="fixed top-2 right-2 max-w-80 bg-transparent dark:bg-transparent backdrop-blur-sm z-50 rounded-lg border-light-border dark:border-dark-border">
                 <div
                     className={`flex flex-row items-center gap-4 justify-end py-1 px-3 select-none`}
                 >
