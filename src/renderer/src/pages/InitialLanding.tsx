@@ -78,7 +78,7 @@ export default function InitialLanding({ activeAccent }: InitialLandingType): Re
                             <span
                                 className={`text-sm mt-1 font-medium text-left text-light-secondaryText dark:text-dark-secondaryText`}
                             >
-                                Load notes from a .ind collection
+                                Load notes from a .indigo collection
                             </span>
                         </div>
                     </Button>

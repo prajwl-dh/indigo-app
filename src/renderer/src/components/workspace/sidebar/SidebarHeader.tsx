@@ -1,4 +1,18 @@
-import { AlertTriangle, ChevronLeft, Database, Menu, Plus, Search, Trash2, X } from 'lucide-react'
+import PopoverComponent from '@renderer/components/ui/PopOver'
+import {
+    AlertTriangle,
+    Database,
+    FilePlus,
+    FolderOpen,
+    LogOut,
+    Menu,
+    MoreHorizontal,
+    PanelLeftClose,
+    Plus,
+    Search,
+    Trash2,
+    X
+} from 'lucide-react'
 import React, { useState } from 'react'
 import { Accent } from 'src/shared/model/accent'
 import { accentValue } from 'src/shared/model/accentValues'
@@ -45,17 +59,84 @@ export default function SidebarHeader({
         setActiveNote(undefined)
     }
 
+    async function createNew(): Promise<void> {
+        try {
+            await window.databaseApi.createDatabase()
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    async function openExisting(): Promise<void> {
+        try {
+            await window.databaseApi.loadDatabase()
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    async function closeActiveCollection(): Promise<void> {
+        try {
+            await window.databaseApi.deleteActiveDatabasePath()
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
     return (
         <>
             {isSidebarOpen && (
-                <div className="flex gap-2 justify-start items-center px-2 border-b border-light-border dark:border-dark-border text-[10px] font-medium text-light-secondaryText dark:text-dark-secondaryText bg-light-surface dark:bg-dark-surface">
-                    <Database className="w-3 shrink-0" />
-                    <span
-                        title={activeDatabase}
-                        className={`cursor-default ${accentValue[activeAccent].selection}`}
+                <div className="group flex gap-2 justify-between items-center px-2 border-b border-light-border dark:border-dark-border text-[10px] font-medium text-light-secondaryText dark:text-dark-secondaryText bg-light-surface dark:bg-dark-surface">
+                    <div className="flex gap-2 justify-start items-center">
+                        <Database className="w-3 shrink-0" />
+                        <span
+                            title={activeDatabase}
+                            className={`cursor-default ${accentValue[activeAccent].selection} truncate`}
+                        >
+                            {truncateActiveDatabasePath(activeDatabase, 40)}
+                        </span>
+                    </div>
+                    <PopoverComponent
+                        title="Folder Options"
+                        buttonClassName="cursor-default"
+                        anchor="bottom end"
+                        panelClassName="min-w-32 border border-light-border dark:border-dark-border rounded-lg p-1 flex flex-col gap-1 select-none"
+                        trigger={
+                            <MoreHorizontal
+                                className={`w-4 h-5 shrink-0 text-light-secondaryText dark:text-dark-secondaryText hover:text-light-primaryText dark:hover:text-dark-primaryText`}
+                            />
+                        }
                     >
-                        {truncateActiveDatabasePath(activeDatabase, 40)}
-                    </span>
+                        <button
+                            title="Create A New Indigo Collection"
+                            onClick={() => createNew()}
+                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-lg outline-none`}
+                        >
+                            <div>
+                                <FilePlus className="w-3.5 h-3.5" />
+                            </div>
+                            <span>Create New Collection</span>
+                        </button>
+                        <button
+                            title="Load From Existing .indigo Collection"
+                            onClick={() => openExisting()}
+                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-light-primaryText dark:text-dark-primaryText ${accentValue[activeAccent].hover} rounded-lg outline-none`}
+                        >
+                            <div>
+                                <FolderOpen className="w-3.5 h-3.5" />
+                            </div>
+                            <span>Load From Collection</span>
+                        </button>
+                        <div className={`h-px my-1 mx-2 bg-light-border dark:bg-dark-border`} />
+                        <button
+                            title="Close Active Collection And Return To Landing Screen"
+                            onClick={() => closeActiveCollection()}
+                            className={`w-full px-3 py-1 text-[13px] flex items-center gap-2.5 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-400/10 rounded-lg outline-none`}
+                        >
+                            <LogOut className="w-3.5 h-3.5" />
+                            <span>Close Active Collection</span>
+                        </button>
+                    </PopoverComponent>
                 </div>
             )}
 
@@ -82,10 +163,10 @@ export default function SidebarHeader({
                 <Button
                     title="Toggle Sidebar"
                     onClick={toggleSidebar}
-                    className={`p-1 rounded-lg text-light-secondaryText dark:text-dark-secondaryText ${isSidebarOpen ? 'border-none' : 'border mt-1'} hover:brightness-80 dark:hover:brightness-120`}
+                    className={`${isSidebarOpen ? 'px-1' : 'p-1'} rounded-lg text-light-secondaryText dark:text-dark-secondaryText ${isSidebarOpen ? 'border-none' : 'border mt-1'} hover:brightness-80 dark:hover:brightness-120`}
                 >
                     {isSidebarOpen ? (
-                        <ChevronLeft className="h-4 w-4 hover:text-light-primaryText dark:hover:text-dark-primaryText" />
+                        <PanelLeftClose className="h-4 w-4 -mr-1 hover:text-light-primaryText dark:hover:text-dark-primaryText" />
                     ) : (
                         <Menu className="h-5 w-5" />
                     )}
