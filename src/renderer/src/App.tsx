@@ -8,11 +8,14 @@ function App(): React.JSX.Element {
     const [activeDatabase, setActiveDatabase] = React.useState<string | null>()
     const [activeAccent, setActiveAccent] = React.useState<Accent | null>()
     const [activeTheme, setActiveTheme] = React.useState<Theme | null>()
+    const [initializing, setInitializing] = React.useState<boolean>(false)
 
     async function getActiveDatabase(): Promise<void> {
         try {
+            setInitializing(true)
             const response = await window.databaseApi.getActiveDatabasePath()
             setActiveDatabase(response)
+            setInitializing(false)
         } catch (error) {
             throw new Error(JSON.stringify(error))
         }
@@ -68,8 +71,12 @@ function App(): React.JSX.Element {
         return <></>
     }
 
+    if (initializing) {
+        return <></>
+    }
+
     if (!activeDatabase) {
-        return <InitialLanding activeAccent={activeAccent} />
+        return initializing ? <></> : <InitialLanding activeAccent={activeAccent} />
     }
 
     return (

@@ -9,7 +9,7 @@ export function databaseHandler(store: Store): void {
         const result = await dialog.showSaveDialog({
             title: 'Create Indigo Database',
             defaultPath: 'notes.ind',
-            filters: [{ name: 'Indigo Database', extensions: ['indigo'] }],
+            filters: [{ name: 'Indigo Database', extensions: ['ind'] }],
             properties: ['createDirectory', 'showOverwriteConfirmation']
         })
 
@@ -33,7 +33,7 @@ export function databaseHandler(store: Store): void {
     ipcMain.handle('load:database', async () => {
         const result = await dialog.showOpenDialog({
             title: 'Load Indigo Database',
-            filters: [{ name: 'Indigo Database', extensions: ['indigo'] }],
+            filters: [{ name: 'Indigo Database', extensions: ['ind'] }],
             properties: ['openFile']
         })
 
