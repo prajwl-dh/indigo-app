@@ -64,10 +64,10 @@ export default function SidebarHeader({
             >
                 <div className={`flex flex-row items-center gap-2`} hidden={!isSidebarOpen}>
                     <span
-                        className={`w-5 h-5 flex items-center justify-center text-white text-[14px] font-bold ${accentValue[activeAccent].bg}`}
+                        className={`w-5 h-5 flex items-center justify-center text-white text-[14px] font-black ${accentValue[activeAccent].bg}`}
                         style={{ borderRadius: '6px' }}
                     >
-                        I
+                        /
                     </span>
                     <div className="text-[16px] font-semibold tracking-tight text-light-primaryText dark:text-dark-primaryText">
                         {isTrashOpened ? 'Trash' : 'Indigo'}
@@ -75,9 +75,9 @@ export default function SidebarHeader({
                 </div>
                 <span
                     hidden={isSidebarOpen}
-                    className={`w-7 h-7 p-1 rounded-lg flex items-center justify-center text-white text-lg font-bold ${accentValue[activeAccent].bg}`}
+                    className={`w-7 h-7 p-1 rounded-lg flex items-center justify-center text-white text-lg font-black ${accentValue[activeAccent].bg}`}
                 >
-                    I
+                    /
                 </span>
                 <Button
                     title="Toggle Sidebar"
