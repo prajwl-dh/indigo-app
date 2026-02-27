@@ -1,11 +1,11 @@
 {
     "name": "indigo-app",
     "version": "1.0.0",
-    "description": "An Electron application with React and TypeScript",
+    "description": "A modern, lightweight notes application designed for flexibility, organization, and a pleasant writing experience",
     "main": "./out/main/index.js",
     "type": "module",
-    "author": "example.com",
-    "homepage": "https://electron-vite.org",
+    "author": "prajwalonline.com",
+    "homepage": "https://github.com/prajwl-dh/indigo-app",
     "scripts": {
         "clean": "rimraf dist && rimraf out",
         "format": "prettier --write .",
