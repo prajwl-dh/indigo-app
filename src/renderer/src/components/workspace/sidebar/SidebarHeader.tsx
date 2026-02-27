@@ -1,13 +1,13 @@
 import PopoverComponent from '@renderer/components/ui/PopOver'
 import {
     AlertTriangle,
+    ChevronLeft,
     Database,
     FilePlus,
     FolderOpen,
     LogOut,
     Menu,
     MoreHorizontal,
-    PanelLeftClose,
     Plus,
     Search,
     Trash2,
@@ -166,7 +166,7 @@ export default function SidebarHeader({
                     className={`${isSidebarOpen ? 'px-1' : 'p-1'} rounded-lg text-light-secondaryText dark:text-dark-secondaryText ${isSidebarOpen ? 'border-none' : 'border mt-1'} hover:brightness-80 dark:hover:brightness-120`}
                 >
                     {isSidebarOpen ? (
-                        <PanelLeftClose className="h-4 w-4 -mr-1 hover:text-light-primaryText dark:hover:text-dark-primaryText" />
+                        <ChevronLeft className="h-4 w-4 -mr-1 hover:text-light-primaryText dark:hover:text-dark-primaryText" />
                     ) : (
                         <Menu className="h-5 w-5" />
                     )}
