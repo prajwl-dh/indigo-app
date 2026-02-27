@@ -60,16 +60,16 @@ function App(): React.JSX.Element {
         getActiveTheme()
     }, [])
 
-    if (!activeDatabase) {
-        return activeAccent ? <InitialLanding activeAccent={activeAccent} /> : <></>
-    }
-
     if (!activeAccent) {
         return <></>
     }
 
     if (!activeTheme) {
         return <></>
+    }
+
+    if (!activeDatabase) {
+        return <InitialLanding activeAccent={activeAccent} />
     }
 
     return (

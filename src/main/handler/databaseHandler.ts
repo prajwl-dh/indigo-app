@@ -8,7 +8,7 @@ export function databaseHandler(store: Store): void {
     ipcMain.handle('create:database', async () => {
         const result = await dialog.showSaveDialog({
             title: 'Create Indigo Database',
-            defaultPath: 'notes.indigo',
+            defaultPath: 'notes.ind',
             filters: [{ name: 'Indigo Database', extensions: ['indigo'] }],
             properties: ['createDirectory', 'showOverwriteConfirmation']
         })
@@ -17,7 +17,7 @@ export function databaseHandler(store: Store): void {
             return null
         }
 
-        if (!result.filePath.endsWith('.indigo')) {
+        if (!result.filePath.endsWith('.ind')) {
             return null
         }
 
@@ -43,7 +43,7 @@ export function databaseHandler(store: Store): void {
 
         const filePath = result.filePaths[0]
 
-        if (!filePath.endsWith('.indigo')) {
+        if (!filePath.endsWith('.ind')) {
             return null
         }
 
