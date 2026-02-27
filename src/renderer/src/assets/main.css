@@ -52,7 +52,7 @@
 
     /* Custom styles for the vertical scrollbar */
     ::-webkit-scrollbar {
-        @apply w-1.25;
+        @apply w-1.5;
     }
 
     ::-webkit-scrollbar-track {
