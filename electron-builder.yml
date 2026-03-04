@@ -30,6 +30,7 @@ mac:
         - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
         - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
         - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
+    x64ArchFiles: '**/node_modules/@libsql/**'
 dmg:
     artifactName: ${name}-${version}.${ext}
 linux:
@@ -39,7 +40,7 @@ linux:
     category: Utility
 appImage:
     artifactName: ${name}-${version}.${ext}
-npmRebuild: false
+npmRebuild: true
 publish:
     provider: generic
     url: https://example.com/auto-updates
