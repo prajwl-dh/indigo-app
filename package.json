@@ -17,9 +17,12 @@
         "dev": "electron-vite dev",
         "build": "npm run clean && npm run typecheck && electron-vite build",
         "postinstall": "electron-builder install-app-deps",
+        "resolve-libsql": "node resolveIntelMacLibsql.js",
         "build:unpack": "npm run build && electron-builder --dir",
         "build:win": "npm run clean && npm run build && electron-builder --win",
-        "build:mac": "npm run clean && electron-vite build && electron-builder --mac --universal",
+        "build:mac-intel": "npm run clean && npm run resolve-libsql && electron-vite build && electron-builder --mac --x64",
+        "build:mac-arm": "npm run clean && electron-vite build && electron-builder --mac --arm64",
+        "build:mac-universal": "npm run clean && npm run resolve-libsql && electron-vite build && electron-builder --mac --universal",
         "build:linux": "npm run clean && electron-vite build && electron-builder --linux"
     },
     "dependencies": {
