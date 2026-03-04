@@ -1,5 +1,9 @@
 # Indigo
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/prajwl-dh/indigo-app/refs/heads/main/resources/indigo.png" alt="Indigo App Screenshot" />
+</p>
+
 > A modern, lightweight notes application designed for flexibility, organization, and a pleasant writing experience.
 
 ## ✨ Features
