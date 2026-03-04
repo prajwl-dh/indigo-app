@@ -3,7 +3,13 @@ import { defineConfig } from 'electron-vite'
 import path from 'path'
 
 export default defineConfig({
-    main: {},
+    main: {
+        build: {
+            rollupOptions: {
+                external: ['libsql']
+            }
+        }
+    },
     preload: {},
     renderer: {
         resolve: {
