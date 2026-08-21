@@ -31,6 +31,10 @@
     - Go to **System Settings → Privacy & Security**
     - Scroll down and click **Open Anyway**
     - Confirm **Open**
+6. If the **Open Anyway** button is missing, run this command in Terminal:
+    ```bash
+    xattr -cr /Applications/Indigo.app
+    ```
 
 ✔ After this, Indigo will open normally in the future.
 
