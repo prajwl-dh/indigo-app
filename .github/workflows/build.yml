@@ -72,12 +72,12 @@ jobs:
                   # macOS Apple Silicon
                   if [[ "${{ matrix.artifact_name }}" == "indigo-macos-apple-silicon" ]]; then
                       cp dist/*-arm64.dmg \
-                        "release/Indigo-${{ github.ref_name }}-Apple-Silicon.dmg"
+                        "release/Indigo-${{ github.ref_name }}-Mac-Apple-Silicon.dmg"
 
                   # macOS Intel
                   elif [[ "${{ matrix.artifact_name }}" == "indigo-macos-intel" ]]; then
                       cp dist/*-x64.dmg \
-                        "release/Indigo-${{ github.ref_name }}-Intel.dmg"
+                        "release/Indigo-${{ github.ref_name }}-Mac-Intel.dmg"
 
                   # Linux ARM64
                   elif [[ "${{ matrix.artifact_name }}" == "indigo-linux-arm64" ]]; then
@@ -132,29 +132,33 @@ jobs:
                   if-no-files-found: error
 
     # =====================
-    # GITHUB RELEASE
-    # =====================
-    release:
-        needs: build
-        runs-on: ubuntu-24.04
+# GITHUB RELEASE
+# =====================
+release:
+    needs: build
+    runs-on: ubuntu-24.04
 
-        steps:
-            - name: Download release artifacts
-              uses: actions/download-artifact@v4
-              with:
-                  path: dist
+    steps:
+        - name: Download release artifacts
+          uses: actions/download-artifact@v4
+          with:
+              path: dist
 
-            - name: Flatten release files
-              run: |
-                  mkdir -p release
+        - name: Flatten release files
+          run: |
+              mkdir -p release
 
-                  find dist -type f -exec mv {} release/ \;
+              find dist -type f -exec mv {} release/ \;
 
-                  echo "Final release files:"
-                  ls -lah release
+              echo "Final release files:"
+              ls -lah release
 
-            - name: Create GitHub Release
-              uses: softprops/action-gh-release@v2
-              with:
-                  files: release/*
-                  generate_release_notes: true
+        - name: Create GitHub Release
+          uses: softprops/action-gh-release@v2
+          with:
+              files: release/*
+              generate_release_notes: true
+              body: |
+                  📦 **Installation Guide**
+
+                  https://github.com/prajwl-dh/indigo-app#-installation-guide
