@@ -30,11 +30,11 @@ jobs:
                     # =====================
                     - os: macos-15
                       build_script: build:mac-arm
-                      artifact_name: indigo-macos-arm64
+                      artifact_name: indigo-macos-apple-silicon
 
                     - os: macos-15-intel
                       build_script: build:mac-intel
-                      artifact_name: indigo-macos-x64
+                      artifact_name: indigo-macos-intel
 
                     # =====================
                     # WINDOWS
@@ -60,27 +60,98 @@ jobs:
             - name: Build Electron app
               run: npm run ${{ matrix.build_script }}
 
-            - name: Upload build artifacts
+            # =====================
+            # PREPARE RELEASE FILES
+            # =====================
+            - name: Prepare release files (Unix)
+              if: runner.os != 'Windows'
+              shell: bash
+              run: |
+                  mkdir -p release
+
+                  # macOS Apple Silicon
+                  if [[ "${{ matrix.artifact_name }}" == "indigo-macos-apple-silicon" ]]; then
+                      cp dist/*-arm64.dmg \
+                        "release/Indigo-${{ github.ref_name }}-Apple-Silicon.dmg"
+
+                  # macOS Intel
+                  elif [[ "${{ matrix.artifact_name }}" == "indigo-macos-intel" ]]; then
+                      cp dist/*-x64.dmg \
+                        "release/Indigo-${{ github.ref_name }}-Intel.dmg"
+
+                  # Linux ARM64
+                  elif [[ "${{ matrix.artifact_name }}" == "indigo-linux-arm64" ]]; then
+                      cp dist/*-arm64.AppImage \
+                        "release/Indigo-${{ github.ref_name }}-Linux-ARM64.AppImage"
+
+                  # Linux x64
+                  elif [[ "${{ matrix.artifact_name }}" == "indigo-linux-x64" ]]; then
+                      cp dist/*-x86_64.AppImage \
+                        "release/Indigo-${{ github.ref_name }}-Linux-x64.AppImage"
+
+                  # Fallback
+                  else
+                      find dist -maxdepth 1 -type f \
+                        \( \
+                          -name "*.dmg" \
+                          -o -name "*.AppImage" \
+                          -o -name "*.zip" \
+                        \) \
+                        -exec cp {} release/ \;
+                  fi
+
+                  echo "Release files:"
+                  ls -lah release
+
+            # Windows installer only
+            - name: Prepare release files (Windows)
+              if: runner.os == 'Windows'
+              shell: pwsh
+              run: |
+                  New-Item -ItemType Directory -Force -Path release | Out-Null
+
+                  Get-ChildItem -Path dist -File |
+                    Where-Object {
+                        $_.Name -like "*-setup.exe"
+                    } |
+                    ForEach-Object {
+                        Copy-Item $_.FullName "release/Indigo-${{ github.ref_name }}-Windows-x64-Setup.exe"
+                    }
+
+                  Write-Host "Release files:"
+                  Get-ChildItem release
+
+            # =====================
+            # UPLOAD CLEAN ARTIFACT
+            # =====================
+            - name: Upload release artifact
               uses: actions/upload-artifact@v4
               with:
                   name: ${{ matrix.artifact_name }}
-                  path: dist/*
+                  path: release/*
                   if-no-files-found: error
 
+    # =====================
+    # GITHUB RELEASE
+    # =====================
     release:
         needs: build
         runs-on: ubuntu-24.04
 
         steps:
-            - name: Download all artifacts
+            - name: Download release artifacts
               uses: actions/download-artifact@v4
               with:
                   path: dist
 
-            - name: Flatten artifacts
+            - name: Flatten release files
               run: |
                   mkdir -p release
+
                   find dist -type f -exec mv {} release/ \;
+
+                  echo "Final release files:"
+                  ls -lah release
 
             - name: Create GitHub Release
               uses: softprops/action-gh-release@v2
