@@ -1,0 +1,90 @@
+name: build-indigo
+
+on:
+    push:
+        tags:
+            - 'v*'
+
+permissions:
+    contents: write
+
+jobs:
+    build:
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    # =====================
+                    # LINUX
+                    # =====================
+                    - os: ubuntu-24.04
+                      build_script: build:linux
+                      artifact_name: indigo-linux-x64
+
+                    - os: ubuntu-24.04-arm
+                      build_script: build:linux
+                      artifact_name: indigo-linux-arm64
+
+                    # =====================
+                    # MACOS
+                    # =====================
+                    - os: macos-15
+                      build_script: build:mac-arm
+                      artifact_name: indigo-macos-arm64
+
+                    - os: macos-15-intel
+                      build_script: build:mac-intel
+                      artifact_name: indigo-macos-x64
+
+                    # =====================
+                    # WINDOWS
+                    # =====================
+                    - os: windows-2025
+                      build_script: build:win
+                      artifact_name: indigo-windows-x64
+
+        runs-on: ${{ matrix.os }}
+
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build Electron app
+              run: npm run ${{ matrix.build_script }}
+
+            - name: Upload build artifacts
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ matrix.artifact_name }}
+                  path: dist/*
+                  if-no-files-found: error
+
+    release:
+        needs: build
+        runs-on: ubuntu-24.04
+
+        steps:
+            - name: Download all artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: dist
+
+            - name: Flatten artifacts
+              run: |
+                  mkdir -p release
+                  find dist -type f -exec mv {} release/ \;
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  files: release/*
+                  generate_release_notes: true

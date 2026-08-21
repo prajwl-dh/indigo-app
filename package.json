@@ -1,6 +1,6 @@
 {
     "name": "indigo",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "A modern, lightweight notes application designed for flexibility, organization, and a pleasant writing experience",
     "main": "./out/main/index.js",
     "type": "module",

@@ -14,7 +14,7 @@ asarUnpack:
 win:
     executableName: Indigo
 nsis:
-    artifactName: ${name}-${version}-setup.${ext}
+    artifactName: ${name}-${version}-${arch}-setup.${ext}
     shortcutName: ${productName}
     uninstallDisplayName: ${productName}
     createDesktopShortcut: always
@@ -32,14 +32,14 @@ mac:
         - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
     x64ArchFiles: '**/node_modules/@libsql/**'
 dmg:
-    artifactName: ${name}-${version}.${ext}
+    artifactName: ${name}-${version}-${arch}.${ext}
 linux:
     target:
         - AppImage
     maintainer: electronjs.org
     category: Utility
 appImage:
-    artifactName: ${name}-${version}.${ext}
+    artifactName: ${name}-${version}-${arch}.${ext}
 npmRebuild: true
 publish:
     provider: generic
