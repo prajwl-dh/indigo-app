@@ -18,25 +18,20 @@
 
 ###  macOS (.dmg)
 
-> Because Indigo is not signed with an Apple Developer certificate, macOS may warn that the app is from an unidentified developer.
+> Because Indigo isn’t signed with an Apple Developer certificate, macOS may block it the first time you try to open it. Follow the steps below to bypass this check
 
 ### 📦 Install Steps
 
 1. Download the `.dmg` file for your Mac. Choose **Apple Silicon** for M-chip Macs or **Intel** for older Macs
 2. Open the downloaded file
 3. Drag **Indigo** into the **Applications** folder
-4. Open **Applications** and double-click **Indigo**
-5. If you see a warning:
-    - Click **Cancel**
-    - Go to **System Settings → Privacy & Security**
-    - Scroll down and click **Open Anyway**
-    - Confirm **Open**
-6. If the **Open Anyway** button is missing, run this command in Terminal:
+4. Open **Terminal App** and run:
     ```bash
     xattr -cr /Applications/Indigo.app
     ```
+5. Open Indigo from the Applications folder.
 
-✔ After this, Indigo will open normally in the future.
+✔ That’s it! This is a one-time setup. You can open Indigo normally in the future without any issues.
 
 ---
 
