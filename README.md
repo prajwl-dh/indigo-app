@@ -22,7 +22,7 @@
 
 ### 📦 Install Steps
 
-1. Download the `.dmg` file
+1. Download the `.dmg` file for your Mac. Choose **Apple Silicon** for M-chip Macs or **Intel** for older Macs
 2. Open the downloaded file
 3. Drag **Indigo** into the **Applications** folder
 4. Open **Applications** and double-click **Indigo**
@@ -60,7 +60,7 @@
 
 ### ▶ Run Steps
 
-1. Download the `.AppImage` file
+1. Download the `.AppImage` file that matches your system architecture: **ARM** or **x64**
 2. Right-click the file → **Properties**
 3. Go to **Permissions**
 4. Enable **Allow executing file as program**

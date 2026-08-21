@@ -159,6 +159,6 @@ jobs:
                   files: release/*
                   generate_release_notes: true
                   body: |
-                      📦 **Installation Guide**
+                      ## 📦 Installation Guide
 
                       https://github.com/prajwl-dh/indigo-app#-installation-guide
