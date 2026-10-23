@@ -168,7 +168,7 @@ jobs:
                   files: release/*
                   generate_release_notes: true
                   body: |
-                      ## Installation
+                      ## 📦 Installation
 
                       Download the build for your platform below. Notes are stored locally on your machine; Indigo never creates an account or uploads your writing.
 
