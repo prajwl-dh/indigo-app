@@ -19,35 +19,39 @@
     --font-serif: 'Newsreader', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
     --font-mono: 'SF Mono', ui-monospace, 'Cascadia Code', Menlo, Consolas, monospace;
 
-    --paper: #f5f2ec;
-    --paper-deep: #efebe3;
-    --panel: #f8f5ef;
-    --surface: #fbf9f5;
-    --raised: #fffefb;
-    --field: #ece7dd;
-    --hover: #eae5db;
-    --skeleton: #e7e1d6;
+    --paper: #ffffff;
+    --paper-deep: #f4f4f6;
+    --panel: #f7f7f9;
+    --surface: #ffffff;
+    --raised: #ffffff;
+    --field: #f2f2f4;
+    --hover: #f0f0f3;
+    --skeleton: #e7e7eb;
 
-    --ink: #1d1a16;
-    --ink-soft: #413c35;
-    --muted: #6f685d;
-    --faint: #938b7e;
+    --ink: #1a1a1e;
+    --ink-soft: #404046;
+    --muted: #6a6a73;
+    --faint: #92929c;
 
-    --line: #e2dbcf;
-    --line-soft: #ebe5da;
-    --line-strong: #d2c9ba;
+    --line: #e6e6ea;
+    --line-soft: #efeff2;
+    --line-strong: #d6d6dc;
 
     --focus: color-mix(in srgb, var(--ink) 45%, transparent);
     --focus-soft: color-mix(in srgb, var(--ink) 10%, transparent);
     --select: color-mix(in srgb, var(--ink) 20%, transparent);
 
-    --danger: #a33a2b;
-    --danger-ink: #8f3124;
-    --danger-soft: #f7e9e5;
-    --danger-line: #ebcec7;
+    --danger: #d92d20;
+    --danger-ink: #b42318;
+    --danger-soft: #fef3f2;
+    --danger-line: #fecdca;
 
-    --shadow-pop: 0 10px 26px rgba(40, 32, 22, 0.13), 0 1px 3px rgba(40, 32, 22, 0.08);
-    --shadow-dialog: 0 24px 60px rgba(36, 28, 18, 0.2), 0 2px 8px rgba(36, 28, 18, 0.08);
+    --danger-strong: #d92d20;
+    --danger-strong-hover: #b42318;
+    --danger-on-strong: #ffffff;
+
+    --shadow-pop: 0 10px 26px rgba(17, 17, 20, 0.1), 0 1px 3px rgba(17, 17, 20, 0.06);
+    --shadow-dialog: 0 24px 60px rgba(17, 17, 20, 0.17), 0 2px 8px rgba(17, 17, 20, 0.07);
 
     --titlebar-height: 46px;
     --sidebar-width: 252px;
@@ -60,31 +64,35 @@
 }
 
 html[data-theme='dark'] {
-    --paper: #171512;
-    --paper-deep: #141210;
-    --panel: #1b1916;
-    --surface: #201d19;
-    --raised: #24211c;
-    --field: #211e1a;
-    --hover: #28241f;
-    --skeleton: #2a2621;
+    --paper: #0b0b0d;
+    --paper-deep: #08080a;
+    --panel: #101012;
+    --surface: #131316;
+    --raised: #19191c;
+    --field: #151518;
+    --hover: #1e1e22;
+    --skeleton: #232327;
 
-    --ink: #ece7de;
-    --ink-soft: #d3ccc1;
-    --muted: #9f978b;
-    --faint: #7d756a;
+    --ink: #f1f1f3;
+    --ink-soft: #c8c8ce;
+    --muted: #9a9aa2;
+    --faint: #7a7a82;
 
-    --line: #322d27;
-    --line-soft: #282420;
-    --line-strong: #443d34;
+    --line: #27272c;
+    --line-soft: #1e1e22;
+    --line-strong: #3b3b42;
 
-    --danger: #e07a67;
-    --danger-ink: #f09282;
-    --danger-soft: #2b1d19;
-    --danger-line: #4a2d26;
+    --danger: #ff6b6b;
+    --danger-ink: #ff9b9b;
+    --danger-soft: #2a1517;
+    --danger-line: #4a2326;
 
-    --shadow-pop: 0 12px 30px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
-    --shadow-dialog: 0 28px 70px rgba(0, 0, 0, 0.55), 0 2px 10px rgba(0, 0, 0, 0.4);
+    --danger-strong: #c22a2a;
+    --danger-strong-hover: #dc2626;
+    --danger-on-strong: #ffffff;
+
+    --shadow-pop: 0 12px 30px rgba(0, 0, 0, 0.55), 0 1px 3px rgba(0, 0, 0, 0.4);
+    --shadow-dialog: 0 28px 70px rgba(0, 0, 0, 0.65), 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
 *,
@@ -405,7 +413,7 @@ svg {
     z-index: 55;
     padding: 0;
     border: 0;
-    background: rgba(24, 19, 13, 0.32);
+    background: rgba(12, 12, 15, 0.32);
     animation: scrim-in 0.16s ease;
 }
 
@@ -1146,7 +1154,7 @@ svg {
     height: 22px;
     border-radius: 50%;
     color: var(--raised);
-    box-shadow: inset 0 0 0 1px rgba(20, 16, 12, 0.16);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.16);
 }
 
 .color-none-check {
@@ -1636,8 +1644,8 @@ svg {
 }
 
 .block-editor .bn-block-content[data-content-type='codeBlock'] {
-    background: #1e1b17;
-    color: #ece7de;
+    background: #161619;
+    color: #e9e9ee;
 }
 
 .block-editor .bn-editor [data-content-type='table'] th,
@@ -1857,12 +1865,12 @@ svg {
 }
 
 .button--danger {
-    background: var(--danger);
-    color: #fffaf8;
+    background: var(--danger-strong);
+    color: var(--danger-on-strong);
 }
 
 .button--danger:hover {
-    background: var(--danger-ink);
+    background: var(--danger-strong-hover);
 }
 
 .button--small {
@@ -2002,7 +2010,7 @@ svg {
 .settings-backdrop {
     position: fixed;
     inset: 0;
-    background: rgba(24, 19, 13, 0.34);
+    background: rgba(12, 12, 15, 0.34);
 }
 
 html[data-theme='dark'] .dialog-backdrop,
@@ -2330,8 +2338,8 @@ html[data-theme='dark'] .settings-backdrop {
 }
 
 .toast--error {
-    background: var(--danger);
-    color: #fffaf8;
+    background: var(--danger-strong);
+    color: var(--danger-on-strong);
 }
 
 .toast-message {

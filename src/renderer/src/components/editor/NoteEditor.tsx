@@ -63,71 +63,81 @@ export default function NoteEditor({ note, isCompact, onBack }: NoteEditorProps)
     const notifiedRef = useRef(false)
     const chainRef = useRef<Promise<void>>(Promise.resolve())
 
-    const persist = useCallback(async (): Promise<void> => {
-        if (timerRef.current) {
-            clearTimeout(timerRef.current)
-            timerRef.current = null
-        }
+    const persist = useCallback(
+        async (deriveTitle = false): Promise<void> => {
+            if (timerRef.current) {
+                clearTimeout(timerRef.current)
+                timerRef.current = null
+            }
 
-        if (!dirtyRef.current) {
-            await chainRef.current
-            return
-        }
-
-        dirtyRef.current = false
-        const id = note.id
-        const body = bodyValue.current
-        let title = titleValue.current.trim()
-
-        // A note needs a title to exist. If the writer only wrote a body, the
-        // opening words become the title; if there is nothing at all, skip the
-        // write and let the blank draft be discarded when it is left.
-        if (!title) {
-            if (isBlockDocumentEmpty(body)) {
-                if (aliveRef.current) setSaveState('saved')
+            if (!dirtyRef.current) {
+                await chainRef.current
                 return
             }
 
-            title = titleFromBody(body)
-            titleValue.current = title
-            if (aliveRef.current) {
-                setTitle(title)
-                previewNote(id, { title })
+            dirtyRef.current = false
+            const id = note.id
+            const body = bodyValue.current
+            let title = titleValue.current.trim()
+
+            // A note needs a title to exist. If the writer only wrote a body, the
+            // opening words become the title — but only when the note is being
+            // committed or the title field has been left. Refilling it on every
+            // debounce would fight the writer mid-edit; and a slash menu that is
+            // still open is choosing a block type, not writing a title.
+            if (!title) {
+                if (isBlockDocumentEmpty(body)) {
+                    if (aliveRef.current) setSaveState('saved')
+                    return
+                }
+
+                const titleFocused = document.activeElement === titleInput.current
+                const menuOpen = blockEditor.current?.isSuggestionMenuOpen() ?? false
+
+                if (deriveTitle || (!titleFocused && !menuOpen)) {
+                    title = titleFromBody(body)
+                    titleValue.current = title
+                    if (aliveRef.current) {
+                        setTitle(title)
+                        previewNote(id, { title })
+                    }
+                }
+            } else if (title !== titleValue.current) {
+                titleValue.current = title
+                if (aliveRef.current) setTitle(title)
             }
-        } else if (title !== titleValue.current) {
-            titleValue.current = title
-            if (aliveRef.current) setTitle(title)
-        }
 
-        const payload = {
-            id,
-            title,
-            body
-        }
+            const payload = {
+                id,
+                title,
+                body
+            }
 
-        if (aliveRef.current) setSaveState('saving')
+            if (aliveRef.current) setSaveState('saving')
 
-        const run = async (): Promise<void> => {
-            try {
-                await updateNote(payload)
-                if (!aliveRef.current) return
-                previewNote(id, { title: titleValue.current, body: bodyValue.current })
-                notifiedRef.current = false
-                if (!dirtyRef.current) setSaveState('saved')
-            } catch (error) {
-                if (!aliveRef.current) return
-                dirtyRef.current = true
-                setSaveState('error')
-                if (!notifiedRef.current) {
-                    notifiedRef.current = true
-                    pushError(error, 'Could not save this note.')
+            const run = async (): Promise<void> => {
+                try {
+                    await updateNote(payload)
+                    if (!aliveRef.current) return
+                    previewNote(id, { title: titleValue.current, body: bodyValue.current })
+                    notifiedRef.current = false
+                    if (!dirtyRef.current) setSaveState('saved')
+                } catch (error) {
+                    if (!aliveRef.current) return
+                    dirtyRef.current = true
+                    setSaveState('error')
+                    if (!notifiedRef.current) {
+                        notifiedRef.current = true
+                        pushError(error, 'Could not save this note.')
+                    }
                 }
             }
-        }
 
-        chainRef.current = chainRef.current.then(run, run)
-        await chainRef.current
-    }, [note.id, previewNote, pushError, updateNote])
+            chainRef.current = chainRef.current.then(run, run)
+            await chainRef.current
+        },
+        [note.id, previewNote, pushError, updateNote]
+    )
 
     const persistRef = useRef(persist)
 
@@ -158,7 +168,7 @@ export default function NoteEditor({ note, isCompact, onBack }: NoteEditorProps)
     }, [flush])
 
     useEffect(() => {
-        setSaveHandler(() => flushRef.current())
+        setSaveHandler(() => persistRef.current(true))
         return () => setSaveHandler(null)
     }, [setSaveHandler])
 
@@ -170,7 +180,8 @@ export default function NoteEditor({ note, isCompact, onBack }: NoteEditorProps)
                 clearTimeout(timerRef.current)
                 timerRef.current = null
             }
-            void persistRef.current()
+            // Leaving the note is the last chance to name a body-only note.
+            void persistRef.current(true)
         }
     }, [])
 
@@ -393,6 +404,14 @@ export default function NoteEditor({ note, isCompact, onBack }: NoteEditorProps)
                         maxRows={4}
                         spellCheck
                         onChange={(event) => changeTitle(event.target.value)}
+                        onBlur={() => {
+                            // Leaving the title is the moment a body can name
+                            // the note. Until then the empty field stays empty.
+                            if (note.isInTrash) return
+                            if (titleValue.current.trim()) return
+                            if (isBlockDocumentEmpty(bodyValue.current)) return
+                            schedule()
+                        }}
                         onKeyDown={(event) => {
                             if (event.key !== 'Enter') return
                             event.preventDefault()

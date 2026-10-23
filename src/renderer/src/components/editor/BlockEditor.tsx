@@ -1,5 +1,12 @@
 import { codeBlockOptions } from '@blocknote/code-block'
-import { BlockNoteSchema, createCodeBlockSpec, createHeadingBlockSpec, defaultBlockSpecs, type Block, type PartialBlock } from '@blocknote/core'
+import {
+    BlockNoteSchema,
+    createCodeBlockSpec,
+    createHeadingBlockSpec,
+    defaultBlockSpecs,
+    type Block,
+    type PartialBlock
+} from '@blocknote/core'
 import { SuggestionMenu } from '@blocknote/core/extensions'
 import '@blocknote/core/fonts/inter.css'
 import { BlockNoteView, darkDefaultTheme, lightDefaultTheme } from '@blocknote/mantine'
@@ -15,6 +22,7 @@ import type { ResolvedTheme } from '../../../../shared/model/theme'
 
 export type BlockEditorHandle = {
     focus: () => void
+    isSuggestionMenuOpen: () => boolean
 }
 
 type BlockEditorProps = {
@@ -102,7 +110,18 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
     useImperativeHandle(
         ref,
         () => ({
-            focus: () => editor?.focus()
+            focus: () => editor?.focus(),
+            // The slash menu puts its trigger in the document while the writer
+            // is choosing. Title derivation has to know the menu is still open,
+            // or "/" is read as content.
+            isSuggestionMenuOpen: () => {
+                if (!editor) return false
+                try {
+                    return editor.getExtension(SuggestionMenu)?.shown() ?? false
+                } catch {
+                    return false
+                }
+            }
         }),
         [editor]
     )

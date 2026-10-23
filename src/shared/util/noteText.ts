@@ -45,6 +45,13 @@ function blockIsEmpty(block: PartialBlock): boolean {
 const textCache = new Map<string, string>()
 
 /**
+ * The slash trigger on its own is an editing state, not content: BlockNote
+ * puts "/" in the paragraph before the writer has picked a block type. It
+ * should never become a note title, even if the draft is left mid-command.
+ */
+const LONE_SLASH_TRIGGER = /^\/\s*$/
+
+/**
  * Parses a BlockNote document without instantiating an editor. Used for search,
  * excerpts and word counts. Documents are immutable strings, so the result is
  * cached for list rendering.
@@ -90,7 +97,7 @@ export function isBlockDocumentEmpty(body: string | undefined | null): boolean {
  */
 export function titleFromBody(body: string | undefined | null, maxLength = 80): string {
     const text = extractPlainText(body)
-    if (!text) return ''
+    if (!text || LONE_SLASH_TRIGGER.test(text)) return ''
     if (text.length <= maxLength) return text
     return `${text.slice(0, maxLength - 1).trimEnd()}…`
 }

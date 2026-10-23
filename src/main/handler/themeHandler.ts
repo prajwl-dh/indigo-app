@@ -3,8 +3,8 @@ import Store from 'electron-store'
 import { isTheme, type Theme } from '../../shared/model/theme'
 
 export const WINDOW_BACKGROUND = {
-    light: '#f4f1ea',
-    dark: '#141210'
+    light: '#ffffff',
+    dark: '#0b0b0d'
 } as const
 
 export function currentWindowBackground(): string {
