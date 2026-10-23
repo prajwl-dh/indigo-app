@@ -1,3 +1,9 @@
-export type Theme = 'light' | 'dark' | 'system'
+export const themes = ['light', 'dark', 'system'] as const
 
-export const themes: Theme[] = ['light', 'dark', 'system']
+export type Theme = (typeof themes)[number]
+
+export type ResolvedTheme = 'light' | 'dark'
+
+export function isTheme(value: unknown): value is Theme {
+    return typeof value === 'string' && themes.includes(value as Theme)
+}

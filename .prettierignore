@@ -1,5 +1,10 @@
 out
 dist
+release
+build
+.agents
+.taste-skill
+skills-lock.json
 pnpm-lock.yaml
 LICENSE.md
 tsconfig.json

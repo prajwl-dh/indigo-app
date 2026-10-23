@@ -1,9 +1,10 @@
 node_modules
 dist
 out
+release
 .DS_Store
 .eslintcache
 *.log*
-package-lock.json
 .agents
 skills-lock.json
+.taste-skill

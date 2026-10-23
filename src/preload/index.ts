@@ -1,64 +1,96 @@
 import { electronAPI } from '@electron-toolkit/preload'
 import { contextBridge, ipcRenderer } from 'electron'
-import { Accent } from '../shared/model/accent'
-import { Folder, Note } from '../shared/model/note'
-import { Theme } from '../shared/model/theme'
+import type { Note, NotePatch, Notes, StorageInfo, Tag, Tags } from '../shared/model/note'
+import type { NoteColor } from '../shared/model/noteColor'
+import type { ResolvedTheme, Theme } from '../shared/model/theme'
 
-// Custom APIs for renderer
+type ThemeChange = { theme: Theme; resolved: ResolvedTheme }
+
+function on<Payload>(channel: string, callback: (payload: Payload) => void): () => void {
+    const listener = (_event: Electron.IpcRendererEvent, payload: Payload): void => {
+        callback(payload)
+    }
+    ipcRenderer.on(channel, listener)
+    return () => ipcRenderer.removeListener(channel, listener)
+}
+
 const themeApi = {
-    setTheme: (theme: Theme) => ipcRenderer.invoke('set:theme', theme),
-    getTheme: () => ipcRenderer.invoke('get:theme')
-}
-
-const accentApi = {
-    setAccent: (accent: Accent) => ipcRenderer.invoke('set:accent', accent),
-    getAccent: () => ipcRenderer.invoke('get:accent')
-}
-
-const databaseApi = {
-    createDatabase: () => ipcRenderer.invoke('create:database'),
-    loadDatabase: () => ipcRenderer.invoke('load:database'),
-    getActiveDatabasePath: () => ipcRenderer.invoke('get:activeDatabasePath'),
-    deleteActiveDatabasePath: () => ipcRenderer.invoke('delete:activeDatabasePath')
+    get: (): Promise<Theme> => ipcRenderer.invoke('theme:get'),
+    set: (theme: Theme): Promise<Theme> => ipcRenderer.invoke('theme:set', theme),
+    onChanged: (callback: (change: ThemeChange) => void): (() => void) =>
+        on<ThemeChange>('theme:changed', callback)
 }
 
 const notesApi = {
-    createNote: (folderId: number, isFavorite: boolean) =>
-        ipcRenderer.invoke('create:note', folderId, isFavorite),
-    updateNote: (payload: Note) => ipcRenderer.invoke('update:note', payload),
-    deleteNote: (payload: Note) => ipcRenderer.invoke('delete:note', payload),
-    deleteAllNoteInTrash: () => ipcRenderer.invoke('delete:allNoteInTrash'),
-    getNote: (id: number) => ipcRenderer.invoke('get:note', id),
-    getAllNotes: () => ipcRenderer.invoke('get:notes'),
-    getFolder: (id: number) => ipcRenderer.invoke('get:folder', id),
-    getAllFolders: () => ipcRenderer.invoke('get:folders'),
-    createFolder: (payload: Folder) => ipcRenderer.invoke('create:folder', payload),
-    updateFolder: (payload: Folder) => ipcRenderer.invoke('update:folder', payload),
-    deleteFolder: (payload: Folder) => ipcRenderer.invoke('delete:folder', payload)
+    list: (): Promise<Notes> => ipcRenderer.invoke('notes:list'),
+    get: (id: string): Promise<Note | null> => ipcRenderer.invoke('notes:get', id),
+    create: (input?: {
+        isFavorite?: boolean
+        tags?: string[]
+        color?: NoteColor | null
+    }): Promise<Note> => ipcRenderer.invoke('notes:create', input),
+    update: (patch: NotePatch): Promise<Note> => ipcRenderer.invoke('notes:update', patch),
+    duplicate: (id: string): Promise<Note> => ipcRenderer.invoke('notes:duplicate', id),
+    delete: (id: string): Promise<boolean> => ipcRenderer.invoke('notes:delete', id),
+    emptyTrash: (): Promise<number> => ipcRenderer.invoke('notes:empty-trash')
 }
 
-// Use `contextBridge` APIs to expose Electron APIs to
-// renderer only if context isolation is enabled, otherwise
-// just add to the DOM global.
+const tagsApi = {
+    list: (): Promise<Tags> => ipcRenderer.invoke('tags:list'),
+    create: (name: string): Promise<Tag> => ipcRenderer.invoke('tags:create', name),
+    rename: (oldName: string, nextName: string): Promise<Tag> =>
+        ipcRenderer.invoke('tags:rename', oldName, nextName),
+    delete: (name: string): Promise<boolean> => ipcRenderer.invoke('tags:delete', name)
+}
+
+const storageApi = {
+    getInfo: (): Promise<StorageInfo> => ipcRenderer.invoke('storage:info'),
+    openFolder: (): Promise<boolean> => ipcRenderer.invoke('storage:open-folder')
+}
+
+const windowApi = {
+    minimize: (): Promise<void> => ipcRenderer.invoke('window:minimize'),
+    toggleMaximize: (): Promise<boolean> => ipcRenderer.invoke('window:toggle-maximize'),
+    close: (): Promise<void> => ipcRenderer.invoke('window:close'),
+    isMaximized: (): Promise<boolean> => ipcRenderer.invoke('window:is-maximized'),
+    onMaximizedChanged: (callback: (maximized: boolean) => void): (() => void) =>
+        on<boolean>('window:maximized-changed', callback)
+}
+
+const appApi = {
+    softReset: (): Promise<boolean> => ipcRenderer.invoke('app:soft-reset'),
+    hardReset: (): Promise<boolean> => ipcRenderer.invoke('app:hard-reset')
+}
+
+const menuApi = {
+    onNewNote: (callback: () => void): (() => void) => on('menu:new-note', callback),
+    onSearch: (callback: () => void): (() => void) => on('menu:search', callback),
+    onSave: (callback: () => void): (() => void) => on('menu:save', callback)
+}
+
+const indigoApi = {
+    platform: process.platform as string,
+    app: appApi,
+    theme: themeApi,
+    notes: notesApi,
+    tags: tagsApi,
+    storage: storageApi,
+    window: windowApi,
+    menu: menuApi
+}
+
+export type IndigoApi = typeof indigoApi
+
 if (process.contextIsolated) {
     try {
         contextBridge.exposeInMainWorld('electron', electronAPI)
-        contextBridge.exposeInMainWorld('themeApi', themeApi)
-        contextBridge.exposeInMainWorld('accentApi', accentApi)
-        contextBridge.exposeInMainWorld('databaseApi', databaseApi)
-        contextBridge.exposeInMainWorld('notesApi', notesApi)
+        contextBridge.exposeInMainWorld('indigo', indigoApi)
     } catch (error) {
         console.error(error)
     }
 } else {
-    // @ts-ignore (define in dts)
+    // @ts-ignore (defined in d.ts)
     window.electron = electronAPI
-    // @ts-ignore (define in dts)
-    window.themeApi = themeApi
-    // @ts-ignore (define in dts)
-    window.accentApi = accentApi
-    // @ts-ignore (define in dts)
-    window.databaseApi = databaseApi
-    // @ts-ignore (define in dts)
-    window.notesApi = notesApi
+    // @ts-ignore (defined in d.ts)
+    window.indigo = indigoApi
 }

@@ -1,185 +1,150 @@
-import { and, eq } from 'drizzle-orm'
-import { ipcMain } from 'electron'
-import Store from 'electron-store'
-import { Folder, Note } from '../../shared/model/note'
-import { createDatabaseConnection } from '../database/connection'
-import { folders, notes } from '../database/schema'
-import { getActiveDatabasePath } from '../util/activeDatabasePathUtils'
+import { ipcMain, shell } from 'electron'
+import type { NotePatch, StorageInfo } from '../../shared/model/note'
+import { NotesStore } from '../storage/notesStore'
+import { notesDirectory } from '../storage/paths'
 
-export async function notesHandler(store: Store): Promise<void> {
-    const activeDatabase = await getActiveDatabasePath(store)
-    if (!activeDatabase) {
-        return
-    }
+function friendlyError(error: unknown, fallback: string): Error {
+    if (error instanceof Error && error.message) return error
+    return new Error(fallback)
+}
 
-    const connection = createDatabaseConnection(activeDatabase)
+export async function notesHandler(): Promise<NotesStore> {
+    const store = new NotesStore(notesDirectory())
+    await store.init()
 
-    // create a new note
-    ipcMain.handle('create:note', async (_event, folderId: number, isFavorite: boolean) => {
+    ipcMain.handle('notes:list', async () => {
         try {
-            // Remove notes that have no title and no body to prevent empty/untitled notes
-            await connection.db.delete(notes).where(and(eq(notes.title, ''), eq(notes.body, '')))
-
-            const [inserted] = await connection.db
-                .insert(notes)
-                .values({
-                    title: '',
-                    body: '',
-                    lastModified: new Date().toISOString(),
-                    isFavorite: isFavorite || false,
-                    folderId: folderId || 0,
-                    isInTrash: false
-                })
-                .returning()
-
-            return inserted
-        } catch (error: unknown) {
-            console.error('[create:note]', error)
-            throw new Error('Failed to create note')
-        }
-    })
-
-    // update a note
-    ipcMain.handle('update:note', async (_event, payload: Note) => {
-        try {
-            const { id, title, body, isFavorite, folderId, isInTrash } = payload
-
-            const [updated] = await connection.db
-                .update(notes)
-                .set({
-                    title,
-                    body,
-                    isFavorite,
-                    folderId,
-                    isInTrash,
-                    lastModified: new Date().toISOString()
-                })
-                .where(eq(notes.id, id))
-                .returning()
-
-            return updated
-        } catch (error: unknown) {
-            console.error('[update:note]', error)
-            throw new Error('Failed to update note with id: ' + payload.id)
-        }
-    })
-
-    // delete a note
-    ipcMain.handle('delete:note', async (_event, payload: Note) => {
-        try {
-            await connection.db.delete(notes).where(eq(notes.id, payload.id))
-            return true
-        } catch (error: unknown) {
-            console.error('[delete:note]', error)
-            throw new Error('Failed to delete note with id: ' + payload.id)
-        }
-    })
-
-    // empty the trash
-    ipcMain.handle('delete:allNoteInTrash', async () => {
-        try {
-            await connection.db.delete(notes).where(eq(notes.isInTrash, true))
-            return true
-        } catch (error: unknown) {
-            console.error('[delete:allNoteInTrash]', error)
-            throw new Error('Failed to delete all notes in trash')
-        }
-    })
-
-    // get a single note by id
-    ipcMain.handle('get:note', async (_event, id: number) => {
-        try {
-            const note = await connection.db.select().from(notes).where(eq(notes.id, id)).get()
-            return note
+            return await store.listNotes()
         } catch (error) {
-            console.error('[get:note]', error)
-            throw new Error('Failed to get note with id: ' + id)
+            console.error('[notes:list]', error)
+            throw friendlyError(error, 'Could not read your notes folder.')
         }
     })
 
-    // get all notes
-    ipcMain.handle('get:notes', async () => {
+    ipcMain.handle('notes:get', async (_event, id: unknown) => {
+        if (typeof id !== 'string') throw new Error('A note identifier is required.')
         try {
-            const allNotes = await connection.db.select().from(notes).all()
-            return allNotes
+            return await store.getNote(id)
         } catch (error) {
-            console.error('[get:all-notes]', error)
-            throw new Error('Failed to get all notes')
+            console.error('[notes:get]', error)
+            throw friendlyError(error, 'Could not open that note.')
         }
     })
 
-    // get a folder by id
-    ipcMain.handle('get:folder', async (_event, id: number) => {
+    ipcMain.handle('notes:create', async (_event, input: unknown) => {
+        const options =
+            input && typeof input === 'object'
+                ? (input as { isFavorite?: unknown; tags?: unknown })
+                : {}
         try {
-            const folder = await connection.db
-                .select()
-                .from(folders)
-                .where(eq(folders.id, id))
-                .get()
-            return folder
+            return await store.createNote({
+                isFavorite: options.isFavorite === true,
+                tags: Array.isArray(options.tags)
+                    ? options.tags.filter((tag): tag is string => typeof tag === 'string')
+                    : []
+            })
         } catch (error) {
-            console.error('[get:folder]', error)
-            throw new Error('Failed to get folder with id: ' + id)
+            console.error('[notes:create]', error)
+            throw friendlyError(error, 'Could not create a new note.')
         }
     })
 
-    // get all folders
-    ipcMain.handle('get:folders', async () => {
+    ipcMain.handle('notes:update', async (_event, patch: unknown) => {
+        if (!patch || typeof patch !== 'object' || typeof (patch as NotePatch).id !== 'string') {
+            throw new Error('A note identifier is required.')
+        }
         try {
-            const allFolders = await connection.db.select().from(folders).all()
-            return allFolders
+            return await store.updateNote(patch as NotePatch)
         } catch (error) {
-            console.error('[get:folders]', error)
-            throw new Error('Failed to get all folders')
+            console.error('[notes:update]', error)
+            throw friendlyError(error, 'Could not save this note.')
         }
     })
 
-    // create a new folder
-    ipcMain.handle('create:folder', async (_event, payload: Folder) => {
+    ipcMain.handle('notes:duplicate', async (_event, id: unknown) => {
+        if (typeof id !== 'string') throw new Error('A note identifier is required.')
         try {
-            if (payload.name?.trim()) {
-                const [inserted] = await connection.db
-                    .insert(folders)
-                    .values({ name: payload.name })
-                    .returning()
-
-                return inserted
-            }
-            return
+            return await store.duplicateNote(id)
         } catch (error) {
-            console.error('[create:folder]', error)
-            throw new Error('Failed to create folder ' + payload.name)
+            console.error('[notes:duplicate]', error)
+            throw friendlyError(error, 'Could not duplicate this note.')
         }
     })
 
-    // update a folder
-    ipcMain.handle('update:folder', async (_event, payload: Folder) => {
+    ipcMain.handle('notes:delete', async (_event, id: unknown) => {
+        if (typeof id !== 'string') throw new Error('A note identifier is required.')
         try {
-            const [updated] = await connection.db
-                .update(folders)
-                .set({ name: payload.name })
-                .where(eq(folders.id, payload.id))
-                .returning()
-
-            return updated
+            return await store.deleteNote(id)
         } catch (error) {
-            console.error('[update:folder]', error)
-            throw new Error('Failed to update a folder with id ' + payload.id)
+            console.error('[notes:delete]', error)
+            throw friendlyError(error, 'Could not delete this note.')
         }
     })
 
-    // delete a folder
-    ipcMain.handle('delete:folder', async (_event, payload: Folder) => {
+    ipcMain.handle('notes:empty-trash', async () => {
         try {
-            await connection.db
-                .update(notes)
-                .set({ folderId: 0 })
-                .where(eq(notes.folderId, payload.id))
-            await connection.db.delete(folders).where(eq(folders.id, payload.id))
-            return true
+            return await store.emptyTrash()
         } catch (error) {
-            console.error('[delete:folder]', error)
-            throw new Error('Failed to delete a folder with id ' + payload.id)
+            console.error('[notes:empty-trash]', error)
+            throw friendlyError(error, 'Could not empty the trash.')
         }
     })
+
+    ipcMain.handle('tags:list', async () => {
+        try {
+            return await store.listTags()
+        } catch (error) {
+            console.error('[tags:list]', error)
+            throw friendlyError(error, 'Could not read your tags.')
+        }
+    })
+
+    ipcMain.handle('tags:create', async (_event, name: unknown) => {
+        if (typeof name !== 'string') throw new Error('Give the tag a name first.')
+        try {
+            return await store.createTag(name)
+        } catch (error) {
+            console.error('[tags:create]', error)
+            throw friendlyError(error, 'Could not create that tag.')
+        }
+    })
+
+    ipcMain.handle('tags:rename', async (_event, oldName: unknown, nextName: unknown) => {
+        if (typeof oldName !== 'string' || typeof nextName !== 'string') {
+            throw new Error('A tag name is required.')
+        }
+        try {
+            return await store.renameTag(oldName, nextName)
+        } catch (error) {
+            console.error('[tags:rename]', error)
+            throw friendlyError(error, 'Could not rename that tag.')
+        }
+    })
+
+    ipcMain.handle('tags:delete', async (_event, name: unknown) => {
+        if (typeof name !== 'string') throw new Error('A tag name is required.')
+        try {
+            return await store.deleteTag(name)
+        } catch (error) {
+            console.error('[tags:delete]', error)
+            throw friendlyError(error, 'Could not delete that tag.')
+        }
+    })
+
+    ipcMain.handle('storage:info', async (): Promise<StorageInfo> => {
+        try {
+            return await store.getStorageInfo()
+        } catch (error) {
+            console.error('[storage:info]', error)
+            throw friendlyError(error, 'Could not read the notes folder.')
+        }
+    })
+
+    ipcMain.handle('storage:open-folder', async () => {
+        const result = await shell.openPath(store.directoryPath)
+        if (result) throw new Error(result)
+        return true
+    })
+
+    return store
 }

@@ -1,19 +1,33 @@
 <!doctype html>
-<html>
+<html lang="en">
     <head>
         <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="color-scheme" content="light dark" />
         <title>Indigo</title>
-        <link rel="stylesheet" href="./src/assets/main.css" />
         <!-- https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP -->
         <meta
             http-equiv="Content-Security-Policy"
             content="default-src 'self' https: data: blob: 'unsafe-inline';"
         />
+        <script>
+            ;(() => {
+                try {
+                    const saved = window.localStorage.getItem('indigo:theme') || 'system'
+                    const dark =
+                        saved === 'dark' ||
+                        (saved === 'system' &&
+                            window.matchMedia('(prefers-color-scheme: dark)').matches)
+                    document.documentElement.dataset.theme = dark ? 'dark' : 'light'
+                    document.documentElement.style.colorScheme = dark ? 'dark' : 'light'
+                } catch {
+                    document.documentElement.dataset.theme = 'light'
+                }
+            })()
+        </script>
     </head>
 
-    <body
-        class="m-0 p-0 h-screen w-screen bg-light-background dark:bg-dark-background antialiased overflow-x-hidden overflow-y-hidden"
-    >
+    <body>
         <div id="root"></div>
         <script type="module" src="/src/main.tsx"></script>
     </body>

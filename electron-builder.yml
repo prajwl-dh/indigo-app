@@ -9,6 +9,7 @@ files:
     - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
     - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
     - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+    - '!{.github,.agents,.taste-skill,skills-lock.json,manageRelease.js}'
 asarUnpack:
     - resources/**
 win:
@@ -25,22 +26,13 @@ mac:
     entitlements: null
     entitlementsInherit: null
     notarize: false
-    extendInfo:
-        - NSCameraUsageDescription: Application requests access to the device's camera.
-        - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-        - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
-        - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
-    x64ArchFiles: '**/node_modules/@libsql/**'
 dmg:
     artifactName: ${name}-${version}-${arch}.${ext}
 linux:
     target:
         - AppImage
-    maintainer: electronjs.org
-    category: Utility
+    maintainer: prajwalonline.com
+    category: Productivity
 appImage:
     artifactName: ${name}-${version}-${arch}.${ext}
 npmRebuild: true
-publish:
-    provider: generic
-    url: https://example.com/auto-updates

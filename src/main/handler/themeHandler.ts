@@ -1,24 +1,47 @@
-import { ipcMain, nativeTheme } from 'electron'
+import { BrowserWindow, ipcMain, nativeTheme } from 'electron'
 import Store from 'electron-store'
-import { Theme, themes } from '../../shared/model/theme'
+import { isTheme, type Theme } from '../../shared/model/theme'
 
-function getValidTheme(theme: unknown): Theme {
-    return themes.includes(theme as Theme) ? (theme as Theme) : 'system'
+export const WINDOW_BACKGROUND = {
+    light: '#f4f1ea',
+    dark: '#141210'
+} as const
+
+export function currentWindowBackground(): string {
+    return nativeTheme.shouldUseDarkColors ? WINDOW_BACKGROUND.dark : WINDOW_BACKGROUND.light
+}
+
+export function applyWindowBackgrounds(): void {
+    const background = currentWindowBackground()
+    for (const window of BrowserWindow.getAllWindows()) {
+        window.setBackgroundColor(background)
+    }
+}
+
+export function notifyTheme(): void {
+    const payload = {
+        theme: nativeTheme.themeSource,
+        resolved: nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
+    }
+    for (const window of BrowserWindow.getAllWindows()) {
+        window.webContents.send('theme:changed', payload)
+    }
+    applyWindowBackgrounds()
 }
 
 export function themeHandler(store: Store): void {
-    // Initialize nativeTheme
-    const savedTheme = store.get('theme')
-    nativeTheme.themeSource = getValidTheme(savedTheme)
+    const saved = store.get('theme')
+    nativeTheme.themeSource = isTheme(saved) ? saved : 'system'
 
-    // Handle setting a new theme
-    ipcMain.handle('set:theme', (_, theme: Theme) => {
-        const validTheme = getValidTheme(theme)
-        nativeTheme.themeSource = validTheme
+    ipcMain.handle('theme:get', () => nativeTheme.themeSource)
+
+    ipcMain.handle('theme:set', (_event, value: unknown): Theme => {
+        const theme: Theme = isTheme(value) ? value : 'system'
+        nativeTheme.themeSource = theme
         store.set('theme', theme)
-        return store.get('theme')
+        notifyTheme()
+        return theme
     })
 
-    // Handle getting the current theme
-    ipcMain.handle('get:theme', () => nativeTheme.themeSource)
+    nativeTheme.on('updated', notifyTheme)
 }

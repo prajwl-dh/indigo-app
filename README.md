@@ -1,66 +1,97 @@
 # Indigo
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/prajwl-dh/indigo-app/refs/heads/main/resources/indigo.png" alt="Indigo App Screenshot" />
+  <img src="https://raw.githubusercontent.com/prajwl-dh/indigo-app/refs/heads/main/resources/indigo.png" alt="Indigo notes workspace" />
 </p>
 
-> A modern, lightweight notes application designed for flexibility, organization, and a pleasant writing experience.
+> A quiet, local-first notes workspace with a block editor, tags, and a paper-and-ink shell.
 
-## ✨ Features
+## Features
 
-- 📝 Save and manage notes in local Indigo collection
-- 📁 Organize notes into folders
-- 🧱 Write using a clean, flexible Notion-style block editor
-- 🎨 Customize the UI with light/dark modes and six accent colors
-- 🔒 All data stored locally with no account or internet required
+- **A real writing surface.** Notes use BlockNote's block editor, with headings, lists, checklists, quotes, code blocks, and tables.
+- **Tags instead of folders.** Create a tag once, reuse it everywhere, rename it in place, and filter the library by any tag.
+- **Local files, not a database.** Every note is a JSON file inside Indigo's own notes folder. There is no account, server, or sync service.
+- **A calm shell.** Warm paper surfaces, serif note titles, a sidebar that folds into an icon rail, a search-first title bar, and custom window controls.
+- **Light, dark, and system themes.** Per-note colours mark notes in the list and above the title without recolouring the whole app.
+- **Autosave that never loses a keystroke.** Writes are atomic and queued; closing a note, switching views, or quitting flushes pending edits first.
+- **Every note has a title.** A note written without one takes its opening words as the title, and an empty draft is discarded as soon as you leave it.
+- **Trash with a safety net.** Move notes to trash, restore them, or delete them permanently after a confirmation.
+- **A complete reset.** Settings can return Indigo to a first-launch state in one step.
 
-## 🚀 Installation Guide
+## Installation Guide
 
-###  macOS (.dmg)
+### macOS (.dmg)
 
-> Because Indigo isn’t signed with an Apple Developer certificate, macOS may block it the first time you try to open it. Follow the steps below to bypass this check
+Indigo is not signed with an Apple Developer certificate, so macOS may block it the first time.
 
-### 📦 Install Steps
+1. Download the `.dmg` for your Mac: **Apple Silicon** for M-series chips or **Intel** for older Macs.
+2. Open the downloaded file and drag **Indigo** into **Applications**.
+3. Open **Terminal** and run:
 
-1. Download the `.dmg` file for your Mac. Choose **Apple Silicon** for M-chip Macs or **Intel** for older Macs
-2. Open the downloaded file
-3. Drag **Indigo** into the **Applications** folder
-4. Open **Terminal App** and run:
     ```bash
     xattr -cr /Applications/Indigo.app
     ```
-5. Open Indigo from the Applications folder.
 
-✔ That’s it! This is a one-time setup. You can open Indigo normally in the future without any issues.
+4. Open Indigo from Applications. This is a one-time step.
 
----
+### Windows (.exe)
 
-### ⊞ Windows (.exe)
+The installer is not code-signed, so Windows SmartScreen may show a warning.
 
-> Since the app is not code-signed, Windows SmartScreen may show a warning.
+1. Download the `.exe` installer.
+2. Run the installer.
+3. If **Windows protected your PC** appears, choose **More info**, then **Run anyway**.
+4. Finish the installation wizard.
 
-### 📦 Install Steps
+### Linux (.AppImage)
 
-1. Download the `.exe` installer
-2. Double-click the file
-3. If you see **“Windows protected your PC”**:
-    - Click **More info**
-    - Click **Run anyway**
+1. Download the `.AppImage` for **x64** or **ARM64**.
+2. Make it executable: right-click → **Properties** → **Permissions** → **Allow executing file as program**.
+3. Double-click the file to run it.
 
-4. Follow the installation wizard
+## Your data
 
-✔ Once installed, Indigo will run normally.
+Indigo keeps everything in one visible folder in your home directory: `~/.indigo`.
 
----
+```
+~/.indigo
+├── config.json   theme and window state
+└── notes         one JSON file per note
+```
 
-### 🐧 Linux (.AppImage)
+The exact path for the current machine is shown in **Settings → Library**, and **Open folder** reveals it in your file manager.
 
-> The AppImage runs without installation.
+- Notes live in `~/.indigo/notes`. Tags are kept in `~/.indigo/notes/_tags.json`.
+- Writes are atomic, and files are never sent anywhere.
+- Deleting the notes folder or using **Settings → Reset → Delete everything** removes every note, tag, and setting.
+- Builds before this one kept notes and settings inside the system application-data folder. On first launch Indigo copies those files into `~/.indigo` and leaves the originals in place.
+- Older Indigo versions stored notes in a `.indigo` SQLite database. That format is not imported automatically and those files are left untouched. Export anything you need from an older build before switching.
 
-### ▶ Run Steps
+## Development
 
-1. Download the `.AppImage` file that matches your system architecture: **ARM** or **x64**
-2. Right-click the file → **Properties**
-3. Go to **Permissions**
-4. Enable **Allow executing file as program**
-5. Double-click the file to run
+Requirements: Node.js 24 or newer.
+
+```bash
+npm ci
+npm run dev
+```
+
+Useful checks:
+
+```bash
+npm run typecheck
+npm run lint
+npm run build
+```
+
+The lockfile is committed, so CI uses `npm ci` and builds the same dependency tree you test locally.
+
+## Releases
+
+Update the version in `package.json`, commit, then run:
+
+```bash
+npm run release
+```
+
+That creates and pushes the matching `v*` tag. GitHub Actions verifies the project, builds macOS (Apple Silicon and Intel), Windows, and Linux (x64 and ARM64) artifacts, and publishes them as a draft-free GitHub release.

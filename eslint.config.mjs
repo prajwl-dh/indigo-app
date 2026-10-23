@@ -6,7 +6,17 @@ import eslintPluginReactHooks from 'eslint-plugin-react-hooks'
 import eslintPluginReactRefresh from 'eslint-plugin-react-refresh'
 
 export default defineConfig(
-    { ignores: ['**/node_modules', '**/dist', '**/out'] },
+    {
+        ignores: [
+            '**/node_modules',
+            '**/dist',
+            '**/out',
+            '.agents',
+            '.taste-skill',
+            'build',
+            'release'
+        ]
+    },
     tseslint.configs.recommended,
     eslintPluginReact.configs.flat.recommended,
     eslintPluginReact.configs.flat['jsx-runtime'],
@@ -26,6 +36,13 @@ export default defineConfig(
         rules: {
             ...eslintPluginReactHooks.configs.recommended.rules,
             ...eslintPluginReactRefresh.configs.vite.rules
+        }
+    },
+    {
+        // Providers and their hooks live together in this small app.
+        files: ['src/renderer/src/state/**/*.tsx'],
+        rules: {
+            'react-refresh/only-export-components': 'off'
         }
     },
     eslintConfigPrettier
