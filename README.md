@@ -16,6 +16,7 @@
 - **Autosave that never loses a keystroke.** Writes are atomic and queued; closing a note, switching views, or quitting flushes pending edits first.
 - **Every note has a title.** A note written without one takes its opening words as the title, and an empty draft is discarded as soon as you leave it.
 - **Trash with a safety net.** Move notes to trash, restore them, or delete them permanently after a confirmation.
+- **Updates from GitHub.** Indigo checks for a newer release on launch, installs it in place on macOS, Windows, and Linux AppImage builds, and restarts without touching your notes.
 - **A complete reset.** Settings can return Indigo to a first-launch state in one step.
 
 ## Installation Guide
@@ -66,6 +67,16 @@ The exact path for the current machine is shown in **Settings → Library**, and
 - Deleting the notes folder or using **Settings → Reset → Delete everything** removes every note, tag, and setting.
 - Builds before this one kept notes and settings inside the system application-data folder. On first launch Indigo copies those files into `~/.indigo` and leaves the originals in place.
 - Older Indigo versions stored notes in a `.indigo` SQLite database. That format is not imported automatically and those files are left untouched. Export anything you need from an older build before switching.
+
+## Updates
+
+Indigo checks GitHub for a newer release each time it opens. When one is available, a small notice appears in the corner with a link to the release notes and a download button.
+
+On macOS, Windows, and Linux AppImage builds, Indigo downloads the matching build, verifies its SHA-256 checksum when GitHub provides one, closes, installs the update in place, and opens again. Pending edits are saved before the app closes, and notes in `~/.indigo` are never touched.
+
+Indigo falls back to the release page when it cannot replace itself, including development builds, macOS builds running from a mounted disk image, Linux builds not started from an AppImage, and installs in folders it cannot write to. Settings → Updates shows the current version and the same download and release-page actions.
+
+The check uses the public GitHub Releases API. It sends the app version in the request header and never sends note contents.
 
 ## Development
 

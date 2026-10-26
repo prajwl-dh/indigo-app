@@ -3,6 +3,11 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { Note, NotePatch, Notes, StorageInfo, Tag, Tags } from '../shared/model/note'
 import type { NoteColor } from '../shared/model/noteColor'
 import type { ResolvedTheme, Theme } from '../shared/model/theme'
+import type {
+    UpdateCheckResult,
+    UpdateDownloadResult,
+    UpdateProgress
+} from '../shared/model/update'
 
 type ThemeChange = { theme: Theme; resolved: ResolvedTheme }
 
@@ -68,6 +73,17 @@ const menuApi = {
     onSave: (callback: () => void): (() => void) => on('menu:save', callback)
 }
 
+const updatesApi = {
+    getVersion: (): Promise<string> => ipcRenderer.invoke('updates:version'),
+    check: (force?: boolean): Promise<UpdateCheckResult> =>
+        ipcRenderer.invoke('updates:check', force === true),
+    download: (): Promise<UpdateDownloadResult> => ipcRenderer.invoke('updates:download'),
+    install: (): Promise<void> => ipcRenderer.invoke('updates:install'),
+    openRelease: (): Promise<void> => ipcRenderer.invoke('updates:open-release'),
+    onProgress: (callback: (progress: UpdateProgress) => void): (() => void) =>
+        on<UpdateProgress>('updates:progress', callback)
+}
+
 const indigoApi = {
     platform: process.platform as string,
     app: appApi,
@@ -76,7 +92,8 @@ const indigoApi = {
     tags: tagsApi,
     storage: storageApi,
     window: windowApi,
-    menu: menuApi
+    menu: menuApi,
+    updates: updatesApi
 }
 
 export type IndigoApi = typeof indigoApi

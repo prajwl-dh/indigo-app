@@ -3,6 +3,7 @@ import { FolderOpen, Monitor, Moon, RotateCcw, Sun, Trash2, X } from 'lucide-rea
 import { useState, type JSX } from 'react'
 import { themes, type Theme } from '../../../shared/model/theme'
 import ConfirmDialog from './ConfirmDialog'
+import UpdateSettings from './UpdateSettings'
 import { countLabel } from '../lib/format'
 import { useAppearance } from '../state/appearance'
 import { useToast } from '../state/toast'
@@ -181,6 +182,8 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps): 
                                     </div>
                                 </div>
                             </section>
+
+                            <UpdateSettings />
 
                             <section
                                 className="settings-section settings-section--danger"

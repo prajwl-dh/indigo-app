@@ -67,6 +67,23 @@ export function countLabel(count: number, singular: string, plural = `${singular
     return `${count} ${count === 1 ? singular : plural}`
 }
 
+export function formatBytes(bytes: number): string {
+    if (!Number.isFinite(bytes) || bytes <= 0) return '0 KB'
+    if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
+    const megabytes = bytes / (1024 * 1024)
+    return `${megabytes >= 100 ? Math.round(megabytes) : megabytes.toFixed(1)} MB`
+}
+
+export function formatReleaseDate(iso: string): string {
+    const date = new Date(iso)
+    if (Number.isNaN(date.getTime())) return ''
+    return new Intl.DateTimeFormat(undefined, {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+    }).format(date)
+}
+
 export function noteTitle(note: Pick<Note, 'title'>): string {
     const title = note.title.trim()
     return title || 'Untitled note'

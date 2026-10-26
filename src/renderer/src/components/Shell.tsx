@@ -10,6 +10,7 @@ import SettingsDialog from './SettingsDialog'
 import Sidebar from './Sidebar'
 import TitleBar from './TitleBar'
 import { TitleBarSlotsProvider } from './TitleBarSlots'
+import UpdateNotice from './UpdateNotice'
 
 type ShellProps = {
     settingsOpen: boolean
@@ -135,6 +136,7 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
                 </div>
             </TitleBarSlotsProvider>
 
+            {!settingsOpen && <UpdateNotice />}
             <SettingsDialog open={settingsOpen} onClose={onCloseSettings} />
         </div>
     )

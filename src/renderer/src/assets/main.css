@@ -2296,6 +2296,126 @@ html[data-theme='dark'] .settings-backdrop {
     line-height: 1.55;
 }
 
+.settings-update-copy {
+    max-width: 48ch;
+    color: var(--muted);
+    font-size: 11.5px;
+    line-height: 1.55;
+}
+
+.settings-update-copy--error {
+    color: var(--danger);
+}
+
+.settings-update-note {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------- */
+/* Updates                                                          */
+/* ---------------------------------------------------------------- */
+
+.update-notice {
+    position: fixed;
+    top: calc(var(--titlebar-height) + 12px);
+    right: 16px;
+    z-index: 210;
+    width: min(352px, calc(100vw - 32px));
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--raised);
+    box-shadow: var(--shadow-pop);
+    animation: update-notice-in 0.18s ease;
+}
+
+.update-notice-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.update-notice-title {
+    color: var(--ink);
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.update-notice-copy {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 11.5px;
+    line-height: 1.55;
+}
+
+.update-notice-copy--error {
+    color: var(--danger);
+}
+
+.update-notice-close {
+    flex: 0 0 auto;
+    margin: -2px -2px 0 0;
+}
+
+.update-notice-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 12px;
+}
+
+.update-notice-wait {
+    color: var(--muted);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+.update-notice-date {
+    margin-top: 9px;
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.update-meter {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+}
+
+.update-meter-track {
+    height: 5px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--field);
+}
+
+.update-meter-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--ink);
+    transition: width 0.2s ease;
+}
+
+.update-meter-meta {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+}
+
 /* ---------------------------------------------------------------- */
 /* Toasts                                                           */
 /* ---------------------------------------------------------------- */
@@ -2394,6 +2514,17 @@ html[data-theme='dark'] .settings-backdrop {
     from {
         opacity: 0;
         transform: translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes update-notice-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
     }
     to {
         opacity: 1;
@@ -2543,6 +2674,13 @@ html[data-theme='dark'] .settings-backdrop {
 }
 
 @media (max-width: 620px) {
+    .update-notice {
+        top: calc(var(--titlebar-height) + 8px);
+        right: 12px;
+        left: 12px;
+        width: auto;
+    }
+
     .settings-viewport {
         padding: 0;
     }

@@ -24,6 +24,7 @@ import {
     themeHandler
 } from './handler/themeHandler'
 import { attachWindowStateEvents, registerWindowHandlers } from './handler/windowHandler'
+import { registerUpdateHandlers } from './handler/updateHandler'
 
 contextMenu({
     showInspectElement: !app.isPackaged,
@@ -309,6 +310,7 @@ if (!app.requestSingleInstanceLock()) {
 
         themeHandler(store)
         registerWindowHandlers()
+        registerUpdateHandlers()
         buildApplicationMenu()
 
         try {
