@@ -4,9 +4,18 @@ import { copyFile, mkdir, readdir } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-/** Everything Indigo owns lives in one visible folder in the home directory. */
+/**
+ * Everything Indigo owns lives in one visible folder in the home directory.
+ * INDIGO_DATA_DIR is an escape hatch for portable installs and automated
+ * tests; when it is set, the real folder is never read or migrated.
+ */
+function configuredDirectory(): string | null {
+    const value = process.env.INDIGO_DATA_DIR?.trim()
+    return value ? value : null
+}
+
 export function indigoDirectory(): string {
-    return join(homedir(), '.indigo')
+    return configuredDirectory() ?? join(homedir(), '.indigo')
 }
 
 /** Notes are plain files, kept apart from the configuration file. */
@@ -29,6 +38,10 @@ async function hasFiles(directory: string): Promise<boolean> {
  * upgrade never loses a note.
  */
 export async function migrateLegacyStorage(): Promise<void> {
+    // A redirected data folder is deliberately isolated; importing from the
+    // machine's real application-data folder would break that promise.
+    if (configuredDirectory()) return
+
     const legacyRoot = app.getPath('userData')
     const root = indigoDirectory()
     const notes = notesDirectory()

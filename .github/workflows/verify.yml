@@ -1,0 +1,67 @@
+name: verify-indigo
+
+on:
+    push:
+        branches:
+            - '**'
+    pull_request:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: verify-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    verify:
+        name: Verify
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Typecheck
+              run: npm run typecheck
+
+            - name: Lint
+              run: npm run lint
+
+            - name: Test
+              run: npm test
+
+            - name: Build
+              run: npm run build
+
+    e2e:
+        name: Electron end-to-end
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci
+
+            # Electron needs the same shared libraries as Chromium, and the
+            # runner image does not guarantee all of them.
+            - name: Install Electron runtime libraries
+              run: npx playwright-core install-deps chromium
+
+            - name: Run Electron tests
+              run: xvfb-run -a npm run test:e2e

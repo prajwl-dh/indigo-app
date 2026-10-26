@@ -109,6 +109,25 @@ export function UpdateProvider({ children }: { children: ReactNode }): JSX.Eleme
     }, [checkForUpdates])
 
     useEffect(() => {
+        return window.indigo.updates.onInstallState((state) => {
+            // The quit flow cancelled the install (or the installer could not
+            // start). Return to the ready state so it can be retried.
+            installStarted.current = false
+            const message =
+                state.message ??
+                (state.state === 'cancelled'
+                    ? 'The update was cancelled.'
+                    : 'The update could not be installed.')
+            setDownload((current) => ({
+                ...current,
+                status: 'ready',
+                error: message
+            }))
+            if (state.state === 'failed') pushError(message)
+        })
+    }, [pushError])
+
+    useEffect(() => {
         return window.indigo.updates.onProgress((progress) => {
             setDownload((current) => {
                 if (progress.phase === 'downloading') {

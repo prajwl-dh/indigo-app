@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { access, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { NotesStore } from '../../src/main/storage/notesStore'
@@ -224,5 +224,125 @@ describe('NotesStore identity', () => {
             title: 'Edited'
         })
         expect(await exists('different-id.json')).toBe(false)
+    })
+})
+
+describe('NotesStore tags file safety', () => {
+    it('preserves a corrupt tags file and rebuilds the list from notes', async () => {
+        const note = await store.createNote({ tags: ['alpha'] })
+        expect(note.tags).toEqual(['alpha'])
+
+        const corrupt = '{"tags": [ this is not json\n'
+        await writeFile(join(directory, '_tags.json'), corrupt)
+
+        const tags = await store.listTags()
+        expect(tags.map((tag) => tag.name)).toEqual(['alpha'])
+
+        const entries = await readdir(directory)
+        const backup = entries.find((name) => name.startsWith('_tags.corrupt-'))
+        expect(backup).toBeTruthy()
+        expect(await readFile(join(directory, backup as string), 'utf8')).toBe(corrupt)
+
+        const rebuilt = JSON.parse(await readFile(join(directory, '_tags.json'), 'utf8'))
+        expect(rebuilt).toEqual([expect.objectContaining({ name: 'alpha' })])
+    })
+
+    it('preserves a non-array tags file and rebuilds it from notes', async () => {
+        await store.createNote({ tags: ['beta'] })
+        await writeFile(join(directory, '_tags.json'), '{"beta": true}\n')
+
+        const tags = await store.listTags()
+
+        expect(tags.map((tag) => tag.name)).toEqual(['beta'])
+        const entries = await readdir(directory)
+        expect(entries.some((name) => name.startsWith('_tags.corrupt-'))).toBe(true)
+    })
+
+    it('keeps tags named by notes when the tags file is missing', async () => {
+        await store.createNote({ tags: ['alpha'] })
+        await rm(join(directory, '_tags.json'), { force: true })
+
+        await store.createTag('beta')
+
+        const tags = await store.listTags()
+        expect(tags.map((tag) => tag.name).sort()).toEqual(['alpha', 'beta'])
+    })
+
+    it('refuses to overwrite a tags path it cannot read', async () => {
+        await rm(join(directory, '_tags.json'), { force: true })
+        await mkdir(join(directory, '_tags.json'))
+
+        await expect(store.createTag('gamma')).rejects.toThrow(/could not read the tags file/i)
+        expect((await stat(join(directory, '_tags.json'))).isDirectory()).toBe(true)
+    })
+
+    it('reports a rebuilt tags file in storage health', async () => {
+        await store.createNote({ tags: ['alpha'] })
+        await writeFile(join(directory, '_tags.json'), 'not json\n')
+
+        await store.listTags()
+        const info = await store.getStorageInfo()
+
+        expect(info.tagsFile).toBe('repaired')
+        expect(info.tagsBackup).toMatch(/^_tags\.corrupt-/)
+    })
+
+    it('reports an unreadable tags path without throwing', async () => {
+        await rm(join(directory, '_tags.json'), { force: true })
+        await mkdir(join(directory, '_tags.json'))
+
+        const info = await store.getStorageInfo()
+
+        expect(info.tagsFile).toBe('unreadable')
+        expect(info.skippedFiles).toEqual([])
+    })
+})
+
+describe('NotesStore storage health', () => {
+    it('reports files it skipped without deleting them', async () => {
+        await writeNote('good-note', { title: 'Readable' })
+        await writeFile(join(directory, 'backup.json'), '{"hello":"world"}\n')
+        await writeFile(join(directory, 'broken.json'), '{"title":\n')
+
+        const info = await store.getStorageInfo()
+
+        expect(info.noteCount).toBe(1)
+        expect(info.skippedFiles).toEqual(
+            expect.arrayContaining([
+                { file: 'backup.json', reason: 'not-a-note' },
+                { file: 'broken.json', reason: 'unreadable' }
+            ])
+        )
+        expect(await exists('backup.json')).toBe(true)
+        expect(await exists('broken.json')).toBe(true)
+    })
+})
+
+describe('NotesStore hard reset', () => {
+    it('removes recognized notes and tags but leaves unknown files and backups', async () => {
+        const note = await store.createNote({ tags: ['alpha'] })
+        await store.updateNote({ id: note.id, title: 'Real note', body: TEXT_BODY })
+        await writeFile(join(directory, 'backup.json'), '{"hello":"world"}\n')
+        await writeFile(join(directory, 'broken.json'), '{"title":\n')
+        await writeFile(join(directory, '_tags.corrupt-old.json'), '[]\n')
+
+        await store.reset()
+
+        expect(await exists(`${note.id}.json`)).toBe(false)
+        expect(await exists('backup.json')).toBe(true)
+        expect(await exists('broken.json')).toBe(true)
+        expect(await exists('_tags.corrupt-old.json')).toBe(true)
+        expect(JSON.parse(await readFile(join(directory, '_tags.json'), 'utf8'))).toEqual([])
+    })
+})
+
+describe('NotesStore atomic writes', () => {
+    it('leaves no temporary file behind after a save', async () => {
+        const note = await store.createNote()
+        await store.updateNote({ id: note.id, title: 'Saved', body: TEXT_BODY })
+
+        const entries = await readdir(directory)
+        expect(entries.some((name) => name.endsWith('.tmp'))).toBe(false)
+        expect(await readStoredNote(note.id)).toMatchObject({ title: 'Saved' })
     })
 })

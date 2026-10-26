@@ -1418,6 +1418,10 @@ svg {
     background: var(--paper);
 }
 
+.editor-pane[data-hidden='true'] {
+    display: none;
+}
+
 .save-state {
     color: var(--faint);
     font-size: 10px;
@@ -2298,6 +2302,13 @@ html[data-theme='dark'] .settings-backdrop {
 
 .settings-update-copy {
     max-width: 48ch;
+    color: var(--muted);
+    font-size: 11.5px;
+    line-height: 1.55;
+}
+
+.settings-health-copy {
+    max-width: 52ch;
     color: var(--muted);
     font-size: 11.5px;
     line-height: 1.55;

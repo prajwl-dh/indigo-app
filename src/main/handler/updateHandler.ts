@@ -51,6 +51,9 @@ let cachedCheck: { at: number; result: UpdateCheckResult } | null = null
 let latestInfo: UpdateCheckResult | null = null
 let downloadedUpdate: DownloadedUpdate | null = null
 let downloadTask: Promise<UpdateDownloadResult> | null = null
+// An install is prepared here, but the installer is only launched by the quit
+// flow after the renderer confirms its last save reached disk.
+let pendingInstall: (() => Promise<void>) | null = null
 
 export function registerUpdateHandlers(): void {
     void cleanWindowsDownloads()
@@ -71,6 +74,50 @@ export function registerUpdateHandlers(): void {
 function emitProgress(progress: UpdateProgress): void {
     for (const window of BrowserWindow.getAllWindows()) {
         if (!window.isDestroyed()) window.webContents.send('updates:progress', progress)
+    }
+}
+
+function emitInstallState(state: 'cancelled' | 'failed', message: string | null): void {
+    for (const window of BrowserWindow.getAllWindows()) {
+        if (!window.isDestroyed()) {
+            window.webContents.send('updates:install-state', { state, message })
+        }
+    }
+}
+
+export function hasPendingUpdateInstall(): boolean {
+    return pendingInstall !== null
+}
+
+/**
+ * Drop a prepared install. Called when quitting is cancelled or when the last
+ * save could not be confirmed, so the installer never runs against stale data.
+ */
+export function cancelPendingUpdateInstall(message: string | null = null): void {
+    if (!pendingInstall) return
+    pendingInstall = null
+    emitInstallState('cancelled', message)
+}
+
+/**
+ * Launch the prepared installer. The quit flow calls this only after a
+ * successful flush. A failure is reported to the renderer and the app stays
+ * open instead of quitting into a broken update.
+ */
+export async function runPendingUpdateInstall(): Promise<void> {
+    const install = pendingInstall
+    if (!install) return
+
+    try {
+        await install()
+        pendingInstall = null
+    } catch (error) {
+        pendingInstall = null
+        emitInstallState(
+            'failed',
+            error instanceof Error ? error.message : 'The update could not be installed.'
+        )
+        throw error
     }
 }
 
@@ -836,24 +883,33 @@ async function installUpdate(): Promise<void> {
     if (!latestInfo?.latestVersion || downloadedUpdate.version !== latestInfo.latestVersion) {
         throw new Error('The downloaded update is out of date. Check for updates again.')
     }
+    if (pendingInstall) return
 
-    emitProgress({
-        phase: 'installing',
-        receivedBytes: downloadedUpdate.asset.size,
-        totalBytes: downloadedUpdate.asset.size > 0 ? downloadedUpdate.asset.size : null,
-        percent: 100
-    })
-
-    if (process.platform === 'win32') {
-        await installWindows(downloadedUpdate.filePath)
-    } else if (process.platform === 'darwin') {
-        await installMac(downloadedUpdate.filePath)
-    } else if (process.platform === 'linux') {
-        await installLinux(downloadedUpdate.filePath)
-    } else {
+    const download = downloadedUpdate
+    const platform = process.platform
+    if (platform !== 'win32' && platform !== 'darwin' && platform !== 'linux') {
         throw new Error('Indigo cannot install updates on this platform.')
     }
 
+    emitProgress({
+        phase: 'installing',
+        receivedBytes: download.asset.size,
+        totalBytes: download.asset.size > 0 ? download.asset.size : null,
+        percent: 100
+    })
+
+    pendingInstall = async () => {
+        if (platform === 'win32') {
+            await installWindows(download.filePath)
+        } else if (platform === 'darwin') {
+            await installMac(download.filePath)
+        } else {
+            await installLinux(download.filePath)
+        }
+    }
+
+    // Quit through the normal lifecycle. The installer is launched from the
+    // quit flow only after the renderer confirms the latest save.
     setTimeout(() => app.quit(), 250)
 }
 

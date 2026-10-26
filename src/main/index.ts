@@ -26,7 +26,12 @@ import {
     themeHandler
 } from './handler/themeHandler'
 import { attachWindowStateEvents, registerWindowHandlers } from './handler/windowHandler'
-import { registerUpdateHandlers } from './handler/updateHandler'
+import {
+    cancelPendingUpdateInstall,
+    hasPendingUpdateInstall,
+    registerUpdateHandlers,
+    runPendingUpdateInstall
+} from './handler/updateHandler'
 import { flushRenderer, type FlushFailure, type FlushResult } from './lifecycle/flush'
 import { settleBeforeDestructiveAction } from './lifecycle/quitFlow'
 
@@ -44,6 +49,13 @@ type WindowState = {
 
 const isMac = process.platform === 'darwin'
 const FLUSH_TIMEOUT_MS = 2_000
+
+// A redirected data folder (portable installs and automated tests) must not
+// share Electron's single-instance lock with the copy in the real profile.
+const redirectedDataDirectory = process.env.INDIGO_DATA_DIR?.trim()
+if (redirectedDataDirectory) {
+    app.setPath('userData', join(redirectedDataDirectory, 'electron'))
+}
 
 let notesStoreRef: NotesStore | null = null
 let quitting = false
@@ -145,6 +157,32 @@ app.on('before-quit', (event) => {
         flush: flushAllWindows,
         onFailure: confirmQuitAfterSaveFailure,
         action: async (flushOk) => {
+            if (hasPendingUpdateInstall()) {
+                if (!flushOk) {
+                    // Never replace the app while the newest edit is still only
+                    // in memory. The renderer gets a chance to show this.
+                    cancelPendingUpdateInstall(
+                        'The update was not installed because the latest changes could not be saved.'
+                    )
+                    quitting = true
+                    app.quit()
+                    return
+                }
+
+                try {
+                    await runPendingUpdateInstall()
+                } catch (error) {
+                    // Keep Indigo open so the update can be retried; the renderer
+                    // receives the failure and returns to its ready state.
+                    console.error('[quit] could not start the update installer', error)
+                    return
+                }
+
+                quitting = true
+                app.quit()
+                return
+            }
+
             if (flushOk && !unsafeToPrune) {
                 try {
                     await store.pruneDrafts()
@@ -158,6 +196,13 @@ app.on('before-quit', (event) => {
         },
         log: (message, error) => console.error(`[quit] ${message}`, error ?? '')
     })
+        .then((result) => {
+            if (result === 'cancelled') {
+                cancelPendingUpdateInstall(
+                    'The update was cancelled. Your notes were left untouched.'
+                )
+            }
+        })
         .catch((error) => {
             console.error('[quit] could not finish the quit flow', error)
             quitting = true

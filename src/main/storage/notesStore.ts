@@ -1,7 +1,16 @@
 import { randomUUID } from 'node:crypto'
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import type { Note, NotePatch, Notes, StorageInfo, Tag, Tags } from '../../shared/model/note'
+import type {
+    Note,
+    NotePatch,
+    Notes,
+    StorageFileIssue,
+    StorageInfo,
+    Tag,
+    Tags,
+    TagsFileState
+} from '../../shared/model/note'
 import { isNoteColor } from '../../shared/model/noteColor'
 import { isBlockDocumentEmpty, titleFromBody } from '../../shared/util/noteText'
 import { findTag, MAX_TAGS_PER_NOTE, normalizeTagName } from '../../shared/util/tags'
@@ -87,10 +96,24 @@ function parseNote(raw: unknown, fallbackId: string): Note | null {
     }
 }
 
+type TagsFileRead = {
+    tags: Tags
+    state: 'ok' | 'missing' | 'corrupt'
+    raw: string | null
+}
+
+type NoteScan = {
+    notes: Notes
+    issues: StorageFileIssue[]
+}
+
 export class NotesStore {
     private readonly directory: string
     private readonly tagsPath: string
     private queue: Promise<unknown> = Promise.resolve()
+    // Set when a corrupt tags file has been preserved and rebuilt during this
+    // session, so Settings can tell the reader where the old file went.
+    private tagsBackupName: string | null = null
 
     constructor(directory: string) {
         this.directory = directory
@@ -158,13 +181,40 @@ export class NotesStore {
 
     private async writeAtomic(filePath: string, contents: string): Promise<void> {
         const temporary = `${filePath}.${process.pid}.${Date.now()}.tmp`
-        await fs.mkdir(path.dirname(filePath), { recursive: true })
+        const directory = path.dirname(filePath)
+        await fs.mkdir(directory, { recursive: true })
+
+        let handle: Awaited<ReturnType<typeof fs.open>> | null = null
         try {
-            await fs.writeFile(temporary, contents, { encoding: 'utf8', mode: 0o600 })
+            handle = await fs.open(temporary, 'w', 0o600)
+            await handle.writeFile(contents, 'utf8')
+            // Flush the bytes before the rename. Without this a power loss can
+            // leave the rename durable but the file contents empty.
+            await handle.sync()
+            await handle.close()
+            handle = null
+
             await fs.rename(temporary, filePath)
+            await this.syncDirectory(directory)
         } catch (error) {
+            if (handle) await handle.close().catch(() => undefined)
             await fs.rm(temporary, { force: true }).catch(() => undefined)
             throw error
+        }
+    }
+
+    private async syncDirectory(directory: string): Promise<void> {
+        // The rename itself is made durable by syncing the directory. Some
+        // platforms (and some network filesystems) do not support this; the
+        // file write has already been flushed, so it is safe to continue.
+        let handle: Awaited<ReturnType<typeof fs.open>> | null = null
+        try {
+            handle = await fs.open(directory, 'r')
+            await handle.sync()
+        } catch {
+            // Not every platform allows a directory to be opened or synced.
+        } finally {
+            await handle?.close().catch(() => undefined)
         }
     }
 
@@ -172,11 +222,27 @@ export class NotesStore {
         await this.writeAtomic(this.notePath(note.id), `${JSON.stringify(note, null, 2)}\n`)
     }
 
-    private async readTagsUnsafe(): Promise<Tags> {
+    private async readTagsFileUnsafe(): Promise<TagsFileRead> {
+        let contents: string
         try {
-            const contents = await fs.readFile(this.tagsPath, 'utf8')
+            contents = await fs.readFile(this.tagsPath, 'utf8')
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+                return { tags: [], state: 'missing', raw: null }
+            }
+
+            // An unreadable file is not an empty one. Failing here keeps every
+            // tag operation from overwriting a file Indigo could not inspect.
+            throw new Error(
+                'Indigo could not read the tags file, so your tags were left untouched.'
+            )
+        }
+
+        try {
             const parsed = JSON.parse(contents) as unknown
-            if (!Array.isArray(parsed)) return []
+            if (!Array.isArray(parsed)) {
+                return { tags: [], state: 'corrupt', raw: contents }
+            }
 
             const tags: Tags = []
             for (const entry of parsed) {
@@ -208,10 +274,59 @@ export class NotesStore {
                             : now()
                 })
             }
-            return tags
+
+            // A non-empty array with no usable tag is a malformed file, not an
+            // empty tag list. Preserve it rather than treating it as "no tags".
+            if (tags.length === 0 && parsed.length > 0) {
+                return { tags: [], state: 'corrupt', raw: contents }
+            }
+
+            return { tags, state: 'ok', raw: contents }
         } catch {
-            return []
+            return { tags: [], state: 'corrupt', raw: contents }
         }
+    }
+
+    private async readTagsUnsafe(): Promise<Tags> {
+        const result = await this.readTagsFileUnsafe()
+        if (result.state === 'ok') return result.tags
+        if (result.state === 'missing') {
+            // No tags file is not the same as no tags. Notes may still name
+            // tags, and the next write must not drop them.
+            return this.tagsFromNotesUnsafe()
+        }
+
+        return this.repairTagsUnsafe(result.raw ?? '')
+    }
+
+    /**
+     * A corrupt tags file is evidence, not garbage. Keep the exact bytes in a
+     * sibling backup, then rebuild the list from the tags still named by notes.
+     * If the backup cannot be written, the rebuild does not happen either.
+     */
+    private async repairTagsUnsafe(raw: string): Promise<Tags> {
+        const stamp = new Date().toISOString().replace(/[:.]/g, '-')
+        const backupName = `_tags.corrupt-${stamp}-${randomUUID().slice(0, 8)}.json`
+        await this.writeAtomic(path.join(this.directory, backupName), raw)
+        this.tagsBackupName = backupName
+
+        const rebuilt = await this.tagsFromNotesUnsafe()
+        await this.writeTags(rebuilt)
+        console.warn(`[tags] preserved unreadable tags in ${backupName} and rebuilt the list`)
+        return rebuilt
+    }
+
+    private async tagsFromNotesUnsafe(): Promise<Tags> {
+        const notes = await this.listNotesUnsafe()
+        const names = new Set<string>()
+        for (const note of notes) {
+            for (const name of note.tags) names.add(name)
+        }
+
+        const timestamp = now()
+        return [...names]
+            .sort((a, b) => a.localeCompare(b))
+            .map((name) => ({ name, createdAt: timestamp }))
     }
 
     private async writeTags(tags: Tags): Promise<void> {
@@ -231,32 +346,7 @@ export class NotesStore {
     }
 
     listNotes(): Promise<Notes> {
-        return this.enqueue(async () => {
-            const entries = await fs.readdir(this.directory, { withFileTypes: true })
-            const notes: Notes = []
-
-            for (const entry of entries) {
-                if (!entry.isFile()) continue
-                if (entry.name === TAGS_FILE) continue
-                if (!entry.name.endsWith('.json')) continue
-
-                const id = entry.name.slice(0, -'.json'.length)
-                if (!SAFE_ID.test(id)) continue
-
-                try {
-                    const contents = await fs.readFile(
-                        path.join(this.directory, entry.name),
-                        'utf8'
-                    )
-                    const note = parseNote(JSON.parse(contents) as unknown, id)
-                    if (note) notes.push(note)
-                } catch (error) {
-                    console.warn(`[notes] Skipped unreadable note ${entry.name}`, error)
-                }
-            }
-
-            return notes
-        })
+        return this.enqueue(async () => (await this.scanNotesUnsafe()).notes)
     }
 
     getNote(id: string): Promise<Note | null> {
@@ -391,22 +481,11 @@ export class NotesStore {
     listTags(): Promise<Tags> {
         return this.enqueue(async () => {
             const tags = await this.readTagsUnsafe()
-            if (tags.length === 0) {
-                const notes = await this.listNotesUnsafe()
-                const names = new Set<string>()
-                for (const note of notes) {
-                    for (const name of note.tags) names.add(name)
-                }
-                if (names.size > 0) {
-                    const timestamp = now()
-                    const discovered = [...names]
-                        .sort((a, b) => a.localeCompare(b))
-                        .map((name) => ({ name, createdAt: timestamp }))
-                    await this.writeTags(discovered)
-                    return discovered
-                }
-            }
-            return tags
+            if (tags.length > 0) return tags
+
+            const discovered = await this.tagsFromNotesUnsafe()
+            if (discovered.length > 0) await this.writeTags(discovered)
+            return discovered
         })
     }
 
@@ -475,40 +554,81 @@ export class NotesStore {
         })
     }
 
+    /**
+     * Hard reset removes only files Indigo recognizes as notes, plus the tags
+     * file. Unknown JSON, backups, and malformed files are left where they are.
+     */
     reset(): Promise<void> {
         return this.enqueue(async () => {
-            const entries = await fs.readdir(this.directory, { withFileTypes: true })
+            const { notes } = await this.scanNotesUnsafe()
 
-            for (const entry of entries) {
-                if (!entry.isFile()) continue
-                await fs.rm(path.join(this.directory, entry.name), { force: true })
+            for (const note of notes) {
+                await fs.rm(this.notePath(note.id), { force: true })
             }
 
             await this.writeTags([])
+            this.tagsBackupName = null
         })
     }
 
     getStorageInfo(): Promise<StorageInfo> {
         return this.enqueue(async () => {
-            const notes = await this.listNotesUnsafe()
-            return { notesDirectory: this.directory, noteCount: notes.length }
+            const { notes, issues } = await this.scanNotesUnsafe()
+
+            let tagsFile: TagsFileState = 'ok'
+            if (this.tagsBackupName) {
+                tagsFile = 'repaired'
+            } else {
+                try {
+                    tagsFile = (await this.readTagsFileUnsafe()).state
+                } catch {
+                    tagsFile = 'unreadable'
+                }
+            }
+
+            return {
+                notesDirectory: this.directory,
+                noteCount: notes.length,
+                skippedFiles: issues,
+                tagsFile,
+                tagsBackup: this.tagsBackupName
+            }
         })
     }
 
-    private async listNotesUnsafe(): Promise<Notes> {
+    private async scanNotesUnsafe(): Promise<NoteScan> {
         const entries = await fs.readdir(this.directory, { withFileTypes: true })
         const notes: Notes = []
+        const issues: StorageFileIssue[] = []
 
         for (const entry of entries) {
             if (!entry.isFile() || !entry.name.endsWith('.json')) continue
-            if (entry.name === TAGS_FILE) continue
+            // The tags file and the backups written when it is repaired are
+            // Indigo metadata, not notes.
+            if (entry.name === TAGS_FILE || entry.name.startsWith('_tags.')) continue
+
             const id = entry.name.slice(0, -'.json'.length)
-            if (!SAFE_ID.test(id)) continue
-            const note = await this.readNoteUnsafe(id)
-            if (note) notes.push(note)
+            if (!SAFE_ID.test(id)) {
+                issues.push({ file: entry.name, reason: 'not-a-note' })
+                continue
+            }
+
+            try {
+                const contents = await fs.readFile(path.join(this.directory, entry.name), 'utf8')
+                const note = parseNote(JSON.parse(contents) as unknown, id)
+                if (note) notes.push(note)
+                else issues.push({ file: entry.name, reason: 'not-a-note' })
+            } catch (error) {
+                console.warn(`[notes] Skipped unreadable note ${entry.name}`, error)
+                issues.push({ file: entry.name, reason: 'unreadable' })
+            }
         }
 
-        return notes
+        return { notes, issues }
+    }
+
+    private async listNotesUnsafe(): Promise<Notes> {
+        return (await this.scanNotesUnsafe()).notes
     }
 
     private async ensureTagsUnsafe(names: string[]): Promise<void> {

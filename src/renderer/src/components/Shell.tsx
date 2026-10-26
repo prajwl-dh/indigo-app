@@ -82,7 +82,11 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
     }, [drawerOpen, isNarrow])
 
     const searching = search.trim().length > 0
-    const editorVisible = activeNote !== null && !(isCompact && searching)
+    // On a compact window a search covers the editor. Keep the editor mounted
+    // and hide it instead of unmounting it, so an unsaved edit is never lost
+    // just because the writer typed in the search field.
+    const editorHidden = isCompact && searching
+    const editorVisible = activeNote !== null && !editorHidden
     const booting = !ready || (loading && notes.length === 0)
 
     return (
@@ -120,11 +124,12 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
                             >
                                 <NotesPanel />
 
-                                {editorVisible && activeNote ? (
+                                {activeNote ? (
                                     <NoteEditor
                                         key={activeNote.id}
                                         note={activeNote}
                                         isCompact={isCompact}
+                                        hidden={editorHidden}
                                         onBack={() => void closeNote()}
                                     />
                                 ) : (

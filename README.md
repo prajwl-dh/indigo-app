@@ -13,11 +13,11 @@
 - **Local files, not a database.** Every note is a JSON file inside Indigo's own notes folder. There is no account, server, or sync service.
 - **A calm shell.** Warm paper surfaces, serif note titles, a sidebar that folds into an icon rail, a search-first title bar, and custom window controls.
 - **Light, dark, and system themes.** Per-note colours mark notes in the list and above the title without recolouring the whole app.
-- **Autosave that waits for the write.** Writes are atomic and queued; closing a note, switching views, quitting, or closing the window waits for pending edits. If saving fails, Indigo asks before quitting instead of discarding the change silently.
+- **Autosave that waits for the write.** Writes are atomic and queued; closing a note, switching views, quitting, or closing the window waits for pending edits. If saving fails, the editor stays open with a retry action instead of navigating away from unsaved work.
 - **Titles from your writing.** A note written without a title takes its opening words as the title when possible. Indigo only discards an empty draft that it created and that still has no content.
 - **Trash with a safety net.** Move notes to trash, restore them, or delete them permanently after a confirmation.
 - **Updates from GitHub.** Indigo checks for a newer release on launch, installs it in place on macOS, Windows, and Linux AppImage builds, and restarts without touching your notes.
-- **A complete reset.** Settings can return Indigo to a first-launch state in one step.
+- **A reset you can reason about.** Soft reset clears the interface. Hard reset removes only the notes Indigo recognizes, its tags, and its settings; unknown files and backups are left alone.
 
 ## Installation Guide
 
@@ -68,6 +68,21 @@ The exact path for the current machine is shown in **Settings → Library**, and
 - Builds before this one kept notes and settings inside the system application-data folder. On first launch Indigo copies those files into `~/.indigo` and leaves the originals in place.
 - Older Indigo versions stored notes in a `.indigo` SQLite database. That format is not imported automatically and those files are left untouched. Export anything you need from an older build before switching.
 
+## Data safety
+
+Indigo is a local-first app, so the files on disk are the source of truth. These are the rules it follows:
+
+- **Writes are durable and atomic.** A note is written to a temporary file, flushed to disk, renamed over the old file, and the folder is synced. A crash or power loss cannot leave a half-written note behind.
+- **Autosave is short.** Changes are written about 250 ms after you stop typing. The editor also flushes when the window loses focus or becomes hidden.
+- **Leaving waits for the save.** Switching notes, closing a note, changing views or tags, duplicating, moving to trash, and restoring all save first. If that save fails, the action is cancelled, the editor stays open, and the title bar shows **Save failed · Retry**.
+- **Quitting and closing wait too.** Indigo asks the editor to finish saving before quitting or closing the window. It waits up to two seconds, then asks whether to continue if the save could not be confirmed. An update installs only after that handshake succeeds.
+- **Drafts are removed only when they are provably empty.** A draft must have been created by Indigo, still carry its draft marker, and contain no title, text, table, image, media, or code. Unknown JSON, malformed files, backups, renamed files, and legacy empty notes are never pruned.
+- **The tags file is protected.** If `_tags.json` is corrupt, Indigo writes the original bytes to a `_tags.corrupt-*.json` backup and rebuilds the list from the tags still named by notes. If the file cannot be read at all, tag operations fail rather than overwriting it.
+- **Skipped files are visible.** **Settings → Library → Storage health** lists any files Indigo could not read as notes. They are left untouched, and **Open folder** takes you to them.
+- **Hard reset is bounded.** **Delete everything** removes only recognized note files, `_tags.json`, and settings. Unknown files, malformed notes, and backups stay in the folder.
+
+There is no cloud copy, so keep your own backup of `~/.indigo` if the writing matters. Copying the folder while Indigo is closed is enough; every file is plain JSON.
+
 ## Updates
 
 Indigo checks GitHub for a newer release each time it opens. When one is available, a small notice appears in the corner with a link to the release notes and a download button.
@@ -92,10 +107,14 @@ Useful checks:
 ```bash
 npm run typecheck
 npm run lint
+npm test
 npm run build
+npm run test:e2e   # builds the app, then launches Electron
 ```
 
-The lockfile is committed, so CI uses `npm ci` and builds the same dependency tree you test locally.
+The end-to-end suite writes into a temporary folder selected with `INDIGO_DATA_DIR`, so it never touches your real `~/.indigo`. On Linux it needs a display; CI runs it under `xvfb-run`.
+
+The lockfile is committed, so CI uses `npm ci` and builds the same dependency tree you test locally. Normal pushes and pull requests run typecheck, lint, unit tests, build, and the Electron end-to-end suite; tagged releases use the same checks before packaging.
 
 ## Releases
 

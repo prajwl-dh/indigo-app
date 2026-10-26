@@ -6,6 +6,7 @@ import type { ResolvedTheme, Theme } from '../shared/model/theme'
 import type {
     UpdateCheckResult,
     UpdateDownloadResult,
+    UpdateInstallState,
     UpdateProgress
 } from '../shared/model/update'
 
@@ -110,7 +111,9 @@ const updatesApi = {
     install: (): Promise<void> => ipcRenderer.invoke('updates:install'),
     openRelease: (): Promise<void> => ipcRenderer.invoke('updates:open-release'),
     onProgress: (callback: (progress: UpdateProgress) => void): (() => void) =>
-        on<UpdateProgress>('updates:progress', callback)
+        on<UpdateProgress>('updates:progress', callback),
+    onInstallState: (callback: (state: UpdateInstallState) => void): (() => void) =>
+        on<UpdateInstallState>('updates:install-state', callback)
 }
 
 const indigoApi = {

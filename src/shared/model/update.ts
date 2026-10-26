@@ -35,3 +35,12 @@ export type UpdateDownloadResult = {
     version: string
     fileName: string
 }
+
+/**
+ * Sent when a pending install is cancelled (the quit was cancelled or the
+ * latest save could not be confirmed) or when the installer could not start.
+ */
+export type UpdateInstallState = {
+    state: 'cancelled' | 'failed'
+    message: string | null
+}

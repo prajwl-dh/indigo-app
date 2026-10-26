@@ -36,9 +36,10 @@ export function appHandler(configStore: Store, notesStore: NotesStore): void {
     })
 
     /**
-     * Hard reset: removes every note and tag, then clears all configuration.
-     * The renderer reloads after this resolves, so nothing stale survives in
-     * memory either.
+     * Hard reset: removes every note Indigo recognizes and its tags, then
+     * clears all configuration. Unknown files and backups stay in the notes
+     * folder. The renderer reloads after this resolves, so nothing stale
+     * survives in memory either.
      */
     ipcMain.handle('app:hard-reset', async () => {
         await notesStore.reset()

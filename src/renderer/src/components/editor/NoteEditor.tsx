@@ -25,11 +25,22 @@ type NoteEditorProps = {
     note: Note
     isCompact: boolean
     onBack: () => void
+    /** Kept mounted but out of view while a compact search covers the editor. */
+    hidden?: boolean
 }
 
 type SaveState = 'saved' | 'saving' | 'error'
 
-export default function NoteEditor({ note, isCompact, onBack }: NoteEditorProps): JSX.Element {
+// A crash can only lose the last fraction of a second of typing. The quit and
+// window-close handshakes cover the rest; this keeps the unsaved window small.
+const AUTOSAVE_DELAY_MS = 250
+
+export default function NoteEditor({
+    note,
+    isCompact,
+    onBack,
+    hidden = false
+}: NoteEditorProps): JSX.Element {
     const { resolved } = useAppearance()
     const { pushError } = useToast()
     const {
@@ -157,7 +168,7 @@ export default function NoteEditor({ note, isCompact, onBack }: NoteEditorProps)
         timerRef.current = setTimeout(() => {
             timerRef.current = null
             void persistRef.current()
-        }, 500)
+        }, AUTOSAVE_DELAY_MS)
     }, [])
 
     const flush = useCallback(async (): Promise<boolean> => {
@@ -353,7 +364,11 @@ export default function NoteEditor({ note, isCompact, onBack }: NoteEditorProps)
     )
 
     return (
-        <section className="editor-pane" aria-label="Note editor">
+        <section
+            className="editor-pane"
+            aria-label="Note editor"
+            data-hidden={hidden ? 'true' : 'false'}
+        >
             {actionsSlot && createPortal(noteActions, actionsSlot)}
             {isCompact &&
                 backSlot &&

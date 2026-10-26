@@ -57,7 +57,8 @@ type WorkspaceContextValue = {
     renameTag: (oldName: string, nextName: string) => Promise<void>
     deleteTag: (name: string) => Promise<void>
     refresh: () => Promise<void>
-    saveNow: () => Promise<void>
+    /** Save pending edits. Returns false when the editor could not save. */
+    saveNow: () => Promise<boolean>
     flushNow: () => Promise<void>
     setSaveHandler: (handler: (() => Promise<boolean>) | null) => void
     openSettings: () => void
@@ -118,10 +119,21 @@ export function WorkspaceProvider({
 
     const load = useCallback(async (): Promise<void> => {
         setLoading(true)
+
+        // Load tags first: reading them may repair a corrupt file, and the
+        // Storage health snapshot should describe the state that follows.
+        // A broken tags file must never hide a readable notes folder.
+        let nextTags: Tags = []
         try {
-            const [nextNotes, nextTags, info] = await Promise.all([
+            nextTags = await window.indigo.tags.list()
+        } catch (caught) {
+            console.warn('[tags] could not load', caught)
+            pushError(caught, 'Could not read your tags. They were left untouched.')
+        }
+
+        try {
+            const [nextNotes, info] = await Promise.all([
                 window.indigo.notes.list(),
-                window.indigo.tags.list(),
                 window.indigo.storage.getInfo()
             ])
             setNotes(nextNotes)
@@ -133,7 +145,7 @@ export function WorkspaceProvider({
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [pushError])
 
     useEffect(() => {
         // The load is asynchronous; state only changes after the IPC round trip.
@@ -145,16 +157,22 @@ export function WorkspaceProvider({
         await load()
     }, [load])
 
-    const saveNow = useCallback(async (): Promise<void> => {
-        await saveHandler.current?.()
+    const saveNow = useCallback(async (): Promise<boolean> => {
+        if (!saveHandler.current) return true
+
+        try {
+            return (await saveHandler.current()) !== false
+        } catch (caught) {
+            console.warn('[save] could not flush the editor', caught)
+            return false
+        }
     }, [])
 
     const flushNow = useCallback(async (): Promise<void> => {
-        const saved = await saveHandler.current?.()
-        if (saved === false) {
+        if (!(await saveNow())) {
             throw new Error('The latest changes could not be saved.')
         }
-    }, [])
+    }, [saveNow])
 
     const setSaveHandler = useCallback((handler: (() => Promise<boolean>) | null): void => {
         saveHandler.current = handler
@@ -189,7 +207,8 @@ export function WorkspaceProvider({
     const openNote = useCallback(
         async (id: string): Promise<void> => {
             if (id === activeNoteId) return
-            await saveNow()
+            // Never unmount an editor whose latest edit did not reach disk.
+            if (!(await saveNow())) return
             await discardBlankNote(activeNoteId)
             setSearchState('')
             setActiveNoteId(id)
@@ -198,14 +217,14 @@ export function WorkspaceProvider({
     )
 
     const closeNote = useCallback(async (): Promise<void> => {
-        await saveNow()
+        if (!(await saveNow())) return
         await discardBlankNote(activeNoteId)
         setActiveNoteId(null)
     }, [activeNoteId, discardBlankNote, saveNow])
 
     const setView = useCallback(
         async (next: NotesView): Promise<void> => {
-            await saveNow()
+            if (!(await saveNow())) return
             await discardBlankNote(activeNoteId)
             setViewState(next)
             setActiveTagState(null)
@@ -218,7 +237,7 @@ export function WorkspaceProvider({
 
     const setActiveTag = useCallback(
         async (tag: string | null): Promise<void> => {
-            await saveNow()
+            if (!(await saveNow())) return
             await discardBlankNote(activeNoteId)
             setActiveNoteId(null)
             setSearchState('')
@@ -262,7 +281,7 @@ export function WorkspaceProvider({
 
     const createNote = useCallback(async (): Promise<void> => {
         try {
-            await saveNow()
+            if (!(await saveNow())) return
             await discardBlankNote(activeNoteId)
             const favorite = view === 'favorites' && !activeTag
             const created = await window.indigo.notes.create({
@@ -296,7 +315,7 @@ export function WorkspaceProvider({
     const duplicateNote = useCallback(
         async (id: string): Promise<void> => {
             try {
-                await saveNow()
+                if (!(await saveNow())) return
                 const current = await window.indigo.notes.get(id)
                 if (isBlankNote(current)) return
 
@@ -335,7 +354,7 @@ export function WorkspaceProvider({
     const moveToTrash = useCallback(
         async (id: string): Promise<void> => {
             try {
-                await saveNow()
+                if (!(await saveNow())) return
                 const current = await window.indigo.notes.get(id)
 
                 // A blank draft never reaches the trash; there is nothing to keep.
@@ -371,7 +390,7 @@ export function WorkspaceProvider({
     const restoreNote = useCallback(
         async (id: string): Promise<void> => {
             try {
-                await saveNow()
+                if (!(await saveNow())) return
                 await updateNote({ id, isInTrash: false })
                 setViewState('all')
                 setActiveTagState(null)

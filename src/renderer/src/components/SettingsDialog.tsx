@@ -73,6 +73,39 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps): 
 
     const tagCount = tags.length
     const noteCount = storage?.noteCount ?? notes.length
+    const skippedFiles = storage?.skippedFiles ?? []
+    const tagsFile = storage?.tagsFile ?? 'ok'
+    const tagsNeedAttention = tagsFile === 'corrupt' || tagsFile === 'unreadable'
+
+    const healthValue =
+        skippedFiles.length > 0
+            ? `${countLabel(skippedFiles.length, 'file')} skipped`
+            : tagsFile === 'repaired'
+              ? 'Tags rebuilt'
+              : tagsNeedAttention
+                ? 'Needs attention'
+                : 'All files readable'
+
+    const healthCopy = (() => {
+        if (skippedFiles.length > 0) {
+            return 'Indigo left these files untouched because it could not read them as notes. Open the folder to inspect or back them up.'
+        }
+        if (tagsFile === 'repaired') {
+            return storage?.tagsBackup
+                ? `The tags file could not be read, so Indigo kept the original as ${storage.tagsBackup} and rebuilt the tag list from your notes.`
+                : 'The tags file could not be read, so Indigo kept a backup and rebuilt the tag list from your notes.'
+        }
+        if (tagsFile === 'corrupt') {
+            return 'The tags file could not be read. Indigo will preserve it and rebuild the tag list from your notes the next time tags are used.'
+        }
+        if (tagsFile === 'unreadable') {
+            return 'The tags file could not be read and has been left untouched. Check its permissions, then re-read the folder.'
+        }
+        if (tagsFile === 'missing') {
+            return 'There is no tags file yet. Indigo will create one when you add a tag.'
+        }
+        return 'Every note file in this folder was readable. Nothing was skipped.'
+    })()
 
     return (
         <>
@@ -180,6 +213,31 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps): 
                                             </button>
                                         </div>
                                     </div>
+
+                                    <div className="settings-rule" />
+
+                                    <div className="settings-field">
+                                        <div className="settings-field-head">
+                                            <span className="settings-field-title">
+                                                Storage health
+                                            </span>
+                                            <span className="settings-field-value">
+                                                {healthValue}
+                                            </span>
+                                        </div>
+                                        <p className="settings-health-copy">{healthCopy}</p>
+                                        {skippedFiles.length > 0 && (
+                                            <code className="settings-path">
+                                                {skippedFiles
+                                                    .slice(0, 5)
+                                                    .map((issue) => issue.file)
+                                                    .join('\n')}
+                                                {skippedFiles.length > 5
+                                                    ? `\n+${skippedFiles.length - 5} more`
+                                                    : ''}
+                                            </code>
+                                        )}
+                                    </div>
                                 </div>
                             </section>
 
@@ -224,9 +282,9 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps): 
                                                 Delete everything
                                             </p>
                                             <p className="settings-danger-copy">
-                                                Deletes every note, tag, and setting on this
-                                                computer. Indigo reopens as if it had just been
-                                                installed. This cannot be undone.
+                                                Deletes every note Indigo recognizes, its tags, and
+                                                all settings. Other files in the notes folder are
+                                                left untouched. This cannot be undone.
                                             </p>
                                         </div>
                                         <button
@@ -264,8 +322,9 @@ export default function SettingsDialog({ open, onClose }: SettingsDialogProps): 
                 title="Delete everything?"
                 description={
                     <>
-                        Every note, tag, and setting will be deleted from this computer, and Indigo
-                        will reopen as if it had just been installed. This cannot be undone.
+                        Every note Indigo recognizes, every tag, and all settings will be deleted
+                        from this computer. Unknown files and backups in the notes folder are left
+                        untouched. This cannot be undone.
                     </>
                 }
                 confirmLabel="Delete everything"
