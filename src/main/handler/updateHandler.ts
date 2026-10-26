@@ -23,6 +23,7 @@ const LATEST_RELEASE_API = `https://api.github.com/repos/${REPO}/releases/latest
 const DOWNLOAD_DIRECTORY = join(tmpdir(), 'indigo-update')
 const CHECK_CACHE_MS = 5 * 60 * 1000
 const DOWNLOAD_TIMEOUT_MS = 30 * 60 * 1000
+const STALE_DOWNLOAD_MS = 60 * 60 * 1000
 
 type GitHubAsset = UpdateAsset
 
@@ -52,6 +53,8 @@ let downloadedUpdate: DownloadedUpdate | null = null
 let downloadTask: Promise<UpdateDownloadResult> | null = null
 
 export function registerUpdateHandlers(): void {
+    void cleanWindowsDownloads()
+
     ipcMain.handle('updates:version', () => app.getVersion())
 
     ipcMain.handle('updates:check', async (_event, force: unknown) =>
@@ -248,10 +251,18 @@ function matchesPlatform(assetName: string): boolean {
     const architecture = process.arch
 
     if (process.platform === 'win32') {
+        if (!name.endsWith('.exe')) return false
+        if (!name.includes('setup') && !name.includes('installer')) return false
+
+        // Release assets are renamed (Indigo-v1.0.2-Windows-x64-Setup.exe) while a
+        // local electron-builder build is named indigo-1.0.2-x64-setup.exe, so match
+        // on either the platform or the architecture part of the name.
         return (
-            name.includes('windows') &&
-            name.endsWith('.exe') &&
-            (name.includes('setup') || name.includes('installer'))
+            name.includes('windows') ||
+            name.includes('win32') ||
+            name.includes('x64') ||
+            name.includes('amd64') ||
+            name.includes('x86_64')
         )
     }
 
@@ -644,14 +655,10 @@ function shellQuote(value: string): string {
     return `'${value.replace(/'/g, "'\\''")}'`
 }
 
-function powershellQuote(value: string): string {
-    return `'${value.replace(/'/g, "''")}'`
-}
-
 async function spawnDetached(
     command: string,
     args: string[],
-    options: { windowsHide?: boolean } = {}
+    options: { cwd?: string; windowsHide?: boolean } = {}
 ): Promise<void> {
     await new Promise<void>((resolve, reject) => {
         const child = spawn(command, args, {
@@ -669,28 +676,44 @@ async function spawnDetached(
     })
 }
 
+async function cleanWindowsDownloads(): Promise<void> {
+    if (process.platform !== 'win32') return
+
+    try {
+        const entries = await fs.readdir(DOWNLOAD_DIRECTORY, { withFileTypes: true })
+        const cutoff = Date.now() - STALE_DOWNLOAD_MS
+
+        await Promise.all(
+            entries.map(async (entry) => {
+                const filePath = join(DOWNLOAD_DIRECTORY, entry.name)
+                if (filePath === downloadedUpdate?.filePath) return
+
+                try {
+                    const stats = await fs.stat(filePath)
+                    if (stats.mtimeMs > cutoff) return
+                    await fs.rm(filePath, { recursive: entry.isDirectory(), force: true })
+                } catch {
+                    // The installer may still be running; it is cleaned up next launch.
+                }
+            })
+        )
+    } catch {
+        // Nothing has been downloaded yet.
+    }
+}
+
 async function installWindows(installerPath: string): Promise<void> {
-    const scriptPath = join(DOWNLOAD_DIRECTORY, 'install-indigo.ps1')
-    const powershell = process.env.SystemRoot
-        ? join(process.env.SystemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
-        : 'powershell.exe'
-
-    const script = [
-        "\uFEFF$ErrorActionPreference = 'SilentlyContinue'",
-        `$appPid = ${process.pid}`,
-        'while (Get-Process -Id $appPid -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 500 }',
-        'Start-Sleep -Milliseconds 1000',
-        `Start-Process -FilePath ${powershellQuote(installerPath)} -ArgumentList '/S', '--updated', '--force-run' -Wait`,
-        `Remove-Item -LiteralPath ${powershellQuote(installerPath)} -Force -ErrorAction SilentlyContinue`,
-        ''
-    ].join('\r\n')
-
-    await fs.writeFile(scriptPath, script, 'utf8')
-    await spawnDetached(
-        powershell,
-        ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath],
-        { windowsHide: true }
-    )
+    // The installer is launched directly, the way electron-updater does it. It is a
+    // GUI process, so it keeps running after Indigo quits, waits for this process to
+    // exit (--updated) and starts the new build again (--force-run).
+    //
+    // Do not route this through a detached powershell.exe helper: on Windows a
+    // console host spawned from Electron with `detached: true` exits immediately
+    // without running the script, which made the update silently do nothing.
+    await fs.access(installerPath, constants.F_OK)
+    await spawnDetached(installerPath, ['/S', '--updated', '--force-run'], {
+        cwd: DOWNLOAD_DIRECTORY
+    })
 }
 
 async function installMac(dmgPath: string): Promise<void> {
