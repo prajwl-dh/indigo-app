@@ -12,9 +12,17 @@ function readInline(value: unknown): string {
     if (typeof record.text === 'string') return record.text
 
     let text = ''
-    for (const key of ['content', 'children'] as const) {
+    for (const key of ['content', 'children', 'rows', 'cells'] as const) {
         if (record[key]) text += ` ${readInline(record[key])}`
     }
+
+    if (record.props && typeof record.props === 'object') {
+        const props = record.props as UnknownRecord
+        for (const key of ['caption', 'name'] as const) {
+            if (typeof props[key] === 'string' && props[key]) text += ` ${props[key]}`
+        }
+    }
+
     return text
 }
 
@@ -24,11 +32,19 @@ function readBlocks(value: unknown): string {
     return readInline(value)
 }
 
+const NON_TEXT_BLOCK_TYPES = new Set(['image', 'video', 'audio', 'file', 'table', 'divider'])
+
 function blockIsEmpty(block: PartialBlock): boolean {
     const content = block.content
     const children = block.children
 
-    if (Array.isArray(content)) {
+    // Media blocks keep their payload in props rather than content.
+    if (typeof block.type === 'string' && NON_TEXT_BLOCK_TYPES.has(block.type)) return false
+
+    if (typeof content === 'string') {
+        // Code blocks store their text as a plain string.
+        if (content.trim().length > 0) return false
+    } else if (Array.isArray(content)) {
         if (readInline(content).trim().length > 0) return false
     } else if (content && typeof content === 'object') {
         // Media, tables and other non-inline blocks count as content.

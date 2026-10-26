@@ -3,7 +3,7 @@ import { promises as fs } from 'node:fs'
 import path from 'node:path'
 import type { Note, NotePatch, Notes, StorageInfo, Tag, Tags } from '../../shared/model/note'
 import { isNoteColor } from '../../shared/model/noteColor'
-import { titleFromBody } from '../../shared/util/noteText'
+import { isBlockDocumentEmpty, titleFromBody } from '../../shared/util/noteText'
 import { findTag, MAX_TAGS_PER_NOTE, normalizeTagName } from '../../shared/util/tags'
 
 const TAGS_FILE = '_tags.json'
@@ -28,31 +28,62 @@ function uniqueTags(values: unknown): string[] {
     return tags
 }
 
-function parseNote(raw: unknown, fallbackId: string): Note | null {
-    if (!raw || typeof raw !== 'object') return null
-    const value = raw as Record<string, unknown>
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return !!value && typeof value === 'object' && !Array.isArray(value)
+}
 
-    const id = typeof value.id === 'string' && SAFE_ID.test(value.id) ? value.id : fallbackId
-    if (!SAFE_ID.test(id)) return null
+function isProvablyEmptyDraft(note: Note): boolean {
+    if (note.isDraft !== true) return false
+    if (note.title.trim().length > 0) return false
+    if (!isBlockDocumentEmpty(note.body)) return false
+    if (note.body.trim() === '') return true
+
+    try {
+        // A BlockNote document is an array. Anything else that happens to be
+        // empty-looking (for example "{}" or "null") is not provably ours.
+        return Array.isArray(JSON.parse(note.body))
+    } catch {
+        return false
+    }
+}
+
+function parseNote(raw: unknown, fallbackId: string): Note | null {
+    if (!isRecord(raw)) return null
+    if (!SAFE_ID.test(fallbackId)) return null
+
+    // A note must at least look like a note. Files that merely happen to be
+    // JSON objects (backups, exports, arrays, other tools' data) are left
+    // alone rather than being turned into blank notes and pruned.
+    const hasTitle = typeof raw.title === 'string'
+    const hasBody = typeof raw.body === 'string'
+    if (!hasTitle && !hasBody) return null
+
+    // The filename is the identity. Older or restored files may disagree with
+    // their internal id; trusting the filename keeps reads, saves and deletes
+    // pointed at the same file.
+    const id = fallbackId
 
     const modified =
-        typeof value.lastModified === 'string' && !Number.isNaN(Date.parse(value.lastModified))
-            ? value.lastModified
+        typeof raw.lastModified === 'string' && !Number.isNaN(Date.parse(raw.lastModified))
+            ? raw.lastModified
             : now()
 
     return {
         id,
-        title: typeof value.title === 'string' ? value.title : '',
-        body: typeof value.body === 'string' ? value.body : '',
+        title: typeof raw.title === 'string' ? raw.title : '',
+        body: typeof raw.body === 'string' ? raw.body : '',
         lastModified: modified,
         createdAt:
-            typeof value.createdAt === 'string' && !Number.isNaN(Date.parse(value.createdAt))
-                ? value.createdAt
+            typeof raw.createdAt === 'string' && !Number.isNaN(Date.parse(raw.createdAt))
+                ? raw.createdAt
                 : modified,
-        isFavorite: value.isFavorite === true,
-        isInTrash: value.isInTrash === true,
-        tags: uniqueTags(value.tags),
-        color: isNoteColor(value.color) ? value.color : null
+        isFavorite: raw.isFavorite === true,
+        isInTrash: raw.isInTrash === true,
+        tags: uniqueTags(raw.tags),
+        color: isNoteColor(raw.color) ? raw.color : null,
+        // Only trust the draft marker when the file still carries the id it
+        // was created with. A renamed copy is a backup, not a prunable draft.
+        isDraft: raw.isDraft === true && raw.id === id
     }
 }
 
@@ -81,10 +112,10 @@ export class NotesStore {
     }
 
     /**
-     * A note only exists once it has a title. Empty drafts are discarded, and a
-     * body written without a title is filed under its opening words. Run at
-     * startup and again before quitting, so a blank draft left open when the
-     * app closes never survives on disk.
+     * Remove only drafts this app created and that are provably still empty.
+     * A body written without a title is filed under its opening words. Files
+     * that do not parse as notes, or that lack the draft marker, are preserved.
+     * Run at startup and again before quitting.
      */
     async pruneDrafts(): Promise<void> {
         return this.enqueue(async () => {
@@ -93,11 +124,15 @@ export class NotesStore {
             for (const note of notes) {
                 if (note.title.trim()) continue
 
-                const title = titleFromBody(note.body)
-                if (!title) {
+                if (isProvablyEmptyDraft(note)) {
                     await fs.rm(this.notePath(note.id), { force: true })
                     continue
                 }
+
+                if (isBlockDocumentEmpty(note.body)) continue
+
+                const title = titleFromBody(note.body)
+                if (!title) continue
 
                 note.title = title
                 await this.writeNote(note)
@@ -244,7 +279,8 @@ export class NotesStore {
                 isFavorite: input?.isFavorite === true,
                 isInTrash: false,
                 tags: uniqueTags(input?.tags),
-                color: isNoteColor(input?.color) ? input.color : null
+                color: isNoteColor(input?.color) ? input.color : null,
+                isDraft: true
             }
 
             if (note.tags.length > 0) {
@@ -285,6 +321,12 @@ export class NotesStore {
             if (patch.tags !== undefined) next.tags = uniqueTags(patch.tags)
             if (patch.color === null || isNoteColor(patch.color)) next.color = patch.color
 
+            // Once a draft has real content it is a note. Emptying an existing
+            // note later does not turn it back into a prunable draft.
+            if (next.title.trim().length > 0 || !isBlockDocumentEmpty(next.body)) {
+                next.isDraft = false
+            }
+
             if (next.tags.length > 0) {
                 await this.ensureTagsUnsafe(next.tags)
             }
@@ -309,7 +351,8 @@ export class NotesStore {
                 title,
                 createdAt: timestamp,
                 lastModified: timestamp,
-                isInTrash: false
+                isInTrash: false,
+                isDraft: false
             }
 
             await this.writeNote(duplicate)

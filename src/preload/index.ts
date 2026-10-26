@@ -64,7 +64,36 @@ const windowApi = {
 
 const appApi = {
     softReset: (): Promise<boolean> => ipcRenderer.invoke('app:soft-reset'),
-    hardReset: (): Promise<boolean> => ipcRenderer.invoke('app:hard-reset')
+    hardReset: (): Promise<boolean> => ipcRenderer.invoke('app:hard-reset'),
+    /**
+     * Main asks the renderer to finish saving before quitting or closing.
+     * The callback must resolve only after pending writes have settled; any
+     * rejection is reported back so main can warn instead of claiming success.
+     */
+    onFlushRequest: (callback: () => Promise<void> | void): (() => void) => {
+        const listener = async (
+            _event: Electron.IpcRendererEvent,
+            requestId: unknown
+        ): Promise<void> => {
+            if (typeof requestId !== 'string') return
+
+            let error: string | null = null
+            try {
+                await callback()
+            } catch (caught) {
+                error = caught instanceof Error ? caught.message : String(caught)
+            }
+
+            try {
+                ipcRenderer.send('app:flush-complete', requestId, error)
+            } catch {
+                // The window may already be gone; main will time out safely.
+            }
+        }
+
+        ipcRenderer.on('app:flush', listener)
+        return () => ipcRenderer.removeListener('app:flush', listener)
+    }
 }
 
 const menuApi = {

@@ -10,9 +10,14 @@ export type Note = {
     isInTrash: boolean
     tags: string[]
     color: NoteColor | null
+    /**
+     * True only for notes created by Indigo that have never held content.
+     * Older note files do not carry this flag, so they are never pruned.
+     */
+    isDraft?: boolean
 }
 
-export type NotePatch = Partial<Omit<Note, 'id' | 'createdAt'>> & { id: string }
+export type NotePatch = Partial<Omit<Note, 'id' | 'createdAt' | 'isDraft'>> & { id: string }
 
 export type Notes = Note[]
 

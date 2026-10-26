@@ -58,7 +58,8 @@ type WorkspaceContextValue = {
     deleteTag: (name: string) => Promise<void>
     refresh: () => Promise<void>
     saveNow: () => Promise<void>
-    setSaveHandler: (handler: (() => Promise<void>) | null) => void
+    flushNow: () => Promise<void>
+    setSaveHandler: (handler: (() => Promise<boolean>) | null) => void
     openSettings: () => void
 }
 
@@ -95,7 +96,7 @@ export function WorkspaceProvider({
     const [sort, setSortState] = useState<NotesSort>('updated')
 
     const notesRef = useRef(notes)
-    const saveHandler = useRef<(() => Promise<void>) | null>(null)
+    const saveHandler = useRef<(() => Promise<boolean>) | null>(null)
 
     useEffect(() => {
         notesRef.current = notes
@@ -148,9 +149,20 @@ export function WorkspaceProvider({
         await saveHandler.current?.()
     }, [])
 
-    const setSaveHandler = useCallback((handler: (() => Promise<void>) | null): void => {
+    const flushNow = useCallback(async (): Promise<void> => {
+        const saved = await saveHandler.current?.()
+        if (saved === false) {
+            throw new Error('The latest changes could not be saved.')
+        }
+    }, [])
+
+    const setSaveHandler = useCallback((handler: (() => Promise<boolean>) | null): void => {
         saveHandler.current = handler
     }, [])
+
+    useEffect(() => {
+        return window.indigo.app.onFlushRequest(flushNow)
+    }, [flushNow])
 
     /**
      * Empty drafts are not notes. Before leaving a note, the freshly saved copy
@@ -162,7 +174,7 @@ export function WorkspaceProvider({
 
             try {
                 const note = await window.indigo.notes.get(id)
-                if (!isBlankNote(note)) return
+                if (!note || note.isDraft !== true || !isBlankNote(note)) return
 
                 await window.indigo.notes.delete(id)
                 setNotes((current) => current.filter((entry) => entry.id !== id))
@@ -514,6 +526,7 @@ export function WorkspaceProvider({
             deleteTag,
             refresh,
             saveNow,
+            flushNow,
             setSaveHandler,
             openSettings: onOpenSettings
         }),
@@ -550,6 +563,7 @@ export function WorkspaceProvider({
             deleteTag,
             refresh,
             saveNow,
+            flushNow,
             setSaveHandler,
             onOpenSettings
         ]

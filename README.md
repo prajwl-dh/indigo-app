@@ -13,8 +13,8 @@
 - **Local files, not a database.** Every note is a JSON file inside Indigo's own notes folder. There is no account, server, or sync service.
 - **A calm shell.** Warm paper surfaces, serif note titles, a sidebar that folds into an icon rail, a search-first title bar, and custom window controls.
 - **Light, dark, and system themes.** Per-note colours mark notes in the list and above the title without recolouring the whole app.
-- **Autosave that never loses a keystroke.** Writes are atomic and queued; closing a note, switching views, or quitting flushes pending edits first.
-- **Every note has a title.** A note written without one takes its opening words as the title, and an empty draft is discarded as soon as you leave it.
+- **Autosave that waits for the write.** Writes are atomic and queued; closing a note, switching views, quitting, or closing the window waits for pending edits. If saving fails, Indigo asks before quitting instead of discarding the change silently.
+- **Titles from your writing.** A note written without a title takes its opening words as the title when possible. Indigo only discards an empty draft that it created and that still has no content.
 - **Trash with a safety net.** Move notes to trash, restore them, or delete them permanently after a confirmation.
 - **Updates from GitHub.** Indigo checks for a newer release on launch, installs it in place on macOS, Windows, and Linux AppImage builds, and restarts without touching your notes.
 - **A complete reset.** Settings can return Indigo to a first-launch state in one step.
@@ -72,7 +72,7 @@ The exact path for the current machine is shown in **Settings → Library**, and
 
 Indigo checks GitHub for a newer release each time it opens. When one is available, a small notice appears in the corner with a link to the release notes and a download button.
 
-On macOS, Windows, and Linux AppImage builds, Indigo downloads the matching build, verifies its SHA-256 checksum when GitHub provides one, closes, installs the update in place, and opens again. Pending edits are saved before the app closes, and notes in `~/.indigo` are never touched.
+On macOS, Windows, and Linux AppImage builds, Indigo downloads the matching build, verifies its SHA-256 checksum when GitHub provides one, closes, installs the update in place, and opens again. Indigo asks the editor to finish saving before it closes; if that save cannot be confirmed, it warns before quitting. Notes in `~/.indigo` are never touched.
 
 Indigo falls back to the release page when it cannot replace itself, including development builds, macOS builds running from a mounted disk image, Linux builds not started from an AppImage, and installs in folders it cannot write to. Settings → Updates shows the current version and the same download and release-page actions.
 

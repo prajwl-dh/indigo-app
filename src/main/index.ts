@@ -3,10 +3,12 @@ import {
     app,
     BrowserWindow,
     dialog,
+    ipcMain,
     Menu,
     nativeTheme,
     screen,
     shell,
+    type IpcMainEvent,
     type MenuItemConstructorOptions,
     type Rectangle
 } from 'electron'
@@ -25,6 +27,8 @@ import {
 } from './handler/themeHandler'
 import { attachWindowStateEvents, registerWindowHandlers } from './handler/windowHandler'
 import { registerUpdateHandlers } from './handler/updateHandler'
+import { flushRenderer, type FlushFailure, type FlushResult } from './lifecycle/flush'
+import { settleBeforeDestructiveAction } from './lifecycle/quitFlow'
 
 contextMenu({
     showInspectElement: !app.isPackaged,
@@ -39,21 +43,129 @@ type WindowState = {
 }
 
 const isMac = process.platform === 'darwin'
+const FLUSH_TIMEOUT_MS = 2_000
 
 let notesStoreRef: NotesStore | null = null
 let quitting = false
+let quitFlowRunning = false
+// Set when a window was destroyed after the user chose to close despite a
+// failed flush. The renderer may have held unconfirmed edits, so draft pruning
+// stays off for the rest of this session even if quitting finds no windows.
+let unsafeToPrune = false
+const windowCloseInProgress = new WeakSet<BrowserWindow>()
+const windowCloseApproved = new WeakSet<BrowserWindow>()
 
-// A blank draft is never a note. Sweep the folder once more on the way out so
-// quitting with an empty note open cannot leave it behind on disk.
+function flushFailureDetail(failure: FlushFailure): string {
+    if (failure.reason === 'timeout') {
+        return 'The editor did not respond in time. If you continue, the most recent changes may be lost.'
+    }
+    return failure.message || 'The latest changes could not be saved.'
+}
+
+async function confirmQuitAfterSaveFailure(failure: FlushFailure): Promise<'continue' | 'cancel'> {
+    const result = await dialog.showMessageBox({
+        type: 'warning',
+        buttons: ['Quit anyway', 'Cancel'],
+        defaultId: 1,
+        cancelId: 1,
+        noLink: true,
+        title: 'Quit without saving?',
+        message: 'Indigo could not confirm that your latest changes were saved.',
+        detail: flushFailureDetail(failure)
+    })
+    return result.response === 0 ? 'continue' : 'cancel'
+}
+
+async function confirmCloseAfterSaveFailure(failure: FlushFailure): Promise<'continue' | 'cancel'> {
+    const result = await dialog.showMessageBox({
+        type: 'warning',
+        buttons: ['Close anyway', 'Cancel'],
+        defaultId: 1,
+        cancelId: 1,
+        noLink: true,
+        title: 'Close without saving?',
+        message: 'Indigo could not confirm that your latest changes were saved.',
+        detail: flushFailureDetail(failure)
+    })
+    return result.response === 0 ? 'continue' : 'cancel'
+}
+
+function flushWindow(window: BrowserWindow): Promise<FlushResult> {
+    if (window.isDestroyed()) return Promise.resolve({ ok: true })
+
+    const contents = window.webContents
+    if (contents.isDestroyed() || contents.isLoading()) {
+        return Promise.resolve({ ok: true })
+    }
+
+    return flushRenderer(
+        {
+            send: (requestId) => contents.send('app:flush', requestId),
+            subscribe: (listener) => {
+                const handler = (
+                    _event: IpcMainEvent,
+                    requestId: unknown,
+                    error: unknown
+                ): void => {
+                    if (typeof requestId !== 'string') return
+                    listener(
+                        requestId,
+                        typeof error === 'string' && error.length > 0 ? error : null
+                    )
+                }
+                ipcMain.on('app:flush-complete', handler)
+                return () => ipcMain.removeListener('app:flush-complete', handler)
+            }
+        },
+        { timeoutMs: FLUSH_TIMEOUT_MS }
+    )
+}
+
+async function flushAllWindows(): Promise<FlushResult> {
+    const windows = BrowserWindow.getAllWindows().filter((window) => !window.isDestroyed())
+    if (windows.length === 0) return { ok: true }
+
+    const results = await Promise.all(windows.map(flushWindow))
+    const failure = results.find((result) => !result.ok)
+    return failure ?? { ok: true }
+}
+
+// Ask the renderer to finish its pending save before pruning drafts or
+// destroying the window. A renderer that does not answer is handled by a
+// finite timeout and a user-visible choice, never an indefinite hang.
 app.on('before-quit', (event) => {
-    if (quitting || !notesStoreRef) return
+    const store = notesStoreRef
+    if (quitting || !store) return
 
     event.preventDefault()
-    quitting = true
-    void notesStoreRef
-        .pruneDrafts()
-        .catch((error) => console.error('[quit] could not discard blank drafts', error))
-        .finally(() => app.quit())
+    if (quitFlowRunning) return
+    quitFlowRunning = true
+
+    void settleBeforeDestructiveAction({
+        flush: flushAllWindows,
+        onFailure: confirmQuitAfterSaveFailure,
+        action: async (flushOk) => {
+            if (flushOk && !unsafeToPrune) {
+                try {
+                    await store.pruneDrafts()
+                } catch (error) {
+                    console.error('[quit] could not discard verified empty drafts', error)
+                }
+            }
+
+            quitting = true
+            app.quit()
+        },
+        log: (message, error) => console.error(`[quit] ${message}`, error ?? '')
+    })
+        .catch((error) => {
+            console.error('[quit] could not finish the quit flow', error)
+            quitting = true
+            app.quit()
+        })
+        .finally(() => {
+            quitFlowRunning = false
+        })
 })
 
 function isVisibleOnSomeDisplay(bounds: Rectangle): boolean {
@@ -248,9 +360,32 @@ function createWindow(store: Store): BrowserWindow {
 
     mainWindow.on('resize', scheduleSave)
     mainWindow.on('move', scheduleSave)
-    mainWindow.on('close', () => {
+    mainWindow.on('close', (event) => {
         if (saveTimer) clearTimeout(saveTimer)
         writeWindowState(mainWindow, store)
+
+        if (quitting || windowCloseApproved.has(mainWindow)) return
+
+        event.preventDefault()
+        if (windowCloseInProgress.has(mainWindow)) return
+        windowCloseInProgress.add(mainWindow)
+
+        void settleBeforeDestructiveAction({
+            flush: () => flushWindow(mainWindow),
+            onFailure: confirmCloseAfterSaveFailure,
+            action: (flushOk) => {
+                if (!flushOk) unsafeToPrune = true
+                windowCloseApproved.add(mainWindow)
+                mainWindow.close()
+            },
+            log: (message, error) => console.error(`[window close] ${message}`, error ?? '')
+        })
+            .catch((error) => {
+                console.error('[window close] could not finish the close flow', error)
+            })
+            .finally(() => {
+                windowCloseInProgress.delete(mainWindow)
+            })
     })
 
     mainWindow.on('ready-to-show', () => {

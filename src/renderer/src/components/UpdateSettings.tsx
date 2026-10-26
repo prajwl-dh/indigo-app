@@ -1,6 +1,7 @@
 import { Download, RefreshCw } from 'lucide-react'
 import type { JSX } from 'react'
 import { formatReleaseDate } from '../lib/format'
+import { useToast } from '../state/toast'
 import { useUpdates } from '../state/updates'
 import { useWorkspace } from '../state/workspace'
 import UpdateMeter from './UpdateMeter'
@@ -17,7 +18,8 @@ export default function UpdateSettings(): JSX.Element {
         installUpdate,
         openRelease
     } = useUpdates()
-    const { saveNow } = useWorkspace()
+    const { flushNow } = useWorkspace()
+    const { pushError } = useToast()
 
     const currentVersion = info?.currentVersion || version
     const available = info?.available === true
@@ -70,7 +72,12 @@ export default function UpdateSettings(): JSX.Element {
     }
 
     const restartAndInstall = async (): Promise<void> => {
-        await saveNow()
+        try {
+            await flushNow()
+        } catch (error) {
+            pushError(error, 'Could not save this note before installing the update.')
+            return
+        }
         await installUpdate()
     }
 

@@ -61,18 +61,17 @@ export default function NoteEditor({ note, isCompact, onBack }: NoteEditorProps)
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const aliveRef = useRef(true)
     const notifiedRef = useRef(false)
-    const chainRef = useRef<Promise<void>>(Promise.resolve())
+    const chainRef = useRef<Promise<boolean>>(Promise.resolve(true))
 
     const persist = useCallback(
-        async (deriveTitle = false): Promise<void> => {
+        async (deriveTitle = false): Promise<boolean> => {
             if (timerRef.current) {
                 clearTimeout(timerRef.current)
                 timerRef.current = null
             }
 
             if (!dirtyRef.current) {
-                await chainRef.current
-                return
+                return chainRef.current
             }
 
             dirtyRef.current = false
@@ -88,7 +87,7 @@ export default function NoteEditor({ note, isCompact, onBack }: NoteEditorProps)
             if (!title) {
                 if (isBlockDocumentEmpty(body)) {
                     if (aliveRef.current) setSaveState('saved')
-                    return
+                    return true
                 }
 
                 const titleFocused = document.activeElement === titleInput.current
@@ -115,26 +114,30 @@ export default function NoteEditor({ note, isCompact, onBack }: NoteEditorProps)
 
             if (aliveRef.current) setSaveState('saving')
 
-            const run = async (): Promise<void> => {
+            const run = async (): Promise<boolean> => {
                 try {
                     await updateNote(payload)
-                    if (!aliveRef.current) return
-                    previewNote(id, { title: titleValue.current, body: bodyValue.current })
-                    notifiedRef.current = false
-                    if (!dirtyRef.current) setSaveState('saved')
-                } catch (error) {
-                    if (!aliveRef.current) return
-                    dirtyRef.current = true
-                    setSaveState('error')
-                    if (!notifiedRef.current) {
-                        notifiedRef.current = true
-                        pushError(error, 'Could not save this note.')
+                    if (aliveRef.current) {
+                        previewNote(id, { title: titleValue.current, body: bodyValue.current })
+                        notifiedRef.current = false
+                        if (!dirtyRef.current) setSaveState('saved')
                     }
+                    return true
+                } catch (error) {
+                    dirtyRef.current = true
+                    if (aliveRef.current) {
+                        setSaveState('error')
+                        if (!notifiedRef.current) {
+                            notifiedRef.current = true
+                            pushError(error, 'Could not save this note.')
+                        }
+                    }
+                    return false
                 }
             }
 
             chainRef.current = chainRef.current.then(run, run)
-            await chainRef.current
+            return chainRef.current
         },
         [note.id, previewNote, pushError, updateNote]
     )
@@ -157,8 +160,8 @@ export default function NoteEditor({ note, isCompact, onBack }: NoteEditorProps)
         }, 500)
     }, [])
 
-    const flush = useCallback(async (): Promise<void> => {
-        await persistRef.current()
+    const flush = useCallback(async (): Promise<boolean> => {
+        return persistRef.current()
     }, [])
 
     const flushRef = useRef(flush)
