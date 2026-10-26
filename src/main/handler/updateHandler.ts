@@ -557,7 +557,9 @@ async function writeBody(
         await pipeline(
             Readable.fromWeb(body as unknown as import('node:stream/web').ReadableStream),
             counter,
-            createWriteStream(filePath)
+            // Installers are large. A bigger write buffer means fewer small
+            // disk writes, which matters most on Windows and slower drives.
+            createWriteStream(filePath, { highWaterMark: 1024 * 1024 })
         )
     } catch (error) {
         await fs.rm(filePath, { force: true })
@@ -606,7 +608,13 @@ async function downloadUpdate(): Promise<UpdateDownloadResult> {
 
         await fs.mkdir(DOWNLOAD_DIRECTORY, { recursive: true })
         const filePath = join(DOWNLOAD_DIRECTORY, safeFileName(info.asset.name))
+        // Write to a .part file first. Browsers do the same: antivirus scanners
+        // on Windows otherwise inspect the installer while it is still being
+        // written, which can slow a large download to a crawl. The final name
+        // only appears after the bytes are complete and verified.
+        const partialPath = `${filePath}.part`
         await fs.rm(filePath, { force: true })
+        await fs.rm(partialPath, { force: true })
 
         const totalBytes = info.asset.size > 0 ? info.asset.size : null
         let receivedBytes = 0
@@ -621,6 +629,11 @@ async function downloadUpdate(): Promise<UpdateDownloadResult> {
 
         const response = await net.fetch(info.asset.url, {
             redirect: 'follow',
+            // Update assets are immutable and can be very large. Keeping them
+            // out of Chromium's HTTP cache avoids writing a second copy of the
+            // installer and stops cache eviction from competing with the
+            // download itself.
+            cache: 'no-store',
             headers: { 'User-Agent': `Indigo/${app.getVersion()}` },
             signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS)
         })
@@ -637,7 +650,7 @@ async function downloadUpdate(): Promise<UpdateDownloadResult> {
                   ? contentLength
                   : null
 
-        await writeBody(response.body, filePath, (bytes) => {
+        await writeBody(response.body, partialPath, (bytes) => {
             receivedBytes += bytes
             const now = Date.now()
             if (now - lastEmit < 100) return
@@ -653,7 +666,7 @@ async function downloadUpdate(): Promise<UpdateDownloadResult> {
         })
 
         if (expectedBytes !== null && receivedBytes < expectedBytes) {
-            await fs.rm(filePath, { force: true })
+            await fs.rm(partialPath, { force: true })
             throw new Error('The download stopped before it finished. Try again.')
         }
 
@@ -665,13 +678,22 @@ async function downloadUpdate(): Promise<UpdateDownloadResult> {
         })
 
         if (info.asset.sha256) {
-            const digest = await sha256File(filePath)
+            const digest = await sha256File(partialPath)
             if (digest.toLowerCase() !== info.asset.sha256) {
-                await fs.rm(filePath, { force: true })
+                await fs.rm(partialPath, { force: true })
                 throw new Error(
                     'The downloaded file did not match the release checksum. Try again or use the release page.'
                 )
             }
+        }
+
+        // The final installer name only appears once the bytes are complete
+        // and verified, so a partial file can never be mistaken for one.
+        try {
+            await fs.rename(partialPath, filePath)
+        } catch (error) {
+            await fs.rm(partialPath, { force: true })
+            throw error
         }
 
         downloadedUpdate = {
