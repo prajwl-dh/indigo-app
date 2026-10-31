@@ -11,6 +11,12 @@ export type Note = {
     tags: string[]
     color: NoteColor | null
     /**
+     * Pinned notes sit above everything else in their view. Like the note's
+     * colour, pinning is an organisational act, not a content edit, so it
+     * never changes the "Edited …" timestamp.
+     */
+    isPinned?: boolean
+    /**
      * True only for notes created by Indigo that have never held content.
      * Older note files do not carry this flag, so they are never pruned.
      */
@@ -28,7 +34,7 @@ export type Tag = {
 
 export type Tags = Tag[]
 
-export type NotesView = 'all' | 'favorites' | 'trash'
+export type NotesView = 'all' | 'favorites' | 'tasks' | 'trash'
 
 export type NotesSort = 'updated' | 'title'
 
@@ -38,6 +44,12 @@ export type StorageFileIssue = {
 }
 
 export type TagsFileState = 'ok' | 'missing' | 'corrupt' | 'repaired' | 'unreadable'
+export type NoteExport = {
+    /** The file that was written, as an absolute path. */
+    path: string
+    /** The file name alone, for a quiet confirmation message. */
+    filename: string
+}
 
 export type StorageInfo = {
     notesDirectory: string

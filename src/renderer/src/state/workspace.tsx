@@ -11,6 +11,7 @@ import {
 } from 'react'
 import type {
     Note,
+    NoteExport,
     NotePatch,
     Notes,
     NotesSort,
@@ -20,10 +21,17 @@ import type {
     Tags
 } from '../../../shared/model/note'
 import { extractPlainText, isBlockDocumentEmpty } from '../../../shared/util/noteText'
+import { extractTasks, setTaskChecked, type NoteTask } from '../../../shared/util/noteTasks'
+import { findTemplate } from '../../../shared/util/noteTemplates'
 import { sameTag } from '../../../shared/util/tags'
 import { countLabel } from '../lib/format'
 import { messageFromError } from '../lib/errors'
 import { useToast } from './toast'
+
+export type WorkspaceTask = {
+    note: Note
+    task: NoteTask
+}
 
 type WorkspaceContextValue = {
     notes: Notes
@@ -42,13 +50,18 @@ type WorkspaceContextValue = {
     setSearch: (value: string) => void
     setSort: (sort: NotesSort) => void
     openNote: (id: string) => Promise<void>
-    closeNote: () => Promise<void>
-    createNote: () => Promise<void>
+    /** Closes the note. False when pending edits could not be saved. */
+    closeNote: () => Promise<boolean>
+    createNote: (templateId?: string) => Promise<void>
     previewNote: (id: string, patch: Partial<Pick<Note, 'title' | 'body'>>) => void
     updateNote: (patch: NotePatch) => Promise<Note>
     toggleFavorite: (id: string) => Promise<void>
+    togglePinned: (id: string) => Promise<void>
     duplicateNote: (id: string) => Promise<void>
     copyNoteText: (id: string) => Promise<void>
+    exportNote: (id: string) => Promise<void>
+    tasks: WorkspaceTask[]
+    toggleTask: (noteId: string, blockId: string, checked: boolean) => Promise<void>
     moveToTrash: (id: string) => Promise<void>
     restoreNote: (id: string) => Promise<void>
     deleteNote: (id: string) => Promise<void>
@@ -69,11 +82,25 @@ const WorkspaceContext = createContext<WorkspaceContextValue | null>(null)
 function matchesView(note: Note, view: NotesView): boolean {
     if (view === 'trash') return note.isInTrash
     if (view === 'favorites') return !note.isInTrash && note.isFavorite
+    // The tasks view shares the library's pool; its list is a different
+    // read of the same notes rather than a different set of notes.
     return !note.isInTrash
 }
 
 function isBlankNote(note: Note | null | undefined): boolean {
     return !!note && note.title.trim().length === 0 && isBlockDocumentEmpty(note.body)
+}
+
+function byLastModified(a: Note, b: Note): number {
+    return new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime()
+}
+
+function byTitle(a: Note, b: Note): number {
+    const aTitle = a.title.trim().toLowerCase()
+    const bTitle = b.title.trim().toLowerCase()
+    if (!aTitle && bTitle) return 1
+    if (aTitle && !bTitle) return -1
+    return aTitle.localeCompare(bTitle)
 }
 
 export function WorkspaceProvider({
@@ -216,10 +243,11 @@ export function WorkspaceProvider({
         [activeNoteId, discardBlankNote, saveNow]
     )
 
-    const closeNote = useCallback(async (): Promise<void> => {
-        if (!(await saveNow())) return
+    const closeNote = useCallback(async (): Promise<boolean> => {
+        if (!(await saveNow())) return false
         await discardBlankNote(activeNoteId)
         setActiveNoteId(null)
+        return true
     }, [activeNoteId, discardBlankNote, saveNow])
 
     const setView = useCallback(
@@ -279,25 +307,31 @@ export function WorkspaceProvider({
         [refreshTaxonomy]
     )
 
-    const createNote = useCallback(async (): Promise<void> => {
-        try {
-            if (!(await saveNow())) return
-            await discardBlankNote(activeNoteId)
-            const favorite = view === 'favorites' && !activeTag
-            const created = await window.indigo.notes.create({
-                isFavorite: favorite,
-                tags: activeTag ? [activeTag] : []
-            })
+    const createNote = useCallback(
+        async (templateId?: string): Promise<void> => {
+            try {
+                if (!(await saveNow())) return
+                await discardBlankNote(activeNoteId)
+                const favorite = view === 'favorites' && !activeTag
+                const template = findTemplate(templateId)
+                const built = template ? template.build() : null
+                const created = await window.indigo.notes.create({
+                    isFavorite: favorite,
+                    tags: activeTag ? [activeTag] : [],
+                    ...(built ? { title: built.title, body: built.body } : {})
+                })
 
-            setNotes((current) => [created, ...current])
-            setSearchState('')
-            setActiveNoteId(created.id)
-            if (view === 'trash') setViewState('all')
-            void refreshTaxonomy()
-        } catch (caught) {
-            pushError(caught, 'Could not create a new note.')
-        }
-    }, [activeNoteId, activeTag, discardBlankNote, refreshTaxonomy, saveNow, view, pushError])
+                setNotes((current) => [created, ...current])
+                setSearchState('')
+                setActiveNoteId(created.id)
+                if (view === 'trash') setViewState('all')
+                void refreshTaxonomy()
+            } catch (caught) {
+                pushError(caught, 'Could not create a new note.')
+            }
+        },
+        [activeNoteId, activeTag, discardBlankNote, refreshTaxonomy, saveNow, view, pushError]
+    )
 
     const toggleFavorite = useCallback(
         async (id: string): Promise<void> => {
@@ -305,6 +339,19 @@ export function WorkspaceProvider({
             if (!note) return
             try {
                 await updateNote({ id, isFavorite: !note.isFavorite })
+            } catch (caught) {
+                pushError(caught, 'Could not update that note.')
+            }
+        },
+        [updateNote, pushError]
+    )
+
+    const togglePinned = useCallback(
+        async (id: string): Promise<void> => {
+            const note = notesRef.current.find((entry) => entry.id === id)
+            if (!note) return
+            try {
+                await updateNote({ id, isPinned: !note.isPinned })
             } catch (caught) {
                 pushError(caught, 'Could not update that note.')
             }
@@ -349,6 +396,55 @@ export function WorkspaceProvider({
             }
         },
         [push, pushError]
+    )
+
+    const exportNote = useCallback(
+        async (id: string): Promise<void> => {
+            try {
+                // Export reads the note from disk; make the last edit real first.
+                if (notesRef.current.find((entry) => entry.id === id)) {
+                    if (!(await saveNow())) return
+                }
+                const result: NoteExport = await window.indigo.notes.exportNote(id)
+                push(`“${result.filename}” is in your downloads folder.`)
+            } catch (caught) {
+                pushError(caught, 'Could not export that note.')
+            }
+        },
+        [saveNow, push, pushError]
+    )
+
+    const toggleTask = useCallback(
+        async (noteId: string, blockId: string, checked: boolean): Promise<void> => {
+            try {
+                // The open editor holds its own copy of the document; patching
+                // disk behind it would only be overwritten by the next save.
+                // Close it first: closing flushes the pending edit, and if the
+                // flush fails the editor stays open and the toggle waits.
+                if (activeNoteId === noteId) {
+                    if (!(await closeNote())) return
+                }
+
+                const note = notesRef.current.find((entry) => entry.id === noteId)
+                if (!note) return
+
+                const body = setTaskChecked(note.body, blockId, checked)
+                // A body without that block is stale state, not an error.
+                if (!body) return
+
+                await window.indigo.notes.update({ id: noteId, body })
+                setNotes((current) =>
+                    current.map((entry) =>
+                        entry.id === noteId
+                            ? { ...entry, body, lastModified: new Date().toISOString() }
+                            : entry
+                    )
+                )
+            } catch (caught) {
+                pushError(caught, 'Could not update that task.')
+            }
+        },
+        [activeNoteId, closeNote, pushError]
     )
 
     const moveToTrash = useCallback(
@@ -492,17 +588,34 @@ export function WorkspaceProvider({
             })
         }
 
+        const byOrder = sort === 'title' ? byTitle : byLastModified
+
         return [...pool].sort((a, b) => {
-            if (sort === 'title') {
-                const aTitle = a.title.trim().toLowerCase()
-                const bTitle = b.title.trim().toLowerCase()
-                if (!aTitle && bTitle) return 1
-                if (aTitle && !bTitle) return -1
-                return aTitle.localeCompare(bTitle)
-            }
-            return new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime()
+            // Pins hold their ground in every sort and every view. A pinned
+            // group keeps its normal ordering inside itself.
+            if (a.isPinned !== b.isPinned) return a.isPinned ? -1 : 1
+            return byOrder(a, b)
         })
     }, [notes, view, activeTag, search, sort])
+
+    /**
+     * Every checkbox in the library in one list. Notes go newest first so a
+     * fresh checklist shows up at the top; done items sink within their note.
+     */
+    const tasks = useMemo<WorkspaceTask[]>(() => {
+        const pool = notes.filter((note) => !note.isInTrash).sort(byLastModified)
+        const collected: WorkspaceTask[] = []
+        for (const note of pool) {
+            for (const task of extractTasks(note.body)) {
+                collected.push({ note, task })
+            }
+        }
+
+        return collected.sort((a, b) => {
+            if (a.task.checked !== b.task.checked) return a.task.checked ? 1 : -1
+            return 0
+        })
+    }, [notes])
 
     const activeNote = useMemo(() => {
         const note = notes.find((entry) => entry.id === activeNoteId)
@@ -524,6 +637,7 @@ export function WorkspaceProvider({
             activeTag,
             search,
             sort,
+            tasks,
             setView,
             setActiveTag,
             setSearch,
@@ -534,8 +648,11 @@ export function WorkspaceProvider({
             previewNote,
             updateNote,
             toggleFavorite,
+            togglePinned,
             duplicateNote,
             copyNoteText,
+            exportNote,
+            toggleTask,
             moveToTrash,
             restoreNote,
             deleteNote,
@@ -561,6 +678,7 @@ export function WorkspaceProvider({
             activeTag,
             search,
             sort,
+            tasks,
             setView,
             setActiveTag,
             setSearch,
@@ -571,8 +689,11 @@ export function WorkspaceProvider({
             previewNote,
             updateNote,
             toggleFavorite,
+            togglePinned,
             duplicateNote,
             copyNoteText,
+            exportNote,
+            toggleTask,
             moveToTrash,
             restoreNote,
             deleteNote,

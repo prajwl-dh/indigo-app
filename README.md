@@ -15,6 +15,11 @@
 - **Light, dark, and system themes.** Per-note colours mark notes in the list and above the title without recolouring the whole app.
 - **Autosave that waits for the write.** Writes are atomic and queued; closing a note, switching views, quitting, or closing the window waits for pending edits. If saving fails, the editor stays open with a retry action instead of navigating away from unsaved work.
 - **Titles from your writing.** A note written without a title takes its opening words as the title when possible. Indigo only discards an empty draft that it created and that still has no content.
+- **Pin what matters.** Pinned notes stay at the top of the list under their own heading, survive sorting, and are duplicated unpinned.
+- **Tasks across your library.** Every checklist item in every note shows up in a single Tasks view; tick one there and the note itself is updated on disk. Open items come first, finished ones sink below a done heading.
+- **Export as Markdown.** Turn any note into a `.md` file with ⌘⇧E or the note menu; Indigo converts headings, lists, checklists, quotes, code blocks, and tables, and saves it to your Downloads folder.
+- **Templates for new notes.** The New note button opens a small menu with a blank page, a Journal entry, Meeting notes, and a To-do list, each prefilled with headings and checklist blocks.
+- **Focus mode.** One click folds the notes list away and lets the editor use the full width; it remembers your choice across restarts and Escape brings the list back.
 - **Trash with a safety net.** Move notes to trash, restore them, or delete them permanently after a confirmation.
 - **Updates from GitHub.** Indigo checks for a newer release on launch, installs it in place on macOS, Windows, and Linux AppImage builds, and restarts without touching your notes.
 - **A reset you can reason about.** Soft reset clears the interface. Hard reset removes only the notes Indigo recognizes, its tags, and its settings; unknown files and backups are left alone.

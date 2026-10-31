@@ -1,20 +1,27 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
-import { ArrowUpDown, Check, Plus, Trash2 } from 'lucide-react'
+import { ArrowUpDown, Check, ChevronDown, Expand, Plus, Shrink, Trash2 } from 'lucide-react'
 import { useMemo, useState, type JSX } from 'react'
-import type { Note } from '../../../../shared/model/note'
+import type { Note, NotesView } from '../../../../shared/model/note'
+import { NOTE_TEMPLATES } from '../../../../shared/util/noteTemplates'
 import { countLabel } from '../../lib/format'
 import { viewName } from '../../lib/labels'
 import { useWorkspace } from '../../state/workspace'
 import ConfirmDialog from '../ConfirmDialog'
 import NoteRow from './NoteRow'
+import TasksList from './TasksList'
 
-function inView(note: Note, view: 'all' | 'favorites' | 'trash'): boolean {
+type NotesPanelProps = {
+    focusMode?: boolean
+    onToggleFocus?: () => void
+}
+
+function inView(note: Note, view: NotesView): boolean {
     if (view === 'trash') return note.isInTrash
     if (view === 'favorites') return !note.isInTrash && note.isFavorite
     return !note.isInTrash
 }
 
-export default function NotesPanel(): JSX.Element {
+export default function NotesPanel({ focusMode, onToggleFocus }: NotesPanelProps): JSX.Element {
     const {
         notes,
         visibleNotes,
@@ -25,16 +32,19 @@ export default function NotesPanel(): JSX.Element {
         activeTag,
         search,
         sort,
+        tasks,
         setSort,
         setView,
         setSearch,
         setActiveTag,
-        openNote,
         createNote,
         emptyTrash,
         refresh
     } = useWorkspace()
     const [confirmEmpty, setConfirmEmpty] = useState(false)
+    const isTasks = view === 'tasks'
+
+    const openTasks = useMemo(() => tasks.filter((entry) => !entry.task.checked).length, [tasks])
 
     const baseCount = useMemo(
         () =>
@@ -53,15 +63,17 @@ export default function NotesPanel(): JSX.Element {
     const subtitle =
         loading && notes.length === 0
             ? 'Reading your notes…'
-            : query
-              ? `${countLabel(visibleNotes.length, 'result')} for “${query}”`
-              : activeTag
-                ? `${countLabel(baseCount, 'note')} tagged`
-                : view === 'favorites'
-                  ? `${countLabel(baseCount, 'note')} starred`
-                  : view === 'trash'
-                    ? `${countLabel(baseCount, 'note')} in trash`
-                    : countLabel(baseCount, 'note')
+            : isTasks
+              ? countLabel(openTasks, 'open task', 'open tasks')
+              : query
+                ? `${countLabel(visibleNotes.length, 'result')} for “${query}”`
+                : activeTag
+                  ? `${countLabel(baseCount, 'note')} tagged`
+                  : view === 'favorites'
+                    ? `${countLabel(baseCount, 'note')} starred`
+                    : view === 'trash'
+                      ? `${countLabel(baseCount, 'note')} in trash`
+                      : countLabel(baseCount, 'note')
 
     const empty = ((): {
         title: string
@@ -115,55 +127,111 @@ export default function NotesPanel(): JSX.Element {
                 </div>
 
                 <div className="notes-head-actions">
-                    {view !== 'trash' && (
+                    {!isTasks && (
+                        <div className="new-note-group">
+                            <button
+                                type="button"
+                                className="icon-button new-note-button"
+                                aria-label="New note"
+                                title="New note"
+                                onClick={() => void createNote()}
+                            >
+                                <Plus size={17} />
+                            </button>
+                            <Menu as="div" className="menu-root">
+                                <MenuButton
+                                    type="button"
+                                    className="icon-button new-note-templates-button"
+                                    aria-label="New note from template"
+                                    title="New note from template"
+                                    disabled={view === 'trash'}
+                                >
+                                    <ChevronDown size={13} />
+                                </MenuButton>
+                                <MenuItems
+                                    anchor="bottom start"
+                                    portal
+                                    transition
+                                    className="menu-panel"
+                                >
+                                    {NOTE_TEMPLATES.map((template) => (
+                                        <MenuItem
+                                            as="button"
+                                            className="menu-item menu-item--rich"
+                                            key={template.id}
+                                            onClick={() => void createNote(template.id)}
+                                        >
+                                            <span className="rich-item-text">
+                                                <span className="rich-item-label">
+                                                    {template.label}
+                                                </span>
+                                                <span className="rich-item-description">
+                                                    {template.description}
+                                                </span>
+                                            </span>
+                                        </MenuItem>
+                                    ))}
+                                </MenuItems>
+                            </Menu>
+                        </div>
+                    )}
+
+                    {onToggleFocus && (
                         <button
                             type="button"
                             className="icon-button"
-                            aria-label="New note"
-                            title="New note"
-                            onClick={() => void createNote()}
+                            aria-label={focusMode ? 'Leave focus mode' : 'Focus this note'}
+                            aria-pressed={focusMode}
+                            disabled={!activeNote}
+                            title={focusMode ? 'Leave focus mode' : 'Focus this note'}
+                            onClick={onToggleFocus}
                         >
-                            <Plus size={17} />
+                            {focusMode ? <Shrink size={16} /> : <Expand size={16} />}
                         </button>
                     )}
 
-                    <Menu as="div" className="menu-root">
-                        <MenuButton
-                            type="button"
-                            className="sort-button"
-                            aria-label={`Sort notes by ${sort === 'updated' ? 'last edited' : 'title'}`}
-                            title="Sort notes"
-                        >
-                            <ArrowUpDown size={14} />
-                            <span>{sort === 'updated' ? 'Updated' : 'Title'}</span>
-                        </MenuButton>
-                        <MenuItems
-                            anchor="bottom end"
-                            portal
-                            transition
-                            className="menu-panel menu-panel--small"
-                        >
-                            <MenuItem
-                                as="button"
-                                className="menu-item"
-                                onClick={() => setSort('updated')}
+                    {view !== 'trash' && view !== 'tasks' && (
+                        <Menu as="div" className="menu-root">
+                            <MenuButton
+                                type="button"
+                                className="sort-button"
+                                aria-label={`Sort notes by ${sort === 'updated' ? 'last edited' : 'title'}`}
+                                title="Sort notes"
                             >
-                                <Check
-                                    size={14}
-                                    className={sort === 'updated' ? '' : 'invisible'}
-                                />
-                                Last edited
-                            </MenuItem>
-                            <MenuItem
-                                as="button"
-                                className="menu-item"
-                                onClick={() => setSort('title')}
+                                <ArrowUpDown size={14} />
+                                <span>{sort === 'updated' ? 'Updated' : 'Title'}</span>
+                            </MenuButton>
+                            <MenuItems
+                                anchor="bottom end"
+                                portal
+                                transition
+                                className="menu-panel menu-panel--small"
                             >
-                                <Check size={14} className={sort === 'title' ? '' : 'invisible'} />
-                                Title A–Z
-                            </MenuItem>
-                        </MenuItems>
-                    </Menu>
+                                <MenuItem
+                                    as="button"
+                                    className="menu-item"
+                                    onClick={() => setSort('updated')}
+                                >
+                                    <Check
+                                        size={14}
+                                        className={sort === 'updated' ? '' : 'invisible'}
+                                    />
+                                    Last edited
+                                </MenuItem>
+                                <MenuItem
+                                    as="button"
+                                    className="menu-item"
+                                    onClick={() => setSort('title')}
+                                >
+                                    <Check
+                                        size={14}
+                                        className={sort === 'title' ? '' : 'invisible'}
+                                    />
+                                    Title A–Z
+                                </MenuItem>
+                            </MenuItems>
+                        </Menu>
+                    )}
                 </div>
             </header>
 
@@ -179,7 +247,9 @@ export default function NotesPanel(): JSX.Element {
                 </div>
             )}
 
-            {loading && notes.length === 0 ? (
+            {isTasks ? (
+                <TasksList />
+            ) : loading && notes.length === 0 ? (
                 <div className="notes-list" aria-busy="true" aria-label="Loading notes">
                     {[0, 1, 2, 3].map((row) => (
                         <div className="note-skeleton" key={row} aria-hidden="true">
@@ -190,16 +260,7 @@ export default function NotesPanel(): JSX.Element {
                     ))}
                 </div>
             ) : visibleNotes.length > 0 ? (
-                <div className="notes-list" role="listbox" aria-label={heading}>
-                    {visibleNotes.map((note) => (
-                        <NoteRow
-                            key={note.id}
-                            note={note}
-                            isActive={activeNote?.id === note.id}
-                            onOpen={() => void openNote(note.id)}
-                        />
-                    ))}
-                </div>
+                <NotesList notes={visibleNotes} query={query} />
             ) : (
                 <div className="list-empty" role="status">
                     <h2>{empty.title}</h2>
@@ -241,5 +302,67 @@ export default function NotesPanel(): JSX.Element {
                 }}
             />
         </aside>
+    )
+}
+
+/**
+ * A search is a question, not a filing act: section labels only matter when
+ * the reader opened a view, so they disappear while searching.
+ */
+function NotesList({ notes, query }: { notes: Note[]; query?: string }): JSX.Element {
+    const { activeNote, openNote } = useWorkspace()
+
+    const showLabels = (query?.length ?? 0) === 0
+    const firstUnpinned = notes.findIndex((note) => !note.isPinned)
+    const sectioned = showLabels && firstUnpinned > 0 && notes.length > firstUnpinned
+
+    return (
+        <div className="notes-list" role="listbox" aria-label="Notes">
+            {sectioned && (
+                <p className="notes-section-label" role="presentation">
+                    Pinned
+                </p>
+            )}
+            <NoteRows
+                notes={sectioned ? notes.slice(0, firstUnpinned) : notes}
+                activeNote={activeNote}
+                onOpen={openNote}
+            />
+            {sectioned && (
+                <>
+                    <p className="notes-section-label notes-section-label--gap" role="presentation">
+                        Notes
+                    </p>
+                    <NoteRows
+                        notes={notes.slice(firstUnpinned)}
+                        activeNote={activeNote}
+                        onOpen={openNote}
+                    />
+                </>
+            )}
+        </div>
+    )
+}
+
+function NoteRows({
+    notes,
+    activeNote,
+    onOpen
+}: {
+    notes: Note[]
+    activeNote: Note | null
+    onOpen: (id: string) => void
+}): JSX.Element {
+    return (
+        <>
+            {notes.map((note) => (
+                <NoteRow
+                    key={note.id}
+                    note={note}
+                    isActive={activeNote?.id === note.id}
+                    onOpen={() => void onOpen(note.id)}
+                />
+            ))}
+        </>
     )
 }

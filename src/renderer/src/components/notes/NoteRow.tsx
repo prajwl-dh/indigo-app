@@ -1,5 +1,14 @@
 import { Menu, MenuButton, MenuItem, MenuItems, MenuSeparator } from '@headlessui/react'
-import { Clipboard, Copy, MoreHorizontal, RotateCcw, Star, Trash2 } from 'lucide-react'
+import {
+    Clipboard,
+    Copy,
+    Download,
+    MoreHorizontal,
+    Pin,
+    RotateCcw,
+    Star,
+    Trash2
+} from 'lucide-react'
 import { useState, type CSSProperties, type JSX, type KeyboardEvent } from 'react'
 import type { Note } from '../../../../shared/model/note'
 import { getNoteColor } from '../../../../shared/model/noteColor'
@@ -15,8 +24,16 @@ type NoteRowProps = {
 }
 
 export default function NoteRow({ note, isActive, onOpen }: NoteRowProps): JSX.Element {
-    const { toggleFavorite, duplicateNote, copyNoteText, moveToTrash, restoreNote, deleteNote } =
-        useWorkspace()
+    const {
+        toggleFavorite,
+        togglePinned,
+        duplicateNote,
+        copyNoteText,
+        exportNote,
+        moveToTrash,
+        restoreNote,
+        deleteNote
+    } = useWorkspace()
     const { resolved } = useAppearance()
     const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -46,14 +63,24 @@ export default function NoteRow({ note, isActive, onOpen }: NoteRowProps): JSX.E
                 <div className="note-row-body">
                     <div className="note-row-header">
                         <span className="note-row-title">{noteTitle(note)}</span>
-                        {note.isFavorite && (
-                            <Star
-                                className="note-row-star"
-                                size={12}
-                                fill="currentColor"
-                                aria-label="Favorite"
-                            />
-                        )}
+                        <span className="note-row-marks">
+                            {note.isPinned && (
+                                <Pin
+                                    className="note-row-pin"
+                                    size={11}
+                                    fill="currentColor"
+                                    aria-label="Pinned"
+                                />
+                            )}
+                            {note.isFavorite && (
+                                <Star
+                                    className="note-row-star"
+                                    size={12}
+                                    fill="currentColor"
+                                    aria-label="Favorite"
+                                />
+                            )}
+                        </span>
                     </div>
 
                     <p className="note-row-excerpt">{excerpt || 'No text yet'}</p>
@@ -116,6 +143,14 @@ export default function NoteRow({ note, isActive, onOpen }: NoteRowProps): JSX.E
                                 <MenuItem
                                     as="button"
                                     className="menu-item"
+                                    onClick={() => void togglePinned(note.id)}
+                                >
+                                    <Pin size={14} />
+                                    {note.isPinned ? 'Unpin note' : 'Pin note'}
+                                </MenuItem>
+                                <MenuItem
+                                    as="button"
+                                    className="menu-item"
                                     onClick={() => void duplicateNote(note.id)}
                                 >
                                     <Copy size={14} />
@@ -128,6 +163,14 @@ export default function NoteRow({ note, isActive, onOpen }: NoteRowProps): JSX.E
                                 >
                                     <Clipboard size={14} />
                                     Copy as text
+                                </MenuItem>
+                                <MenuItem
+                                    as="button"
+                                    className="menu-item"
+                                    onClick={() => void exportNote(note.id)}
+                                >
+                                    <Download size={14} />
+                                    Export as Markdown
                                 </MenuItem>
                                 <MenuSeparator className="menu-separator" />
                                 <MenuItem

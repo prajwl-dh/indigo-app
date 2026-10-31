@@ -1,5 +1,17 @@
 import { Menu, MenuButton, MenuItem, MenuItems, MenuSeparator } from '@headlessui/react'
-import { ArrowLeft, Clipboard, Copy, MoreHorizontal, RotateCcw, Star, Trash2 } from 'lucide-react'
+import {
+    ArrowLeft,
+    Clipboard,
+    Copy,
+    Download,
+    Expand,
+    MoreHorizontal,
+    Pin,
+    RotateCcw,
+    Shrink,
+    Star,
+    Trash2
+} from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type JSX } from 'react'
 import { createPortal } from 'react-dom'
 import TextareaAutosize from 'react-textarea-autosize'
@@ -27,6 +39,9 @@ type NoteEditorProps = {
     onBack: () => void
     /** Kept mounted but out of view while a compact search covers the editor. */
     hidden?: boolean
+    /** Focus mode hides the notes list so the page gets the full width. */
+    focusMode?: boolean
+    onToggleFocus?: () => void
 }
 
 type SaveState = 'saved' | 'saving' | 'error'
@@ -39,7 +54,9 @@ export default function NoteEditor({
     note,
     isCompact,
     onBack,
-    hidden = false
+    hidden = false,
+    focusMode = false,
+    onToggleFocus
 }: NoteEditorProps): JSX.Element {
     const { resolved } = useAppearance()
     const { pushError } = useToast()
@@ -50,8 +67,10 @@ export default function NoteEditor({
         setSaveHandler,
         createTag,
         toggleFavorite,
+        togglePinned,
         duplicateNote,
         copyNoteText,
+        exportNote,
         moveToTrash,
         restoreNote,
         deleteNote
@@ -282,6 +301,19 @@ export default function NoteEditor({
             {!note.isInTrash && (
                 <button
                     type="button"
+                    className={`icon-button ${note.isPinned ? 'is-active' : ''}`}
+                    aria-label={note.isPinned ? 'Unpin note' : 'Pin note'}
+                    aria-pressed={note.isPinned}
+                    title={note.isPinned ? 'Unpin note' : 'Pin note'}
+                    onClick={() => void togglePinned(note.id)}
+                >
+                    <Pin size={16} fill={note.isPinned ? 'currentColor' : 'none'} />
+                </button>
+            )}
+
+            {!note.isInTrash && (
+                <button
+                    type="button"
                     className={`icon-button ${note.isFavorite ? 'is-active' : ''}`}
                     aria-label={note.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                     aria-pressed={note.isFavorite}
@@ -289,6 +321,19 @@ export default function NoteEditor({
                     onClick={() => void toggleFavorite(note.id)}
                 >
                     <Star size={16} fill={note.isFavorite ? 'currentColor' : 'none'} />
+                </button>
+            )}
+
+            {onToggleFocus && (
+                <button
+                    type="button"
+                    className={`icon-button ${focusMode ? 'is-active' : ''}`}
+                    aria-label={focusMode ? 'Leave focus mode' : 'Focus this note'}
+                    aria-pressed={focusMode}
+                    title={focusMode ? 'Leave focus mode' : 'Focus this note'}
+                    onClick={onToggleFocus}
+                >
+                    {focusMode ? <Shrink size={16} /> : <Expand size={16} />}
                 </button>
             )}
 
@@ -334,6 +379,14 @@ export default function NoteEditor({
                             <MenuItem
                                 as="button"
                                 className="menu-item"
+                                onClick={() => void togglePinned(note.id)}
+                            >
+                                <Pin size={14} />
+                                {note.isPinned ? 'Unpin note' : 'Pin note'}
+                            </MenuItem>
+                            <MenuItem
+                                as="button"
+                                className="menu-item"
                                 onClick={() => void duplicateNote(note.id)}
                             >
                                 <Copy size={14} />
@@ -346,6 +399,14 @@ export default function NoteEditor({
                             >
                                 <Clipboard size={14} />
                                 Copy as text
+                            </MenuItem>
+                            <MenuItem
+                                as="button"
+                                className="menu-item"
+                                onClick={() => void exportNote(note.id)}
+                            >
+                                <Download size={14} />
+                                Export as Markdown
                             </MenuItem>
                             <MenuSeparator className="menu-separator" />
                             <MenuItem

@@ -1,6 +1,14 @@
 import { electronAPI } from '@electron-toolkit/preload'
 import { contextBridge, ipcRenderer } from 'electron'
-import type { Note, NotePatch, Notes, StorageInfo, Tag, Tags } from '../shared/model/note'
+import type {
+    Note,
+    NoteExport,
+    NotePatch,
+    Notes,
+    StorageInfo,
+    Tag,
+    Tags
+} from '../shared/model/note'
 import type { NoteColor } from '../shared/model/noteColor'
 import type { ResolvedTheme, Theme } from '../shared/model/theme'
 import type {
@@ -34,11 +42,15 @@ const notesApi = {
         isFavorite?: boolean
         tags?: string[]
         color?: NoteColor | null
+        title?: string
+        body?: string
     }): Promise<Note> => ipcRenderer.invoke('notes:create', input),
     update: (patch: NotePatch): Promise<Note> => ipcRenderer.invoke('notes:update', patch),
     duplicate: (id: string): Promise<Note> => ipcRenderer.invoke('notes:duplicate', id),
     delete: (id: string): Promise<boolean> => ipcRenderer.invoke('notes:delete', id),
-    emptyTrash: (): Promise<number> => ipcRenderer.invoke('notes:empty-trash')
+    emptyTrash: (): Promise<number> => ipcRenderer.invoke('notes:empty-trash'),
+    /** Writes the note as a Markdown file and returns where it landed. */
+    exportNote: (id: string): Promise<NoteExport> => ipcRenderer.invoke('notes:export', id)
 }
 
 const tagsApi = {
@@ -100,7 +112,8 @@ const appApi = {
 const menuApi = {
     onNewNote: (callback: () => void): (() => void) => on('menu:new-note', callback),
     onSearch: (callback: () => void): (() => void) => on('menu:search', callback),
-    onSave: (callback: () => void): (() => void) => on('menu:save', callback)
+    onSave: (callback: () => void): (() => void) => on('menu:save', callback),
+    onExport: (callback: () => void): (() => void) => on('menu:export', callback)
 }
 
 const updatesApi = {

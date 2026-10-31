@@ -17,6 +17,8 @@ type ShellProps = {
     onCloseSettings: () => void
 }
 
+const FOCUS_KEY = 'indigo:focus-mode'
+
 function BootState(): JSX.Element {
     return (
         <div className="boot-state" role="status" aria-label="Opening Indigo">
@@ -43,6 +45,46 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
             return false
         }
     })
+    const [focusMode, setFocusMode] = useState(
+        () => window.localStorage.getItem(FOCUS_KEY) === 'true'
+    )
+
+    const toggleFocus = useCallback((): void => {
+        setFocusMode((current) => {
+            const next = !current
+            try {
+                window.localStorage.setItem(FOCUS_KEY, String(next))
+            } catch {
+                // Losing the preference is fine; the mode still works.
+            }
+            return next
+        })
+    }, [])
+
+    // Escape is the edit shortcut inside the editor (leaving code blocks, for
+    // example), so focus mode only yields to it from the material around the
+    // writing surface.
+    useEffect(() => {
+        if (!focusMode) return
+
+        const onKeyDown = (event: KeyboardEvent): void => {
+            if (event.key !== 'Escape') return
+            const target = event.target as HTMLElement | null
+            if (target?.closest('.bn-editor, .note-title, input, textarea, [role="dialog"]')) {
+                return
+            }
+            event.preventDefault()
+            setFocusMode(false)
+            try {
+                window.localStorage.setItem(FOCUS_KEY, 'false')
+            } catch {
+                // The mode has already left.
+            }
+        }
+
+        window.addEventListener('keydown', onKeyDown)
+        return () => window.removeEventListener('keydown', onKeyDown)
+    }, [focusMode])
 
     const toggleSidebar = useCallback((): void => {
         // On a narrow window the expanded sidebar is an overlay, so the same
@@ -121,8 +163,9 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
                                 className="panes"
                                 data-compact={isCompact ? 'true' : 'false'}
                                 data-editor={editorVisible ? 'open' : 'closed'}
+                                data-focus={focusMode ? 'true' : 'false'}
                             >
-                                <NotesPanel />
+                                <NotesPanel focusMode={focusMode} onToggleFocus={toggleFocus} />
 
                                 {activeNote ? (
                                     <NoteEditor
@@ -130,6 +173,8 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
                                         note={activeNote}
                                         isCompact={isCompact}
                                         hidden={editorHidden}
+                                        focusMode={focusMode}
+                                        onToggleFocus={toggleFocus}
                                         onBack={() => void closeNote()}
                                     />
                                 ) : (

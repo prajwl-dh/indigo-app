@@ -88,6 +88,7 @@ function parseNote(raw: unknown, fallbackId: string): Note | null {
                 : modified,
         isFavorite: raw.isFavorite === true,
         isInTrash: raw.isInTrash === true,
+        isPinned: raw.isPinned === true,
         tags: uniqueTags(raw.tags),
         color: isNoteColor(raw.color) ? raw.color : null,
         // Only trust the draft marker when the file still carries the id it
@@ -355,22 +356,29 @@ export class NotesStore {
 
     createNote(input?: {
         isFavorite?: boolean
+        isPinned?: boolean
         tags?: string[]
         color?: Note['color']
+        /** A title and body from a template; without them the note is blank. */
+        title?: string
+        body?: string
     }): Promise<Note> {
         return this.enqueue(async () => {
             const timestamp = now()
+            const title = typeof input?.title === 'string' ? input.title : ''
+            const body = typeof input?.body === 'string' ? input.body : ''
             const note: Note = {
                 id: randomUUID(),
-                title: '',
-                body: '',
+                title,
+                body,
                 createdAt: timestamp,
                 lastModified: timestamp,
                 isFavorite: input?.isFavorite === true,
                 isInTrash: false,
+                isPinned: input?.isPinned === true,
                 tags: uniqueTags(input?.tags),
                 color: isNoteColor(input?.color) ? input.color : null,
-                isDraft: true
+                isDraft: title.trim() === '' && isBlockDocumentEmpty(body)
             }
 
             if (note.tags.length > 0) {
@@ -389,25 +397,26 @@ export class NotesStore {
                 throw new Error('This note no longer exists on disk.')
             }
 
-            // A colour is an identifier, not an edit: colouring a note should
-            // not reshuffle the library under the reader's cursor.
-            const onlyColor =
-                patch.color !== undefined &&
-                patch.title === undefined &&
-                patch.body === undefined &&
-                patch.tags === undefined &&
-                patch.isFavorite === undefined &&
-                patch.isInTrash === undefined
+            // Colouring and pinning are how the reader files notes, not how
+            // they edit them: neither should reshuffle the library under
+            // their cursor by touching the "Edited …" timestamp.
+            const touchesContent =
+                patch.title !== undefined ||
+                patch.body !== undefined ||
+                patch.tags !== undefined ||
+                patch.isFavorite !== undefined ||
+                patch.isInTrash !== undefined
 
             const next: Note = {
                 ...current,
-                lastModified: onlyColor ? current.lastModified : now()
+                lastModified: touchesContent ? now() : current.lastModified
             }
 
             if (typeof patch.title === 'string') next.title = patch.title
             if (typeof patch.body === 'string') next.body = patch.body
             if (typeof patch.isFavorite === 'boolean') next.isFavorite = patch.isFavorite
             if (typeof patch.isInTrash === 'boolean') next.isInTrash = patch.isInTrash
+            if (typeof patch.isPinned === 'boolean') next.isPinned = patch.isPinned
             if (patch.tags !== undefined) next.tags = uniqueTags(patch.tags)
             if (patch.color === null || isNoteColor(patch.color)) next.color = patch.color
 
@@ -442,6 +451,7 @@ export class NotesStore {
                 createdAt: timestamp,
                 lastModified: timestamp,
                 isInTrash: false,
+                isPinned: false,
                 isDraft: false
             }
 

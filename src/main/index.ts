@@ -17,6 +17,7 @@ import Store from 'electron-store'
 import { join } from 'node:path'
 import icon from '../../resources/icon.png?asset'
 import { appHandler, forgetLegacyConfig } from './handler/appHandler'
+import { exportHandler } from './handler/exportHandler'
 import { notesHandler } from './handler/notesHandler'
 import { indigoDirectory, migrateLegacyStorage } from './storage/paths'
 import type { NotesStore } from './storage/notesStore'
@@ -55,6 +56,8 @@ const FLUSH_TIMEOUT_MS = 2_000
 const redirectedDataDirectory = process.env.INDIGO_DATA_DIR?.trim()
 if (redirectedDataDirectory) {
     app.setPath('userData', join(redirectedDataDirectory, 'electron'))
+    // Exports and test runs follow the same redirect.
+    app.setPath('downloads', join(redirectedDataDirectory, 'downloads'))
 }
 
 let notesStoreRef: NotesStore | null = null
@@ -294,6 +297,11 @@ function buildApplicationMenu(): void {
                     accelerator: 'CmdOrCtrl+S',
                     click: () => sendToRenderer('menu:save')
                 },
+                {
+                    label: 'Export as Markdown',
+                    accelerator: 'CmdOrCtrl+Shift+E',
+                    click: () => sendToRenderer('menu:export')
+                },
                 { type: 'separator' },
                 isMac ? { role: 'close' } : { role: 'quit' }
             ]
@@ -497,6 +505,7 @@ if (!app.requestSingleInstanceLock()) {
             const notesStore = await notesHandler()
             notesStoreRef = notesStore
             appHandler(store, notesStore)
+            exportHandler((id) => notesStore.getNote(id))
         } catch (error) {
             console.error('[startup]', error)
             dialog.showErrorBox(

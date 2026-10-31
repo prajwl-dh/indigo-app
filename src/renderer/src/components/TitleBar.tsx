@@ -9,6 +9,7 @@ import { Search, X } from 'lucide-react'
 import WindowControls from './WindowControls'
 import { useTitleBarSlots } from './titleBarSlotContext'
 import { shortcutKey } from '../lib/platform'
+import { useToast } from '../state/toast'
 import { useWorkspace } from '../state/workspace'
 
 type TitleBarProps = {
@@ -18,8 +19,19 @@ type TitleBarProps = {
 
 export default function TitleBar({ isCompact, onSearchActivate }: TitleBarProps): JSX.Element {
     const { setActions, setBack } = useTitleBarSlots()
-    const { search, setSearch, visibleNotes, openNote, createNote, saveNow, view, activeTag } =
-        useWorkspace()
+    const { push } = useToast()
+    const {
+        activeNote,
+        search,
+        setSearch,
+        visibleNotes,
+        openNote,
+        createNote,
+        exportNote,
+        saveNow,
+        view,
+        activeTag
+    } = useWorkspace()
     const inputRef = useRef<HTMLInputElement>(null)
 
     const focusSearch = useCallback((): void => {
@@ -38,13 +50,21 @@ export default function TitleBar({ isCompact, onSearchActivate }: TitleBarProps)
         const unsubscribeSave = window.indigo.menu.onSave(() => {
             void saveNow()
         })
+        const unsubscribeExport = window.indigo.menu.onExport(() => {
+            if (!activeNote) {
+                push('Open a note first, then export it.')
+                return
+            }
+            void exportNote(activeNote.id)
+        })
 
         return () => {
             unsubscribeSearch()
             unsubscribeNew()
             unsubscribeSave()
+            unsubscribeExport()
         }
-    }, [createNote, focusSearch, saveNow])
+    }, [createNote, focusSearch, saveNow, exportNote, activeNote, push])
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent): void => {

@@ -2811,3 +2811,181 @@ html[data-theme='dark'] .settings-backdrop {
         transition-duration: 0.001ms !important;
     }
 }
+
+/* ---------------------------------------------------------------- */
+/* Pins, templates, focus mode, tasks                                */
+/* ---------------------------------------------------------------- */
+
+.new-note-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+}
+
+.new-note-button {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.new-note-templates-button {
+    width: 20px;
+    margin-left: -2px;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.menu-item--rich {
+    height: auto;
+    padding: 7px 8px;
+}
+
+.rich-item-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.rich-item-label {
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.rich-item-description {
+    color: var(--muted);
+    font-size: 10.5px;
+    line-height: 1.4;
+}
+
+.notes-section-label {
+    margin-top: 12px;
+    padding: 0 8px 2px;
+    color: var(--faint);
+    font-size: 10.5px;
+}
+
+.notes-section-label--gap {
+    margin-top: 4px;
+}
+
+.note-row-marks {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.note-row-pin {
+    color: var(--muted);
+}
+
+.panes[data-focus='true'][data-editor='open'] .notes-panel {
+    display: none;
+}
+
+.tasks-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 8px 14px;
+    overflow-y: auto;
+    outline: none;
+}
+
+.task-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 8px 6px 8px 10px;
+    border-radius: var(--radius-md);
+    transition: background 0.12s ease;
+}
+
+.task-row:hover {
+    background: var(--hover);
+}
+
+.task-check {
+    position: relative;
+    flex: 0 0 auto;
+    width: 15px;
+    height: 15px;
+    margin-top: 1px;
+    padding: 0;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 4px;
+    background: var(--raised);
+    transition:
+        border-color 0.12s ease,
+        background 0.12s ease;
+}
+
+.task-check:hover {
+    border-color: var(--ink-soft);
+}
+
+.task-row[data-done='true'] .task-check {
+    border-color: var(--ink);
+    background: var(--ink);
+}
+
+.task-row[data-done='true'] .task-check::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 2.6px;
+    width: 7px;
+    height: 3.4px;
+    border-left: 1.6px solid var(--panel);
+    border-bottom: 1.6px solid var(--panel);
+    transform: rotate(-45deg);
+}
+
+.task-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ink-soft);
+    font-size: 12px;
+    line-height: 1.45;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-row[data-done='true'] .task-text {
+    color: var(--faint);
+    text-decoration: line-through;
+    text-decoration-color: var(--faint);
+}
+
+.task-note {
+    flex: 0 1 auto;
+    max-width: 40%;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--faint);
+    font-size: 10.5px;
+    line-height: 1.45;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-note:hover {
+    color: var(--ink);
+}
+
+.task-note[data-open='true'] {
+    color: var(--ink-soft);
+}
+
+.tasks-seen {
+    margin: 10px 0 2px;
+    padding: 0 8px;
+    color: var(--faint);
+    font-size: 10.5px;
+}

@@ -1,6 +1,7 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 import {
     FileText,
+    ListChecks,
     MoreHorizontal,
     PanelLeftClose,
     PanelLeftOpen,
@@ -49,6 +50,7 @@ export default function Sidebar({
     const {
         notes,
         tags,
+        tasks,
         view,
         activeTag,
         setView,
@@ -70,14 +72,21 @@ export default function Sidebar({
     const navItems = useMemo<NavItem[]>(() => {
         const all = countFor(notes, (note) => !note.isInTrash)
         const favorites = countFor(notes, (note) => !note.isInTrash && note.isFavorite)
+        const openTasks = tasks.filter((entry) => !entry.task.checked).length
         const trash = countFor(notes, (note) => note.isInTrash)
 
         return [
             { view: 'all', label: 'All notes', icon: <FileText size={16} />, count: all },
             { view: 'favorites', label: 'Favorites', icon: <Star size={16} />, count: favorites },
+            {
+                view: 'tasks',
+                label: 'Tasks',
+                icon: <ListChecks size={16} />,
+                count: openTasks
+            },
             { view: 'trash', label: 'Trash', icon: <Trash2 size={16} />, count: trash }
         ]
-    }, [notes])
+    }, [notes, tasks])
 
     const sortedTags = useMemo(
         () =>
