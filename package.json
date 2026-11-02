@@ -25,9 +25,7 @@
         "build:mac-intel": "npm run build && electron-builder --mac --x64 --publish never",
         "build:mac-arm": "npm run build && electron-builder --mac --arm64 --publish never",
         "build:mac-universal": "npm run build && electron-builder --mac --universal --publish never",
-        "build:linux": "npm run build && electron-builder --linux --publish never",
-        "release": "node manageRelease.js release",
-        "delete-current-release": "node manageRelease.js delete"
+        "build:linux": "npm run build && electron-builder --linux --publish never"
     },
     "dependencies": {
         "@blocknote/code-block": "^0.54.0",

@@ -1,12 +1,21 @@
-name: build-indigo
+name: release-indigo
 
+# Runs after a pull request is merged into main. It verifies the project,
+# refuses to continue if the package.json version has already been released,
+# builds every platform, and publishes the matching GitHub release.
 on:
     push:
-        tags:
-            - 'v*'
+        branches:
+            - main
 
 permissions:
-    contents: write
+    contents: read
+
+# Releases must run one at a time so two quick merges cannot race on the same
+# version. Queued runs are not cancelled.
+concurrency:
+    group: release-main
+    cancel-in-progress: false
 
 env:
     CSC_IDENTITY_AUTO_DISCOVERY: false
@@ -14,35 +23,43 @@ env:
 jobs:
     verify:
         name: Verify
+        uses: ./.github/workflows/verify.yml
+
+    # Fail fast (in parallel with the checks above) so a merge that forgot to
+    # bump the version does not spend an hour building installers.
+    version:
+        name: Check release version
         runs-on: ubuntu-24.04
+        outputs:
+            version: ${{ steps.resolve.outputs.version }}
         steps:
             - name: Checkout repo
               uses: actions/checkout@v4
-
-            - name: Setup Node
-              uses: actions/setup-node@v4
               with:
-                  node-version: 24
-                  cache: npm
+                  fetch-depth: 0
 
-            - name: Install dependencies
-              run: npm ci
+            - name: Resolve version from package.json
+              id: resolve
+              shell: bash
+              run: |
+                  version="$(node -p "require('./package.json').version")"
 
-            - name: Typecheck
-              run: npm run typecheck
+                  if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+                      echo "::error::package.json version \"$version\" is not valid semver."
+                      exit 1
+                  fi
 
-            - name: Lint
-              run: npm run lint
+                  if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null 2>&1; then
+                      echo "::error::Release v$version already exists. Bump \"version\" in package.json in the pull request before merging to main."
+                      exit 1
+                  fi
 
-            - name: Test
-              run: npm test
-
-            - name: Build
-              run: npm run build
+                  echo "version=$version" >> "$GITHUB_OUTPUT"
+                  echo "Releasing v$version"
 
     build:
         name: Build ${{ matrix.artifact_name }}
-        needs: verify
+        needs: [verify, version]
         strategy:
             fail-fast: false
             matrix:
@@ -104,16 +121,16 @@ jobs:
                   mkdir -p release
 
                   if [[ "${{ matrix.artifact_name }}" == "indigo-macos-apple-silicon" ]]; then
-                      cp dist/*-arm64.dmg "release/Indigo-${{ github.ref_name }}-Mac-Apple-Silicon.dmg"
+                      cp dist/*-arm64.dmg "release/Indigo-v${{ needs.version.outputs.version }}-Mac-Apple-Silicon.dmg"
 
                   elif [[ "${{ matrix.artifact_name }}" == "indigo-macos-intel" ]]; then
-                      cp dist/*-x64.dmg "release/Indigo-${{ github.ref_name }}-Mac-Intel.dmg"
+                      cp dist/*-x64.dmg "release/Indigo-v${{ needs.version.outputs.version }}-Mac-Intel.dmg"
 
                   elif [[ "${{ matrix.artifact_name }}" == "indigo-linux-arm64" ]]; then
-                      cp dist/*-arm64.AppImage "release/Indigo-${{ github.ref_name }}-Linux-ARM64.AppImage"
+                      cp dist/*-arm64.AppImage "release/Indigo-v${{ needs.version.outputs.version }}-Linux-ARM64.AppImage"
 
                   elif [[ "${{ matrix.artifact_name }}" == "indigo-linux-x64" ]]; then
-                      cp dist/*-x86_64.AppImage "release/Indigo-${{ github.ref_name }}-Linux-x64.AppImage"
+                      cp dist/*-x86_64.AppImage "release/Indigo-v${{ needs.version.outputs.version }}-Linux-x64.AppImage"
 
                   else
                       find dist -maxdepth 1 -type f \
@@ -133,7 +150,7 @@ jobs:
                   Get-ChildItem -Path dist -File |
                     Where-Object { $_.Name -like "*-setup.exe" } |
                     ForEach-Object {
-                        Copy-Item $_.FullName "release/Indigo-${{ github.ref_name }}-Windows-x64-Setup.exe"
+                        Copy-Item $_.FullName "release/Indigo-v${{ needs.version.outputs.version }}-Windows-x64-Setup.exe"
                     }
 
                   Write-Host "Release files:"
@@ -148,8 +165,10 @@ jobs:
 
     release:
         name: Publish release
-        needs: build
+        needs: [version, build]
         runs-on: ubuntu-24.04
+        permissions:
+            contents: write
 
         steps:
             - name: Download release artifacts
@@ -168,6 +187,9 @@ jobs:
             - name: Create GitHub Release
               uses: softprops/action-gh-release@v2
               with:
+                  tag_name: v${{ needs.version.outputs.version }}
+                  target_commitish: ${{ github.sha }}
+                  name: Indigo v${{ needs.version.outputs.version }}
                   files: release/*
                   generate_release_notes: true
                   body: |

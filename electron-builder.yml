@@ -9,7 +9,7 @@ files:
     - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
     - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
     - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
-    - '!{.github,.agents,.taste-skill,skills-lock.json,manageRelease.js}'
+    - '!{.github,.agents,.taste-skill,skills-lock.json}'
 asarUnpack:
     - resources/**
 win:

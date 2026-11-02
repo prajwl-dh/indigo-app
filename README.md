@@ -118,14 +118,20 @@ npm run test:e2e   # builds the app, then launches Electron
 
 The end-to-end suite writes into a temporary folder selected with `INDIGO_DATA_DIR`, so it never touches your real `~/.indigo`. On Linux it needs a display; CI runs it under `xvfb-run`.
 
-The lockfile is committed, so CI uses `npm ci` and builds the same dependency tree you test locally. Normal pushes and pull requests run typecheck, lint, unit tests, build, and the Electron end-to-end suite; tagged releases use the same checks before packaging.
+The lockfile is committed, so CI uses `npm ci` and builds the same dependency tree you test locally. Pull requests and non-`main` branches run typecheck, lint, unit tests, build, and the Electron end-to-end suite. `main` only accepts changes through pull requests, and every merge runs the same checks before packaging.
 
 ## Releases
 
-Update the version in `package.json`, commit, then run:
+`main` only accepts merged pull requests, and every merge publishes a release. Before opening the pull request that should ship:
 
-```bash
-npm run release
-```
+1. Bump `version` in `package.json` (for example `1.0.8` to `1.0.9`) and commit it with the rest of the change.
+2. Open the pull request, wait for the `verify-indigo` checks, and merge.
 
-That creates and pushes the matching `v*` tag. GitHub Actions verifies the project, builds macOS (Apple Silicon and Intel), Windows, and Linux (x64 and ARM64) artifacts, and publishes them as a draft-free GitHub release.
+The `release-indigo` workflow then runs on `main` and:
+
+- repeats typecheck, lint, unit tests, build, and the Electron end-to-end suite,
+- fails with a clear error if the `v<version>` tag already exists, so a missing version bump cannot silently republish a release,
+- builds macOS (Apple Silicon and Intel), Windows, and Linux (x64 and ARM64) artifacts,
+- publishes them as a draft-free GitHub release on the merge commit.
+
+If a run fails after packaging, use **Re-run failed jobs** on the workflow run instead of merging again. To ship a different version, follow the same steps with a new version in `package.json`.
