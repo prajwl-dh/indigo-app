@@ -1,14 +1,12 @@
 name: verify-indigo
 
-# Runs the full check suite on pull requests and on every branch push.
-# Pushes to main are covered by release-indigo, so they are skipped here to
-# avoid running the same checks twice.
+# Runs the full check suite on pull requests. Merges to main are checked again
+# by release-indigo before anything is packaged or published, so this workflow
+# deliberately does not run on push: one commit should produce one set of
+# check runs, otherwise GitHub disambiguates them as "(push)" and
+# "(pull_request)" and required status checks become hard to match.
 on:
-    workflow_call:
     pull_request:
-    push:
-        branches-ignore:
-            - main
 
 permissions:
     contents: read

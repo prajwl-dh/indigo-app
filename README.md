@@ -118,7 +118,7 @@ npm run test:e2e   # builds the app, then launches Electron
 
 The end-to-end suite writes into a temporary folder selected with `INDIGO_DATA_DIR`, so it never touches your real `~/.indigo`. On Linux it needs a display; CI runs it under `xvfb-run`.
 
-The lockfile is committed, so CI uses `npm ci` and builds the same dependency tree you test locally. Pull requests and non-`main` branches run typecheck, lint, unit tests, build, and the Electron end-to-end suite. `main` only accepts changes through pull requests, and every merge runs the same checks before packaging.
+The lockfile is committed, so CI uses `npm ci` and builds the same dependency tree you test locally. Pull requests run typecheck, lint, unit tests, build, and the Electron end-to-end suite. `main` only accepts changes through pull requests, and every merge runs the same checks again before packaging.
 
 ## Releases
 

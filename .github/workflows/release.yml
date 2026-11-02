@@ -21,9 +21,61 @@ env:
     CSC_IDENTITY_AUTO_DISCOVERY: false
 
 jobs:
+    # These two jobs intentionally carry the same names as the ones in
+    # verify-indigo. GitHub matches required status checks by job name, so
+    # "Verify" and "Electron end-to-end" must mean the same thing on a pull
+    # request and on main.
     verify:
         name: Verify
-        uses: ./.github/workflows/verify.yml
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Typecheck
+              run: npm run typecheck
+
+            - name: Lint
+              run: npm run lint
+
+            - name: Test
+              run: npm test
+
+            - name: Build
+              run: npm run build
+
+    e2e:
+        name: Electron end-to-end
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Checkout repo
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci
+
+            # Electron needs the same shared libraries as Chromium, and the
+            # runner image does not guarantee all of them.
+            - name: Install Electron runtime libraries
+              run: npx playwright-core install-deps chromium
+
+            - name: Run Electron tests
+              run: xvfb-run -a npm run test:e2e
 
     # Fail fast (in parallel with the checks above) so a merge that forgot to
     # bump the version does not spend an hour building installers.
