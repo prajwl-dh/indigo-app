@@ -72,19 +72,3 @@ describe('pinned notes', () => {
         expect(duplicate.title).toBe('Original copy')
     })
 })
-
-describe('creating notes with a template', () => {
-    it('writes the template title and body and skips the draft mark', async () => {
-        const created = await store.createNote({
-            title: 'Meeting notes — Monday',
-            body: PARAGRAPH_BODY
-        })
-
-        expect(created.title).toBe('Meeting notes — Monday')
-        expect(created.body).toBe(PARAGRAPH_BODY)
-        expect(created.isDraft).toBe(false)
-
-        const reread = await store.getNote(created.id)
-        expect(reread?.body).toBe(PARAGRAPH_BODY)
-    })
-})

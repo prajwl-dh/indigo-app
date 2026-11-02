@@ -152,62 +152,6 @@ afterEach(async () => {
     await Promise.all(tempHomes.splice(0).map((home) => rm(home, { recursive: true, force: true })))
 })
 
-describe('note templates', () => {
-    it('creates a meeting note with its prompts ready', async () => {
-        const instance = await launch()
-
-        await instance.page
-            .getByRole('button', { name: 'New note from template' })
-            .waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
-        await instance.page.getByRole('button', { name: 'New note from template' }).click()
-        await instance.page.getByRole('menuitem', { name: /Meeting notes/ }).click()
-
-        const titleInput = instance.page.getByLabel('Note title')
-        await titleInput.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
-        await waitUntil(
-            async () => (await titleInput.inputValue()).startsWith('Meeting notes — '),
-            'The template title was not applied.'
-        )
-
-        // The prompts are part of the note, not a seed that runs once.
-        await instance.page
-            .locator('.note-body .bn-editor', { hasText: 'Attendees' })
-            .first()
-            .waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
-
-        await quit(instance)
-
-        const saved = await waitUntil(async () => {
-            const notes = await readNotes(instance.dataDirectory)
-            return notes.find((note) => String(note.title).startsWith('Meeting notes — ')) ?? null
-        }, 'The meeting note never reached disk.')
-        expect(String(saved.body)).toContain('Attendees')
-        expect(saved.isDraft).toBe(false)
-    })
-
-    it('creates a journal page with today in the title', async () => {
-        const instance = await launch()
-
-        await instance.page.getByRole('button', { name: 'New note from template' }).click()
-        await instance.page.getByRole('menuitem', { name: /Journal page/ }).click()
-
-        const titleInput = instance.page.getByLabel('Note title')
-        await titleInput.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
-        await waitUntil(
-            async () => (await titleInput.inputValue()).startsWith('Journal — '),
-            'The journal title was not applied.'
-        )
-
-        // The journal funnel carries the prompts too.
-        await instance.page
-            .locator('.note-body .bn-editor', { hasText: 'What happened' })
-            .first()
-            .waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
-
-        await quit(instance)
-    })
-})
-
 describe('pinned notes', () => {
     it('holds a note above the rest and remembers it after a relaunch', async () => {
         const instance = await launch()
@@ -253,15 +197,20 @@ describe('tasks view', () => {
         await instance.page.evaluate(async () => {
             type Bridge = {
                 notes: {
-                    create: (input: { title: string }) => Promise<{ id: string }>
-                    update: (patch: { id: string; body: string }) => Promise<unknown>
+                    create: (input?: Record<string, never>) => Promise<{ id: string }>
+                    update: (patch: {
+                        id: string
+                        title?: string
+                        body?: string
+                    }) => Promise<unknown>
                 }
             }
             const indigo = (window as unknown as { indigo: Bridge }).indigo
 
-            const note = await indigo.notes.create({ title: 'Groceries' })
+            const note = await indigo.notes.create()
             await indigo.notes.update({
                 id: note.id,
+                title: 'Groceries',
                 body: JSON.stringify([
                     {
                         id: 'item-milk',
@@ -350,27 +299,35 @@ describe('export as Markdown', () => {
 })
 
 describe('focus mode', () => {
-    it('hides the notes list in favour of the editor and returns on Escape', async () => {
+    it('leaves only the page and comes back from the button or Escape', async () => {
         const instance = await launch()
         await createNote(instance.page, 'Focus note', 'Nothing but writing')
 
-        const focusButton = instance.page.getByRole('button', { name: 'Focus this note' }).first()
+        const panel = instance.page.locator('.notes-panel')
+        const sidebar = instance.page.locator('.sidebar')
+        const titlebar = instance.page.locator('.titlebar')
+        const chromeGone = async (): Promise<boolean> =>
+            !(await panel.isVisible()) &&
+            !(await sidebar.isVisible()) &&
+            !(await titlebar.isVisible())
+        const chromeBack = async (): Promise<boolean> =>
+            (await panel.isVisible()) && (await sidebar.isVisible()) && (await titlebar.isVisible())
+
+        const focusButton = instance.page.getByRole('button', { name: 'Focus mode' }).first()
         await focusButton.click()
 
-        const panel = instance.page.locator('.notes-panel')
-        await waitUntil(
-            async () => !(await panel.isVisible()),
-            'The notes list did not yield to the editor.'
-        )
-        const leaveFocus = instance.page.getByRole('button', { name: 'Leave focus mode' }).first()
+        await waitUntil(chromeGone, 'Focus mode left some of the app chrome in place.')
+        const leaveFocus = instance.page.getByRole('button', { name: 'Exit focus mode' })
         await leaveFocus.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
 
-        await instance.page.keyboard.press('Escape')
+        await leaveFocus.click()
+        await waitUntil(chromeBack, 'The exit button did not bring the app back.')
 
-        await waitUntil(
-            async () => await panel.isVisible(),
-            'Escape did not bring the notes list back.'
-        )
+        await focusButton.click()
+        await waitUntil(chromeGone, 'Focus mode did not hide the app a second time.')
+
+        await instance.page.keyboard.press('Escape')
+        await waitUntil(chromeBack, 'Escape did not bring the app back.')
 
         await quit(instance)
     })

@@ -34,21 +34,14 @@ export async function notesHandler(): Promise<NotesStore> {
     ipcMain.handle('notes:create', async (_event, input: unknown) => {
         const options =
             input && typeof input === 'object'
-                ? (input as {
-                      isFavorite?: unknown
-                      tags?: unknown
-                      title?: unknown
-                      body?: unknown
-                  })
+                ? (input as { isFavorite?: unknown; tags?: unknown })
                 : {}
         try {
             return await store.createNote({
                 isFavorite: options.isFavorite === true,
                 tags: Array.isArray(options.tags)
                     ? options.tags.filter((tag): tag is string => typeof tag === 'string')
-                    : [],
-                title: typeof options.title === 'string' ? options.title : undefined,
-                body: typeof options.body === 'string' ? options.body : undefined
+                    : []
             })
         } catch (error) {
             console.error('[notes:create]', error)

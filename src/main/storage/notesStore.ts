@@ -356,29 +356,23 @@ export class NotesStore {
 
     createNote(input?: {
         isFavorite?: boolean
-        isPinned?: boolean
         tags?: string[]
         color?: Note['color']
-        /** A title and body from a template; without them the note is blank. */
-        title?: string
-        body?: string
     }): Promise<Note> {
         return this.enqueue(async () => {
             const timestamp = now()
-            const title = typeof input?.title === 'string' ? input.title : ''
-            const body = typeof input?.body === 'string' ? input.body : ''
             const note: Note = {
                 id: randomUUID(),
-                title,
-                body,
+                title: '',
+                body: '',
                 createdAt: timestamp,
                 lastModified: timestamp,
                 isFavorite: input?.isFavorite === true,
                 isInTrash: false,
-                isPinned: input?.isPinned === true,
+                isPinned: false,
                 tags: uniqueTags(input?.tags),
                 color: isNoteColor(input?.color) ? input.color : null,
-                isDraft: title.trim() === '' && isBlockDocumentEmpty(body)
+                isDraft: true
             }
 
             if (note.tags.length > 0) {

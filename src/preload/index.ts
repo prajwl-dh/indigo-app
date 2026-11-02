@@ -42,8 +42,6 @@ const notesApi = {
         isFavorite?: boolean
         tags?: string[]
         color?: NoteColor | null
-        title?: string
-        body?: string
     }): Promise<Note> => ipcRenderer.invoke('notes:create', input),
     update: (patch: NotePatch): Promise<Note> => ipcRenderer.invoke('notes:update', patch),
     duplicate: (id: string): Promise<Note> => ipcRenderer.invoke('notes:duplicate', id),

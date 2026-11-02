@@ -1,8 +1,7 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
-import { ArrowUpDown, Check, ChevronDown, Expand, Plus, Shrink, Trash2 } from 'lucide-react'
+import { ArrowUpDown, Check, Pin, Plus, Trash2 } from 'lucide-react'
 import { useMemo, useState, type JSX } from 'react'
 import type { Note, NotesView } from '../../../../shared/model/note'
-import { NOTE_TEMPLATES } from '../../../../shared/util/noteTemplates'
 import { countLabel } from '../../lib/format'
 import { viewName } from '../../lib/labels'
 import { useWorkspace } from '../../state/workspace'
@@ -10,24 +9,18 @@ import ConfirmDialog from '../ConfirmDialog'
 import NoteRow from './NoteRow'
 import TasksList from './TasksList'
 
-type NotesPanelProps = {
-    focusMode?: boolean
-    onToggleFocus?: () => void
-}
-
 function inView(note: Note, view: NotesView): boolean {
     if (view === 'trash') return note.isInTrash
     if (view === 'favorites') return !note.isInTrash && note.isFavorite
     return !note.isInTrash
 }
 
-export default function NotesPanel({ focusMode, onToggleFocus }: NotesPanelProps): JSX.Element {
+export default function NotesPanel(): JSX.Element {
     const {
         notes,
         visibleNotes,
         loading,
         error,
-        activeNote,
         view,
         activeTag,
         search,
@@ -128,65 +121,14 @@ export default function NotesPanel({ focusMode, onToggleFocus }: NotesPanelProps
 
                 <div className="notes-head-actions">
                     {!isTasks && (
-                        <div className="new-note-group">
-                            <button
-                                type="button"
-                                className="icon-button new-note-button"
-                                aria-label="New note"
-                                title="New note"
-                                onClick={() => void createNote()}
-                            >
-                                <Plus size={17} />
-                            </button>
-                            <Menu as="div" className="menu-root">
-                                <MenuButton
-                                    type="button"
-                                    className="icon-button new-note-templates-button"
-                                    aria-label="New note from template"
-                                    title="New note from template"
-                                    disabled={view === 'trash'}
-                                >
-                                    <ChevronDown size={13} />
-                                </MenuButton>
-                                <MenuItems
-                                    anchor="bottom start"
-                                    portal
-                                    transition
-                                    className="menu-panel"
-                                >
-                                    {NOTE_TEMPLATES.map((template) => (
-                                        <MenuItem
-                                            as="button"
-                                            className="menu-item menu-item--rich"
-                                            key={template.id}
-                                            onClick={() => void createNote(template.id)}
-                                        >
-                                            <span className="rich-item-text">
-                                                <span className="rich-item-label">
-                                                    {template.label}
-                                                </span>
-                                                <span className="rich-item-description">
-                                                    {template.description}
-                                                </span>
-                                            </span>
-                                        </MenuItem>
-                                    ))}
-                                </MenuItems>
-                            </Menu>
-                        </div>
-                    )}
-
-                    {onToggleFocus && (
                         <button
                             type="button"
                             className="icon-button"
-                            aria-label={focusMode ? 'Leave focus mode' : 'Focus this note'}
-                            aria-pressed={focusMode}
-                            disabled={!activeNote}
-                            title={focusMode ? 'Leave focus mode' : 'Focus this note'}
-                            onClick={onToggleFocus}
+                            aria-label="New note"
+                            title="New note"
+                            onClick={() => void createNote()}
                         >
-                            {focusMode ? <Shrink size={16} /> : <Expand size={16} />}
+                            <Plus size={17} />
                         </button>
                     )}
 
@@ -313,28 +255,30 @@ function NotesList({ notes, query }: { notes: Note[]; query?: string }): JSX.Ele
     const { activeNote, openNote } = useWorkspace()
 
     const showLabels = (query?.length ?? 0) === 0
-    const firstUnpinned = notes.findIndex((note) => !note.isPinned)
-    const sectioned = showLabels && firstUnpinned > 0 && notes.length > firstUnpinned
+    const pinnedCount = showLabels ? notes.filter((note) => note.isPinned).length : 0
+    const hasPinned = pinnedCount > 0
+    const hasRest = pinnedCount < notes.length
 
     return (
         <div className="notes-list" role="listbox" aria-label="Notes">
-            {sectioned && (
+            {hasPinned && (
                 <p className="notes-section-label" role="presentation">
+                    <Pin size={11} fill="currentColor" aria-hidden="true" />
                     Pinned
                 </p>
             )}
             <NoteRows
-                notes={sectioned ? notes.slice(0, firstUnpinned) : notes}
+                notes={hasPinned ? notes.slice(0, pinnedCount) : notes}
                 activeNote={activeNote}
                 onOpen={openNote}
             />
-            {sectioned && (
+            {hasPinned && hasRest && (
                 <>
                     <p className="notes-section-label notes-section-label--gap" role="presentation">
                         Notes
                     </p>
                     <NoteRows
-                        notes={notes.slice(firstUnpinned)}
+                        notes={notes.slice(pinnedCount)}
                         activeNote={activeNote}
                         onOpen={openNote}
                     />

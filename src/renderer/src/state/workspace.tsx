@@ -22,7 +22,6 @@ import type {
 } from '../../../shared/model/note'
 import { extractPlainText, isBlockDocumentEmpty } from '../../../shared/util/noteText'
 import { extractTasks, setTaskChecked, type NoteTask } from '../../../shared/util/noteTasks'
-import { findTemplate } from '../../../shared/util/noteTemplates'
 import { sameTag } from '../../../shared/util/tags'
 import { countLabel } from '../lib/format'
 import { messageFromError } from '../lib/errors'
@@ -52,7 +51,7 @@ type WorkspaceContextValue = {
     openNote: (id: string) => Promise<void>
     /** Closes the note. False when pending edits could not be saved. */
     closeNote: () => Promise<boolean>
-    createNote: (templateId?: string) => Promise<void>
+    createNote: () => Promise<void>
     previewNote: (id: string, patch: Partial<Pick<Note, 'title' | 'body'>>) => void
     updateNote: (patch: NotePatch) => Promise<Note>
     toggleFavorite: (id: string) => Promise<void>
@@ -307,31 +306,25 @@ export function WorkspaceProvider({
         [refreshTaxonomy]
     )
 
-    const createNote = useCallback(
-        async (templateId?: string): Promise<void> => {
-            try {
-                if (!(await saveNow())) return
-                await discardBlankNote(activeNoteId)
-                const favorite = view === 'favorites' && !activeTag
-                const template = findTemplate(templateId)
-                const built = template ? template.build() : null
-                const created = await window.indigo.notes.create({
-                    isFavorite: favorite,
-                    tags: activeTag ? [activeTag] : [],
-                    ...(built ? { title: built.title, body: built.body } : {})
-                })
+    const createNote = useCallback(async (): Promise<void> => {
+        try {
+            if (!(await saveNow())) return
+            await discardBlankNote(activeNoteId)
+            const favorite = view === 'favorites' && !activeTag
+            const created = await window.indigo.notes.create({
+                isFavorite: favorite,
+                tags: activeTag ? [activeTag] : []
+            })
 
-                setNotes((current) => [created, ...current])
-                setSearchState('')
-                setActiveNoteId(created.id)
-                if (view === 'trash') setViewState('all')
-                void refreshTaxonomy()
-            } catch (caught) {
-                pushError(caught, 'Could not create a new note.')
-            }
-        },
-        [activeNoteId, activeTag, discardBlankNote, refreshTaxonomy, saveNow, view, pushError]
-    )
+            setNotes((current) => [created, ...current])
+            setSearchState('')
+            setActiveNoteId(created.id)
+            if (view === 'trash') setViewState('all')
+            void refreshTaxonomy()
+        } catch (caught) {
+            pushError(caught, 'Could not create a new note.')
+        }
+    }, [activeNoteId, activeTag, discardBlankNote, refreshTaxonomy, saveNow, view, pushError])
 
     const toggleFavorite = useCallback(
         async (id: string): Promise<void> => {

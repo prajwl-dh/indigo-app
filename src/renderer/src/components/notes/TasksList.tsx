@@ -12,6 +12,7 @@ export default function TasksList(): JSX.Element {
     const open = tasks.filter((entry) => !entry.task.checked)
     const done = tasks.filter((entry) => entry.task.checked)
     if (tasks.length === 0) return <TasksEmpty />
+    const doneLabel = `notes-section-label${open.length > 0 ? ' notes-section-label--gap' : ''}`
 
     const row = (entry: WorkspaceTask): JSX.Element => {
         const { task, note } = entry
@@ -35,7 +36,7 @@ export default function TasksList(): JSX.Element {
                     title={task.checked ? 'Mark as not done' : 'Mark as done'}
                     onClick={() => void toggleTask(note.id, task.blockId, !task.checked)}
                 />
-                <span className="task-text">{task.text}</span>
+                <span className="task-text">{task.text || 'Untitled task'}</span>
                 <button
                     type="button"
                     className="task-note"
@@ -53,8 +54,8 @@ export default function TasksList(): JSX.Element {
     return (
         <div className="tasks-list" aria-label="Tasks">
             {open.map(row)}
-            {done.length > 0 && open.length > 0 && (
-                <p className="tasks-seen" aria-hidden="true">
+            {done.length > 0 && (
+                <p className={doneLabel} role="presentation">
                     Done
                 </p>
             )}
@@ -70,7 +71,7 @@ function noteTitle(note: WorkspaceTask['note']): string {
 function TasksEmpty(): JSX.Element {
     return (
         <div className="list-empty" role="status">
-            <ListChecks size={22} aria-hidden="true" />
+            <ListChecks className="list-empty-icon" size={22} aria-hidden="true" />
             <h2>No checkboxes yet</h2>
             <p>
                 Make a check list inside any note and its items collect here, ready to tick. Done

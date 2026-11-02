@@ -18,8 +18,7 @@
 - **Pin what matters.** Pinned notes stay at the top of the list under their own heading, survive sorting, and are duplicated unpinned.
 - **Tasks across your library.** Every checklist item in every note shows up in a single Tasks view; tick one there and the note itself is updated on disk. Open items come first, finished ones sink below a done heading.
 - **Export as Markdown.** Turn any note into a `.md` file with ⌘⇧E or the note menu; Indigo converts headings, lists, checklists, quotes, code blocks, and tables, and saves it to your Downloads folder.
-- **Templates for new notes.** The New note button opens a small menu with a blank page, a Journal entry, Meeting notes, and a To-do list, each prefilled with headings and checklist blocks.
-- **Focus mode.** One click folds the notes list away and lets the editor use the full width; it remembers your choice across restarts and Escape brings the list back.
+- **Focus mode.** The Focus button in the note toolbar takes the title bar, sidebar, and notes list away so the page is the whole window. A quiet Exit focus button in the corner or Escape brings everything back.
 - **Trash with a safety net.** Move notes to trash, restore them, or delete them permanently after a confirmation.
 - **Updates from GitHub.** Indigo checks for a newer release on launch, installs it in place on macOS, Windows, and Linux AppImage builds, and restarts without touching your notes.
 - **A reset you can reason about.** Soft reset clears the interface. Hard reset removes only the notes Indigo recognizes, its tags, and its settings; unknown files and backups are left alone.

@@ -4,11 +4,10 @@ import {
     Clipboard,
     Copy,
     Download,
-    Expand,
+    Focus,
     MoreHorizontal,
     Pin,
     RotateCcw,
-    Shrink,
     Star,
     Trash2
 } from 'lucide-react'
@@ -39,8 +38,7 @@ type NoteEditorProps = {
     onBack: () => void
     /** Kept mounted but out of view while a compact search covers the editor. */
     hidden?: boolean
-    /** Focus mode hides the notes list so the page gets the full width. */
-    focusMode?: boolean
+    /** Opens focus mode: the editor alone, without the rest of the app. */
     onToggleFocus?: () => void
 }
 
@@ -55,7 +53,6 @@ export default function NoteEditor({
     isCompact,
     onBack,
     hidden = false,
-    focusMode = false,
     onToggleFocus
 }: NoteEditorProps): JSX.Element {
     const { resolved } = useAppearance()
@@ -324,16 +321,15 @@ export default function NoteEditor({
                 </button>
             )}
 
-            {onToggleFocus && (
+            {onToggleFocus && !note.isInTrash && (
                 <button
                     type="button"
-                    className={`icon-button ${focusMode ? 'is-active' : ''}`}
-                    aria-label={focusMode ? 'Leave focus mode' : 'Focus this note'}
-                    aria-pressed={focusMode}
-                    title={focusMode ? 'Leave focus mode' : 'Focus this note'}
+                    className="icon-button"
+                    aria-label="Focus mode"
+                    title="Focus mode"
                     onClick={onToggleFocus}
                 >
-                    {focusMode ? <Shrink size={16} /> : <Expand size={16} />}
+                    <Focus size={16} />
                 </button>
             )}
 

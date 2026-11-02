@@ -11,13 +11,12 @@ import Sidebar from './Sidebar'
 import TitleBar from './TitleBar'
 import { TitleBarSlotsProvider } from './TitleBarSlots'
 import UpdateNotice from './UpdateNotice'
+import WindowControls from './WindowControls'
 
 type ShellProps = {
     settingsOpen: boolean
     onCloseSettings: () => void
 }
-
-const FOCUS_KEY = 'indigo:focus-mode'
 
 function BootState(): JSX.Element {
     return (
@@ -33,7 +32,7 @@ function BootState(): JSX.Element {
 
 export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JSX.Element {
     const { ready } = useAppearance()
-    const { notes, loading, activeNote, search, closeNote } = useWorkspace()
+    const { notes, loading, activeNote, search, setSearch, closeNote } = useWorkspace()
 
     const isNarrow = useMediaQuery('(max-width: 1023px)')
     const isCompact = useMediaQuery('(max-width: 859px)')
@@ -45,21 +44,21 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
             return false
         }
     })
-    const [focusMode, setFocusMode] = useState(
-        () => window.localStorage.getItem(FOCUS_KEY) === 'true'
-    )
+    // Focus mode is a way of writing in this session, not a preference: the
+    // app always opens with its navigation in place.
+    const [focusMode, setFocusMode] = useState(false)
+
+    const leaveFocus = useCallback((): void => {
+        setFocusMode(false)
+    }, [])
 
     const toggleFocus = useCallback((): void => {
-        setFocusMode((current) => {
-            const next = !current
-            try {
-                window.localStorage.setItem(FOCUS_KEY, String(next))
-            } catch {
-                // Losing the preference is fine; the mode still works.
-            }
-            return next
-        })
-    }, [])
+        setDrawerOpen(false)
+        // On a compact window a search covers the editor; focus mode is for
+        // the page, so the search steps aside with the rest of the chrome.
+        setSearch('')
+        setFocusMode((current) => !current)
+    }, [setSearch])
 
     // Escape is the edit shortcut inside the editor (leaving code blocks, for
     // example), so focus mode only yields to it from the material around the
@@ -75,16 +74,19 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
             }
             event.preventDefault()
             setFocusMode(false)
-            try {
-                window.localStorage.setItem(FOCUS_KEY, 'false')
-            } catch {
-                // The mode has already left.
-            }
         }
 
         window.addEventListener('keydown', onKeyDown)
         return () => window.removeEventListener('keydown', onKeyDown)
     }, [focusMode])
+
+    // A focus session belongs to the note being written; closing it returns
+    // the rest of the app.
+    useEffect(() => {
+        if (!focusMode || activeNote) return
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setFocusMode(false)
+    }, [activeNote, focusMode])
 
     const toggleSidebar = useCallback((): void => {
         // On a narrow window the expanded sidebar is an overlay, so the same
@@ -130,11 +132,36 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
     const editorHidden = isCompact && searching
     const editorVisible = activeNote !== null && !editorHidden
     const booting = !ready || (loading && notes.length === 0)
+    const focusActive = focusMode && activeNote !== null
 
     return (
-        <div className="app-shell">
+        <div className="app-shell" data-focus={focusActive ? 'true' : 'false'}>
             <TitleBarSlotsProvider>
-                <TitleBar isCompact={isCompact} onSearchActivate={() => setDrawerOpen(false)} />
+                <TitleBar
+                    isCompact={isCompact}
+                    onSearchActivate={() => {
+                        setDrawerOpen(false)
+                        setFocusMode(false)
+                    }}
+                />
+
+                {focusActive && (
+                    <div className="focus-bar" data-platform={window.indigo.platform}>
+                        <button
+                            type="button"
+                            className="focus-exit"
+                            aria-label="Exit focus mode"
+                            title="Exit focus mode (Esc)"
+                            onClick={leaveFocus}
+                        >
+                            Exit focus
+                            <kbd className="focus-key" aria-hidden="true">
+                                Esc
+                            </kbd>
+                        </button>
+                        <WindowControls />
+                    </div>
+                )}
 
                 <div className="workspace">
                     {isNarrow && drawerOpen && (
@@ -163,9 +190,9 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
                                 className="panes"
                                 data-compact={isCompact ? 'true' : 'false'}
                                 data-editor={editorVisible ? 'open' : 'closed'}
-                                data-focus={focusMode ? 'true' : 'false'}
+                                data-focus={focusActive ? 'true' : 'false'}
                             >
-                                <NotesPanel focusMode={focusMode} onToggleFocus={toggleFocus} />
+                                <NotesPanel />
 
                                 {activeNote ? (
                                     <NoteEditor
@@ -173,7 +200,6 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
                                         note={activeNote}
                                         isCompact={isCompact}
                                         hidden={editorHidden}
-                                        focusMode={focusMode}
                                         onToggleFocus={toggleFocus}
                                         onBack={() => void closeNote()}
                                     />
