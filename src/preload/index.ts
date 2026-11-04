@@ -4,7 +4,10 @@ import type {
     Note,
     NoteExport,
     NotePatch,
+    NoteTransferFormat,
     Notes,
+    SavedSearch,
+    SavedSearches,
     StorageInfo,
     Tag,
     Tags
@@ -47,8 +50,18 @@ const notesApi = {
     duplicate: (id: string): Promise<Note> => ipcRenderer.invoke('notes:duplicate', id),
     delete: (id: string): Promise<boolean> => ipcRenderer.invoke('notes:delete', id),
     emptyTrash: (): Promise<number> => ipcRenderer.invoke('notes:empty-trash'),
-    /** Writes the note as a Markdown file and returns where it landed. */
-    exportNote: (id: string): Promise<NoteExport> => ipcRenderer.invoke('notes:export', id)
+    /** Writes the note in the chosen format and returns where it landed. */
+    exportNote: (id: string, format: NoteTransferFormat): Promise<NoteExport> =>
+        ipcRenderer.invoke('notes:export', id, format)
+}
+
+const savedSearchesApi = {
+    list: (): Promise<SavedSearches> => ipcRenderer.invoke('saved-searches:list'),
+    create: (name: string, query: string): Promise<SavedSearch> =>
+        ipcRenderer.invoke('saved-searches:create', name, query),
+    rename: (id: string, name: string): Promise<SavedSearch> =>
+        ipcRenderer.invoke('saved-searches:rename', id, name),
+    delete: (id: string): Promise<boolean> => ipcRenderer.invoke('saved-searches:delete', id)
 }
 
 const tagsApi = {
@@ -132,6 +145,7 @@ const indigoApi = {
     app: appApi,
     theme: themeApi,
     notes: notesApi,
+    savedSearches: savedSearchesApi,
     tags: tagsApi,
     storage: storageApi,
     window: windowApi,

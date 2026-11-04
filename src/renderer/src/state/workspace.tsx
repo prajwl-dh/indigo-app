@@ -13,15 +13,26 @@ import type {
     Note,
     NoteExport,
     NotePatch,
+    NoteTransferFormat,
     Notes,
     NotesSort,
     NotesView,
+    SavedSearch,
+    SavedSearches,
     StorageInfo,
     Tag,
     Tags
 } from '../../../shared/model/note'
-import { extractPlainText, isBlockDocumentEmpty } from '../../../shared/util/noteText'
+import { isBlockDocumentEmpty } from '../../../shared/util/noteText'
 import { extractTasks, setTaskChecked, type NoteTask } from '../../../shared/util/noteTasks'
+import { extractNoteLinkIds } from '../../../shared/util/noteLinks'
+import { noteMatchesSearch, parseSearch } from '../../../shared/util/noteSearch'
+import {
+    noteToHTMLFragment,
+    noteToMarkdown,
+    noteToText,
+    transferLabel
+} from '../../../shared/util/noteTransfer'
 import { sameTag } from '../../../shared/util/tags'
 import { countLabel } from '../lib/format'
 import { messageFromError } from '../lib/errors'
@@ -44,10 +55,17 @@ type WorkspaceContextValue = {
     activeTag: string | null
     search: string
     sort: NotesSort
+    savedSearches: SavedSearches
+    activeSavedSearchId: string | null
     setView: (view: NotesView) => Promise<void>
     setActiveTag: (tag: string | null) => Promise<void>
     setSearch: (value: string) => void
     setSort: (sort: NotesSort) => void
+    applySavedSearch: (id: string) => Promise<void>
+    createSavedSearch: (name: string) => Promise<SavedSearch>
+    renameSavedSearch: (id: string, name: string) => Promise<void>
+    deleteSavedSearch: (id: string) => Promise<void>
+    clearSavedSearch: () => void
     openNote: (id: string) => Promise<void>
     /** Closes the note. False when pending edits could not be saved. */
     closeNote: () => Promise<boolean>
@@ -57,8 +75,13 @@ type WorkspaceContextValue = {
     toggleFavorite: (id: string) => Promise<void>
     togglePinned: (id: string) => Promise<void>
     duplicateNote: (id: string) => Promise<void>
-    copyNoteText: (id: string) => Promise<void>
-    exportNote: (id: string) => Promise<void>
+    copyNote: (id: string, format: NoteTransferFormat) => Promise<void>
+    exportNote: (id: string, format: NoteTransferFormat) => Promise<void>
+    bulkUpdate: (ids: string[], patch: Partial<NotePatch>) => Promise<number>
+    bulkMoveToTrash: (ids: string[]) => Promise<void>
+    bulkRestore: (ids: string[]) => Promise<void>
+    bulkDelete: (ids: string[]) => Promise<void>
+    backlinksFor: (id: string) => Note[]
     tasks: WorkspaceTask[]
     toggleTask: (noteId: string, blockId: string, checked: boolean) => Promise<void>
     moveToTrash: (id: string) => Promise<void>
@@ -121,6 +144,8 @@ export function WorkspaceProvider({
     const [activeTag, setActiveTagState] = useState<string | null>(null)
     const [search, setSearchState] = useState('')
     const [sort, setSortState] = useState<NotesSort>('updated')
+    const [savedSearches, setSavedSearches] = useState<SavedSearches>([])
+    const [activeSavedSearchId, setActiveSavedSearchId] = useState<string | null>(null)
 
     const notesRef = useRef(notes)
     const saveHandler = useRef<(() => Promise<boolean>) | null>(null)
@@ -158,13 +183,15 @@ export function WorkspaceProvider({
         }
 
         try {
-            const [nextNotes, info] = await Promise.all([
+            const [nextNotes, info, nextSavedSearches] = await Promise.all([
                 window.indigo.notes.list(),
-                window.indigo.storage.getInfo()
+                window.indigo.storage.getInfo(),
+                window.indigo.savedSearches.list().catch(() => [])
             ])
             setNotes(nextNotes)
             setTags(nextTags)
             setStorage(info)
+            setSavedSearches(nextSavedSearches)
             setError(null)
         } catch (caught) {
             setError(messageFromError(caught, 'Could not read your notes folder.'))
@@ -236,10 +263,18 @@ export function WorkspaceProvider({
             // Never unmount an editor whose latest edit did not reach disk.
             if (!(await saveNow())) return
             await discardBlankNote(activeNoteId)
+
+            const target = notesRef.current.find((note) => note.id === id)
+            if (target?.isInTrash && view !== 'trash') {
+                setViewState('trash')
+                setActiveTagState(null)
+            }
+
             setSearchState('')
+            setActiveSavedSearchId(null)
             setActiveNoteId(id)
         },
-        [activeNoteId, discardBlankNote, saveNow]
+        [activeNoteId, discardBlankNote, saveNow, view]
     )
 
     const closeNote = useCallback(async (): Promise<boolean> => {
@@ -255,6 +290,7 @@ export function WorkspaceProvider({
             await discardBlankNote(activeNoteId)
             setViewState(next)
             setActiveTagState(null)
+            setActiveSavedSearchId(null)
 
             const current = notesRef.current.find((note) => note.id === activeNoteId)
             if (current && !matchesView(current, next)) setActiveNoteId(null)
@@ -268,6 +304,7 @@ export function WorkspaceProvider({
             await discardBlankNote(activeNoteId)
             setActiveNoteId(null)
             setSearchState('')
+            setActiveSavedSearchId(null)
 
             setActiveTagState((current) => {
                 if (tag === null) return null
@@ -281,11 +318,84 @@ export function WorkspaceProvider({
 
     const setSearch = useCallback((value: string): void => {
         setSearchState(value)
+        setActiveSavedSearchId(null)
     }, [])
 
     const setSort = useCallback((value: NotesSort): void => {
         setSortState(value)
     }, [])
+
+    const clearSavedSearch = useCallback((): void => {
+        setSearchState('')
+        setActiveSavedSearchId(null)
+    }, [])
+
+    const applySavedSearch = useCallback(
+        async (id: string): Promise<void> => {
+            const saved = savedSearches.find((entry) => entry.id === id)
+            if (!saved) return
+
+            // Clicking the active saved search again is a gentle way back to
+            // the whole library.
+            if (activeSavedSearchId === id) {
+                clearSavedSearch()
+                return
+            }
+
+            if (!(await saveNow())) return
+            await discardBlankNote(activeNoteId)
+
+            setViewState('all')
+            setActiveTagState(null)
+            setSearchState(saved.query)
+            setActiveSavedSearchId(saved.id)
+        },
+        [
+            activeSavedSearchId,
+            activeNoteId,
+            clearSavedSearch,
+            discardBlankNote,
+            saveNow,
+            savedSearches
+        ]
+    )
+
+    const createSavedSearch = useCallback(
+        async (name: string): Promise<SavedSearch> => {
+            const query = search.trim()
+            if (!query) throw new Error('Search for something first.')
+            const created = await window.indigo.savedSearches.create(name, query)
+            setSavedSearches((current) => [...current, created])
+            setViewState('all')
+            setActiveTagState(null)
+            setSearchState(query)
+            setActiveSavedSearchId(created.id)
+            push(`Saved “${created.name}”.`)
+            return created
+        },
+        [push, search]
+    )
+
+    const renameSavedSearch = useCallback(
+        async (id: string, name: string): Promise<void> => {
+            const renamed = await window.indigo.savedSearches.rename(id, name)
+            setSavedSearches((current) =>
+                current.map((entry) => (entry.id === id ? renamed : entry))
+            )
+            push('Saved search renamed.')
+        },
+        [push]
+    )
+
+    const deleteSavedSearch = useCallback(
+        async (id: string): Promise<void> => {
+            await window.indigo.savedSearches.delete(id)
+            setSavedSearches((current) => current.filter((entry) => entry.id !== id))
+            setActiveSavedSearchId((current) => (current === id ? null : current))
+            push('Saved search deleted.')
+        },
+        [push]
+    )
 
     const previewNote = useCallback(
         (id: string, patch: Partial<Pick<Note, 'title' | 'body'>>): void => {
@@ -318,6 +428,7 @@ export function WorkspaceProvider({
 
             setNotes((current) => [created, ...current])
             setSearchState('')
+            setActiveSavedSearchId(null)
             setActiveNoteId(created.id)
             if (view === 'trash') setViewState('all')
             void refreshTaxonomy()
@@ -363,6 +474,7 @@ export function WorkspaceProvider({
                 setNotes((current) => [duplicate, ...current])
                 setActiveNoteId(duplicate.id)
                 setSearchState('')
+                setActiveSavedSearchId(null)
                 setViewState('all')
                 setActiveTagState(null)
                 push('Note duplicated.')
@@ -373,38 +485,190 @@ export function WorkspaceProvider({
         [saveNow, push, pushError]
     )
 
-    const copyNoteText = useCallback(
-        async (id: string): Promise<void> => {
-            const note = notesRef.current.find((entry) => entry.id === id)
-            if (!note) return
-
-            const body = extractPlainText(note.body)
-            const text = [note.title.trim(), body].filter(Boolean).join('\n\n')
-
+    const copyNote = useCallback(
+        async (id: string, format: NoteTransferFormat): Promise<void> => {
             try {
-                await navigator.clipboard.writeText(text)
-                push(text ? 'Note copied as text.' : 'Nothing to copy yet.')
+                // Copy reads the document, not the in-memory draft, so a copy
+                // taken right after typing still contains the last keystrokes.
+                if (notesRef.current.find((entry) => entry.id === id)) {
+                    if (!(await saveNow())) return
+                }
+                const note = await window.indigo.notes.get(id)
+                if (!note) return
+
+                const text = noteToText(note)
+                const payload =
+                    format === 'markdown'
+                        ? noteToMarkdown(note)
+                        : format === 'html'
+                          ? noteToHTMLFragment(note)
+                          : text
+
+                if (!payload.trim()) {
+                    push('Nothing to copy yet.')
+                    return
+                }
+
+                if (
+                    format === 'html' &&
+                    typeof ClipboardItem !== 'undefined' &&
+                    navigator.clipboard.write
+                ) {
+                    await navigator.clipboard.write([
+                        new ClipboardItem({
+                            'text/html': new Blob([payload], { type: 'text/html' }),
+                            'text/plain': new Blob([text], { type: 'text/plain' })
+                        })
+                    ])
+                } else {
+                    await navigator.clipboard.writeText(payload)
+                }
+                push(`Note copied as ${transferLabel(format)}.`)
             } catch (caught) {
                 pushError(caught, 'Could not copy this note.')
             }
         },
-        [push, pushError]
+        [push, pushError, saveNow]
     )
 
     const exportNote = useCallback(
-        async (id: string): Promise<void> => {
+        async (id: string, format: NoteTransferFormat): Promise<void> => {
             try {
                 // Export reads the note from disk; make the last edit real first.
                 if (notesRef.current.find((entry) => entry.id === id)) {
                     if (!(await saveNow())) return
                 }
-                const result: NoteExport = await window.indigo.notes.exportNote(id)
+                const result: NoteExport = await window.indigo.notes.exportNote(id, format)
                 push(`“${result.filename}” is in your downloads folder.`)
             } catch (caught) {
                 pushError(caught, 'Could not export that note.')
             }
         },
         [saveNow, push, pushError]
+    )
+
+    const bulkUpdate = useCallback(
+        async (ids: string[], patch: Partial<NotePatch>): Promise<number> => {
+            if (ids.length === 0) return 0
+            if (!(await saveNow())) return 0
+
+            let updated = 0
+            let firstError: unknown = null
+
+            for (const id of ids) {
+                try {
+                    const next = await window.indigo.notes.update({ ...patch, id })
+                    setNotes((current) => current.map((note) => (note.id === id ? next : note)))
+                    updated += 1
+                } catch (caught) {
+                    firstError ??= caught
+                }
+            }
+
+            if (patch.tags !== undefined) void refreshTaxonomy()
+            if (updated > 0) push(`${countLabel(updated, 'note')} updated.`)
+            if (firstError) pushError(firstError, 'Some notes could not be updated.')
+            return updated
+        },
+        [push, pushError, refreshTaxonomy, saveNow]
+    )
+
+    const bulkMoveToTrash = useCallback(
+        async (ids: string[]): Promise<void> => {
+            if (ids.length === 0) return
+            if (!(await saveNow())) return
+            if (activeNoteId && ids.includes(activeNoteId)) {
+                if (!(await closeNote())) return
+            }
+
+            let moved = 0
+            let removed = 0
+            let firstError: unknown = null
+
+            for (const id of ids) {
+                try {
+                    const current = await window.indigo.notes.get(id)
+                    if (!current) continue
+
+                    if (isBlankNote(current)) {
+                        await window.indigo.notes.delete(id)
+                        setNotes((notes) => notes.filter((note) => note.id !== id))
+                        removed += 1
+                        continue
+                    }
+
+                    const next = await window.indigo.notes.update({
+                        id,
+                        isInTrash: true,
+                        isFavorite: false
+                    })
+                    setNotes((notes) => notes.map((note) => (note.id === id ? next : note)))
+                    moved += 1
+                } catch (caught) {
+                    firstError ??= caught
+                }
+            }
+
+            const parts: string[] = []
+            if (moved > 0) parts.push(`${countLabel(moved, 'note')} moved to trash`)
+            if (removed > 0) parts.push(`${countLabel(removed, 'empty draft')} discarded`)
+            push(parts.length > 0 ? `${parts.join('; ')}.` : 'Nothing to move.')
+            if (firstError) pushError(firstError, 'Some notes could not be moved.')
+        },
+        [activeNoteId, closeNote, push, pushError, saveNow]
+    )
+
+    const bulkRestore = useCallback(
+        async (ids: string[]): Promise<void> => {
+            if (ids.length === 0) return
+            if (!(await saveNow())) return
+
+            let restored = 0
+            let firstError: unknown = null
+
+            for (const id of ids) {
+                try {
+                    const next = await window.indigo.notes.update({ id, isInTrash: false })
+                    setNotes((notes) => notes.map((note) => (note.id === id ? next : note)))
+                    restored += 1
+                } catch (caught) {
+                    firstError ??= caught
+                }
+            }
+
+            if (restored > 0) {
+                setViewState('all')
+                setActiveTagState(null)
+                setActiveSavedSearchId(null)
+                push(`${countLabel(restored, 'note')} restored.`)
+            }
+            if (firstError) pushError(firstError, 'Some notes could not be restored.')
+        },
+        [push, pushError, saveNow]
+    )
+
+    const bulkDelete = useCallback(
+        async (ids: string[]): Promise<void> => {
+            if (ids.length === 0) return
+
+            let deleted = 0
+            let firstError: unknown = null
+
+            for (const id of ids) {
+                try {
+                    await window.indigo.notes.delete(id)
+                    setNotes((notes) => notes.filter((note) => note.id !== id))
+                    setActiveNoteId((current) => (current === id ? null : current))
+                    deleted += 1
+                } catch (caught) {
+                    firstError ??= caught
+                }
+            }
+
+            if (deleted > 0) push(`${countLabel(deleted, 'note')} deleted permanently.`)
+            if (firstError) pushError(firstError, 'Some notes could not be deleted.')
+        },
+        [push, pushError]
     )
 
     const toggleTask = useCallback(
@@ -484,6 +748,7 @@ export function WorkspaceProvider({
                 setViewState('all')
                 setActiveTagState(null)
                 setSearchState('')
+                setActiveSavedSearchId(null)
                 setActiveNoteId(id)
                 push('Note restored to all notes.')
             } catch (caught) {
@@ -566,19 +831,15 @@ export function WorkspaceProvider({
     )
 
     const visibleNotes = useMemo(() => {
-        const query = search.trim().toLowerCase()
+        const parsed = parseSearch(search)
         let pool = notes.filter((note) => matchesView(note, view))
 
         if (activeTag) {
             pool = pool.filter((note) => note.tags.some((tag) => sameTag(tag, activeTag)))
         }
 
-        if (query) {
-            pool = pool.filter((note) => {
-                if (note.title.toLowerCase().includes(query)) return true
-                if (note.tags.some((tag) => tag.toLowerCase().includes(query))) return true
-                return extractPlainText(note.body).toLowerCase().includes(query)
-            })
+        if (parsed.conditions.length > 0) {
+            pool = pool.filter((note) => noteMatchesSearch(note, parsed))
         }
 
         const byOrder = sort === 'title' ? byTitle : byLastModified
@@ -590,6 +851,34 @@ export function WorkspaceProvider({
             return byOrder(a, b)
         })
     }, [notes, view, activeTag, search, sort])
+
+    /**
+     * Backlinks are derived from the saved documents, not stored twice. A note
+     * that links to a shared page cannot get out of step with the link itself.
+     */
+    const backlinksByNote = useMemo(() => {
+        const map = new Map<string, Note[]>()
+
+        for (const note of notes) {
+            if (note.isInTrash) continue
+            for (const targetId of extractNoteLinkIds(note.body)) {
+                const list = map.get(targetId)
+                if (!list) {
+                    map.set(targetId, [note])
+                } else if (!list.some((entry) => entry.id === note.id)) {
+                    list.push(note)
+                }
+            }
+        }
+
+        for (const list of map.values()) list.sort(byLastModified)
+        return map
+    }, [notes])
+
+    const backlinksFor = useCallback(
+        (id: string): Note[] => backlinksByNote.get(id) ?? [],
+        [backlinksByNote]
+    )
 
     /**
      * Every checkbox in the library in one list. Notes go newest first so a
@@ -630,11 +919,18 @@ export function WorkspaceProvider({
             activeTag,
             search,
             sort,
+            savedSearches,
+            activeSavedSearchId,
             tasks,
             setView,
             setActiveTag,
             setSearch,
             setSort,
+            applySavedSearch,
+            createSavedSearch,
+            renameSavedSearch,
+            deleteSavedSearch,
+            clearSavedSearch,
             openNote,
             closeNote,
             createNote,
@@ -643,8 +939,13 @@ export function WorkspaceProvider({
             toggleFavorite,
             togglePinned,
             duplicateNote,
-            copyNoteText,
+            copyNote,
             exportNote,
+            bulkUpdate,
+            bulkMoveToTrash,
+            bulkRestore,
+            bulkDelete,
+            backlinksFor,
             toggleTask,
             moveToTrash,
             restoreNote,
@@ -671,11 +972,18 @@ export function WorkspaceProvider({
             activeTag,
             search,
             sort,
+            savedSearches,
+            activeSavedSearchId,
             tasks,
             setView,
             setActiveTag,
             setSearch,
             setSort,
+            applySavedSearch,
+            createSavedSearch,
+            renameSavedSearch,
+            deleteSavedSearch,
+            clearSavedSearch,
             openNote,
             closeNote,
             createNote,
@@ -684,8 +992,13 @@ export function WorkspaceProvider({
             toggleFavorite,
             togglePinned,
             duplicateNote,
-            copyNoteText,
+            copyNote,
             exportNote,
+            bulkUpdate,
+            bulkMoveToTrash,
+            bulkRestore,
+            bulkDelete,
+            backlinksFor,
             toggleTask,
             moveToTrash,
             restoreNote,

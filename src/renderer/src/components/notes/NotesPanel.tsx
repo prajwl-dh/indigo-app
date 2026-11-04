@@ -1,5 +1,5 @@
-import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
-import { ArrowUpDown, Check, Pin, Plus, Trash2 } from 'lucide-react'
+import { Menu, MenuButton, MenuItem, MenuItems, MenuSeparator } from '@headlessui/react'
+import { ArrowUpDown, Check, ListChecks, Pin, Plus, RotateCcw, Star, Trash2, X } from 'lucide-react'
 import { useMemo, useState, type JSX } from 'react'
 import type { Note, NotesView } from '../../../../shared/model/note'
 import { countLabel } from '../../lib/format'
@@ -25,6 +25,8 @@ export default function NotesPanel(): JSX.Element {
         activeTag,
         search,
         sort,
+        savedSearches,
+        activeSavedSearchId,
         tasks,
         setSort,
         setView,
@@ -32,12 +34,89 @@ export default function NotesPanel(): JSX.Element {
         setActiveTag,
         createNote,
         emptyTrash,
+        bulkUpdate,
+        bulkMoveToTrash,
+        bulkRestore,
+        bulkDelete,
         refresh
     } = useWorkspace()
     const [confirmEmpty, setConfirmEmpty] = useState(false)
+    const [confirmBulkDelete, setConfirmBulkDelete] = useState(false)
+    const [selectionMode, setSelectionMode] = useState(false)
+    const [selectedIds, setSelectedIds] = useState<string[]>([])
+    const [lastSelectedId, setLastSelectedId] = useState<string | null>(null)
     const isTasks = view === 'tasks'
 
     const openTasks = useMemo(() => tasks.filter((entry) => !entry.task.checked).length, [tasks])
+
+    // A selection belongs to the list it was made in. Changing the view, the
+    // tag, or the search starts a new list, so the old checkboxes go away.
+    // Adjusting during render is React's recommended way to reset state when
+    // a prop or query changes, without a second render pass.
+    const selectionContext = `${view}\u0000${activeTag ?? ''}\u0000${search}\u0000${
+        activeSavedSearchId ?? ''
+    }`
+    const [selectionContextKey, setSelectionContextKey] = useState(selectionContext)
+
+    if (selectionContextKey !== selectionContext) {
+        setSelectionContextKey(selectionContext)
+        setSelectionMode(false)
+        setSelectedIds([])
+        setLastSelectedId(null)
+    }
+
+    // Notes can disappear underneath a selection (deleted in the editor, or
+    // by another action). The list only ever acts on rows that still exist.
+    const liveSelectedIds = useMemo(
+        () => selectedIds.filter((id) => notes.some((note) => note.id === id)),
+        [notes, selectedIds]
+    )
+
+    const toggleSelectionMode = (): void => {
+        setSelectionMode((current) => {
+            if (current) setSelectedIds([])
+            return !current
+        })
+        setLastSelectedId(null)
+    }
+
+    const toggleSelected = (id: string, shiftKey = false): void => {
+        const order = visibleNotes.map((note) => note.id)
+        setSelectedIds((current) => {
+            let next: string[]
+
+            if (shiftKey && lastSelectedId) {
+                const from = order.indexOf(lastSelectedId)
+                const to = order.indexOf(id)
+                if (from !== -1 && to !== -1) {
+                    const [start, end] = from < to ? [from, to] : [to, from]
+                    next = Array.from(new Set([...current, ...order.slice(start, end + 1)]))
+                } else {
+                    next = current.includes(id)
+                        ? current.filter((entry) => entry !== id)
+                        : [...current, id]
+                }
+            } else {
+                next = current.includes(id)
+                    ? current.filter((entry) => entry !== id)
+                    : [...current, id]
+            }
+
+            return next
+        })
+        setLastSelectedId(id)
+    }
+
+    const selectAllVisible = (): void => {
+        setSelectedIds(visibleNotes.map((note) => note.id))
+        setLastSelectedId(null)
+    }
+
+    const runBulk = async (action: () => Promise<unknown>): Promise<void> => {
+        await action()
+        setSelectedIds([])
+        setLastSelectedId(null)
+    }
 
     const baseCount = useMemo(
         () =>
@@ -50,8 +129,14 @@ export default function NotesPanel(): JSX.Element {
         [activeTag, notes, view]
     )
 
-    const heading = activeTag ?? viewName(view)
+    const activeSavedSearch = savedSearches.find((entry) => entry.id === activeSavedSearchId)
+    const heading = activeTag ?? activeSavedSearch?.name ?? viewName(view)
     const query = search.trim()
+
+    const selectedNotes = visibleNotes.filter((note) => liveSelectedIds.includes(note.id))
+    const allSelected = visibleNotes.length > 0 && liveSelectedIds.length === visibleNotes.length
+    const allFavorite = selectedNotes.length > 0 && selectedNotes.every((note) => note.isFavorite)
+    const allPinned = selectedNotes.length > 0 && selectedNotes.every((note) => note.isPinned)
 
     const subtitle =
         loading && notes.length === 0
@@ -123,6 +208,19 @@ export default function NotesPanel(): JSX.Element {
                     {!isTasks && (
                         <button
                             type="button"
+                            className={`icon-button ${selectionMode ? 'is-active' : ''}`}
+                            aria-label={selectionMode ? 'Exit selection' : 'Select notes'}
+                            aria-pressed={selectionMode}
+                            title={selectionMode ? 'Exit selection' : 'Select notes'}
+                            onClick={toggleSelectionMode}
+                        >
+                            {selectionMode ? <X size={17} /> : <ListChecks size={17} />}
+                        </button>
+                    )}
+
+                    {!isTasks && (
+                        <button
+                            type="button"
                             className="icon-button"
                             aria-label="New note"
                             title="New note"
@@ -177,6 +275,99 @@ export default function NotesPanel(): JSX.Element {
                 </div>
             </header>
 
+            {selectionMode && !isTasks && (
+                <div className="bulk-bar" role="toolbar" aria-label="Bulk actions">
+                    <span className="bulk-count">
+                        {liveSelectedIds.length > 0
+                            ? `${liveSelectedIds.length} selected`
+                            : 'Select notes'}
+                    </span>
+
+                    <button
+                        type="button"
+                        className="bulk-link"
+                        onClick={allSelected ? () => setSelectedIds([]) : selectAllVisible}
+                    >
+                        {allSelected ? 'Clear' : 'Select all'}
+                    </button>
+
+                    {liveSelectedIds.length > 0 && (
+                        <Menu as="div" className="menu-root bulk-menu">
+                            <MenuButton
+                                type="button"
+                                className="button button--secondary button--small bulk-action-button"
+                            >
+                                Actions
+                            </MenuButton>
+                            <MenuItems anchor="bottom end" portal transition className="menu-panel">
+                                <MenuItem
+                                    as="button"
+                                    className="menu-item"
+                                    onClick={() =>
+                                        void runBulk(() =>
+                                            bulkUpdate(liveSelectedIds, {
+                                                isFavorite: !allFavorite
+                                            })
+                                        )
+                                    }
+                                >
+                                    <Star size={14} fill={allFavorite ? 'currentColor' : 'none'} />
+                                    {allFavorite ? 'Remove from favorites' : 'Add to favorites'}
+                                </MenuItem>
+                                <MenuItem
+                                    as="button"
+                                    className="menu-item"
+                                    onClick={() =>
+                                        void runBulk(() =>
+                                            bulkUpdate(liveSelectedIds, { isPinned: !allPinned })
+                                        )
+                                    }
+                                >
+                                    <Pin size={14} fill={allPinned ? 'currentColor' : 'none'} />
+                                    {allPinned ? 'Unpin notes' : 'Pin notes'}
+                                </MenuItem>
+
+                                <MenuSeparator className="menu-separator" />
+
+                                {view === 'trash' ? (
+                                    <>
+                                        <MenuItem
+                                            as="button"
+                                            className="menu-item"
+                                            onClick={() =>
+                                                void runBulk(() => bulkRestore(liveSelectedIds))
+                                            }
+                                        >
+                                            <RotateCcw size={14} />
+                                            Restore notes
+                                        </MenuItem>
+                                        <MenuItem
+                                            as="button"
+                                            className="menu-item menu-item--danger"
+                                            onClick={() => setConfirmBulkDelete(true)}
+                                        >
+                                            <Trash2 size={14} />
+                                            Delete permanently
+                                        </MenuItem>
+                                    </>
+                                ) : (
+                                    <MenuItem
+                                        as="button"
+                                        className="menu-item menu-item--danger"
+                                        onClick={() =>
+                                            void runBulk(() => bulkMoveToTrash(liveSelectedIds))
+                                        }
+                                    >
+                                        <Trash2 size={14} />
+                                        Move to trash
+                                    </MenuItem>
+                                )}
+                            </MenuItems>
+                        </Menu>
+                    )}
+                </div>
+            )}
+
             {error && (
                 <div className="panel-error" role="alert">
                     <div>
@@ -202,7 +393,13 @@ export default function NotesPanel(): JSX.Element {
                     ))}
                 </div>
             ) : visibleNotes.length > 0 ? (
-                <NotesList notes={visibleNotes} query={query} />
+                <NotesList
+                    notes={visibleNotes}
+                    query={query}
+                    selectionMode={selectionMode}
+                    selectedIds={liveSelectedIds}
+                    onToggleSelect={toggleSelected}
+                />
             ) : (
                 <div className="list-empty" role="status">
                     <h2>{empty.title}</h2>
@@ -243,6 +440,22 @@ export default function NotesPanel(): JSX.Element {
                     await emptyTrash()
                 }}
             />
+
+            <ConfirmDialog
+                open={confirmBulkDelete}
+                title={
+                    liveSelectedIds.length === 1
+                        ? 'Delete this note permanently?'
+                        : `Delete ${countLabel(liveSelectedIds.length, 'note')} permanently?`
+                }
+                description="They will be removed from this computer. This cannot be undone."
+                confirmLabel="Delete permanently"
+                tone="danger"
+                onClose={() => setConfirmBulkDelete(false)}
+                onConfirm={async () => {
+                    await runBulk(() => bulkDelete(liveSelectedIds))
+                }}
+            />
         </aside>
     )
 }
@@ -251,7 +464,19 @@ export default function NotesPanel(): JSX.Element {
  * A search is a question, not a filing act: section labels only matter when
  * the reader opened a view, so they disappear while searching.
  */
-function NotesList({ notes, query }: { notes: Note[]; query?: string }): JSX.Element {
+function NotesList({
+    notes,
+    query,
+    selectionMode,
+    selectedIds,
+    onToggleSelect
+}: {
+    notes: Note[]
+    query?: string
+    selectionMode: boolean
+    selectedIds: string[]
+    onToggleSelect: (id: string, shiftKey?: boolean) => void
+}): JSX.Element {
     const { activeNote, openNote } = useWorkspace()
 
     const showLabels = (query?.length ?? 0) === 0
@@ -260,7 +485,12 @@ function NotesList({ notes, query }: { notes: Note[]; query?: string }): JSX.Ele
     const hasRest = pinnedCount < notes.length
 
     return (
-        <div className="notes-list" role="listbox" aria-label="Notes">
+        <div
+            className="notes-list"
+            role="listbox"
+            aria-label="Notes"
+            aria-multiselectable={selectionMode}
+        >
             {hasPinned && (
                 <p className="notes-section-label" role="presentation">
                     <Pin size={11} fill="currentColor" aria-hidden="true" />
@@ -271,6 +501,9 @@ function NotesList({ notes, query }: { notes: Note[]; query?: string }): JSX.Ele
                 notes={hasPinned ? notes.slice(0, pinnedCount) : notes}
                 activeNote={activeNote}
                 onOpen={openNote}
+                selectionMode={selectionMode}
+                selectedIds={selectedIds}
+                onToggleSelect={onToggleSelect}
             />
             {hasPinned && hasRest && (
                 <>
@@ -281,6 +514,9 @@ function NotesList({ notes, query }: { notes: Note[]; query?: string }): JSX.Ele
                         notes={notes.slice(pinnedCount)}
                         activeNote={activeNote}
                         onOpen={openNote}
+                        selectionMode={selectionMode}
+                        selectedIds={selectedIds}
+                        onToggleSelect={onToggleSelect}
                     />
                 </>
             )}
@@ -291,11 +527,17 @@ function NotesList({ notes, query }: { notes: Note[]; query?: string }): JSX.Ele
 function NoteRows({
     notes,
     activeNote,
-    onOpen
+    onOpen,
+    selectionMode,
+    selectedIds,
+    onToggleSelect
 }: {
     notes: Note[]
     activeNote: Note | null
     onOpen: (id: string) => void
+    selectionMode: boolean
+    selectedIds: string[]
+    onToggleSelect: (id: string, shiftKey?: boolean) => void
 }): JSX.Element {
     return (
         <>
@@ -305,6 +547,9 @@ function NoteRows({
                     note={note}
                     isActive={activeNote?.id === note.id}
                     onOpen={() => void onOpen(note.id)}
+                    selectionMode={selectionMode}
+                    selected={selectedIds.includes(note.id)}
+                    onToggleSelect={(shiftKey) => onToggleSelect(note.id, shiftKey)}
                 />
             ))}
         </>

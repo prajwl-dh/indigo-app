@@ -1,5 +1,6 @@
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/react'
 import {
+    Bookmark,
     FileText,
     ListChecks,
     MoreHorizontal,
@@ -15,10 +16,12 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import type { Note, NotesView } from '../../../shared/model/note'
+import { noteMatchesSearch, parseSearch } from '../../../shared/util/noteSearch'
 import { sameTag } from '../../../shared/util/tags'
 import { useToast } from '../state/toast'
 import { useWorkspace } from '../state/workspace'
 import ConfirmDialog from './ConfirmDialog'
+import SavedSearchDialog from './SavedSearchDialog'
 import TagDialog from './TagDialog'
 
 type SidebarProps = {
@@ -27,6 +30,7 @@ type SidebarProps = {
     collapsed: boolean
     onToggleCollapsed: () => void
     onClose: () => void
+    onOpenPalette: () => void
 }
 
 type NavItem = {
@@ -45,7 +49,8 @@ export default function Sidebar({
     open,
     collapsed,
     onToggleCollapsed,
-    onClose
+    onClose,
+    onOpenPalette
 }: SidebarProps): JSX.Element {
     const {
         notes,
@@ -53,8 +58,15 @@ export default function Sidebar({
         tasks,
         view,
         activeTag,
+        search,
+        savedSearches,
+        activeSavedSearchId,
         setView,
         setActiveTag,
+        applySavedSearch,
+        createSavedSearch,
+        renameSavedSearch,
+        deleteSavedSearch,
         closeNote,
         createTag,
         renameTag,
@@ -68,6 +80,10 @@ export default function Sidebar({
     const [deletingTag, setDeletingTag] = useState<string | null>(null)
     const [tagQuery, setTagQuery] = useState('')
     const tagListRef = useRef<HTMLDivElement>(null)
+
+    const [savedDialog, setSavedDialog] = useState<'create' | 'rename' | null>(null)
+    const [editingSavedSearch, setEditingSavedSearch] = useState('')
+    const [deletingSavedSearch, setDeletingSavedSearch] = useState<string | null>(null)
 
     const navItems = useMemo<NavItem[]>(() => {
         const all = countFor(notes, (note) => !note.isInTrash)
@@ -132,6 +148,18 @@ export default function Sidebar({
         return counts
     }, [notes, tags])
 
+    const savedSearchCounts = useMemo(() => {
+        const counts = new Map<string, number>()
+        for (const saved of savedSearches) {
+            const parsed = parseSearch(saved.query)
+            counts.set(
+                saved.id,
+                notes.filter((note) => !note.isInTrash && noteMatchesSearch(note, parsed)).length
+            )
+        }
+        return counts
+    }, [notes, savedSearches])
+
     useEffect(() => {
         if (!overlay || !open) return
 
@@ -153,6 +181,20 @@ export default function Sidebar({
     const selectTag = (name: string): void => {
         onClose()
         void setActiveTag(name)
+    }
+
+    const selectSavedSearch = (id: string): void => {
+        onClose()
+        void applySavedSearch(id)
+    }
+
+    const openSavedSearchCreate = (): void => {
+        if (!search.trim()) {
+            push('Type a search first, then save it as a view.')
+            return
+        }
+        setEditingSavedSearch('')
+        setSavedDialog('create')
     }
 
     const submitTag = async (name: string): Promise<void> => {
@@ -352,9 +394,125 @@ export default function Sidebar({
                             </p>
                         )}
                     </div>
+
+                    <div
+                        className="nav-group nav-group--saved"
+                        data-empty={savedSearches.length === 0 ? 'true' : 'false'}
+                    >
+                        <div className="nav-group-head">
+                            <p className="nav-group-label">Saved searches</p>
+                            <button
+                                type="button"
+                                className="nav-add"
+                                aria-label="Save this search"
+                                title={
+                                    search.trim()
+                                        ? 'Save this search as a view'
+                                        : 'Type a search first, then save it'
+                                }
+                                disabled={!search.trim()}
+                                onClick={openSavedSearchCreate}
+                            >
+                                <Plus size={14} />
+                            </button>
+                        </div>
+
+                        {savedSearches.length > 0 ? (
+                            <div className="saved-search-list">
+                                {savedSearches.map((saved) => {
+                                    const selected = activeSavedSearchId === saved.id
+                                    return (
+                                        <div
+                                            className="saved-search-row"
+                                            key={saved.id}
+                                            data-active={selected ? 'true' : 'false'}
+                                        >
+                                            <button
+                                                type="button"
+                                                className="nav-item saved-search-item"
+                                                data-active={selected ? 'true' : 'false'}
+                                                aria-current={selected ? 'page' : undefined}
+                                                aria-label={`Saved search ${saved.name}`}
+                                                title={`${saved.name} — ${saved.query}`}
+                                                onClick={() => selectSavedSearch(saved.id)}
+                                            >
+                                                <span className="nav-icon">
+                                                    <Bookmark size={15} />
+                                                </span>
+                                                <span className="nav-label">{saved.name}</span>
+                                                <span className="nav-count">
+                                                    {savedSearchCounts.get(saved.id) ?? 0}
+                                                </span>
+                                            </button>
+
+                                            <Menu as="div" className="menu-root saved-search-menu">
+                                                <MenuButton
+                                                    type="button"
+                                                    className="icon-button icon-button--small saved-search-menu-button"
+                                                    aria-label={`Manage saved search ${saved.name}`}
+                                                    title={`Manage ${saved.name}`}
+                                                >
+                                                    <MoreHorizontal size={14} />
+                                                </MenuButton>
+                                                <MenuItems
+                                                    anchor="right start"
+                                                    portal
+                                                    transition
+                                                    className="menu-panel menu-panel--small"
+                                                >
+                                                    <MenuItem
+                                                        as="button"
+                                                        className="menu-item"
+                                                        onClick={() => {
+                                                            setEditingSavedSearch(saved.id)
+                                                            setSavedDialog('rename')
+                                                        }}
+                                                    >
+                                                        <Pencil size={14} />
+                                                        Rename search
+                                                    </MenuItem>
+                                                    <MenuItem
+                                                        as="button"
+                                                        className="menu-item menu-item--danger"
+                                                        onClick={() =>
+                                                            setDeletingSavedSearch(saved.id)
+                                                        }
+                                                    >
+                                                        <Trash2 size={14} />
+                                                        Delete search
+                                                    </MenuItem>
+                                                </MenuItems>
+                                            </Menu>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        ) : (
+                            <p className="saved-search-empty">
+                                Search for something, then save it here.
+                            </p>
+                        )}
+                    </div>
                 </nav>
 
                 <footer className="sidebar-foot">
+                    <button
+                        type="button"
+                        className="nav-item nav-item--quiet"
+                        aria-label="Quick switcher"
+                        title="Quick switcher"
+                        onClick={() => {
+                            onClose()
+                            onOpenPalette()
+                        }}
+                    >
+                        <span className="nav-icon">
+                            <Search size={16} />
+                        </span>
+                        <span className="nav-label">Quick switcher</span>
+                        <kbd className="nav-key">⌘P</kbd>
+                    </button>
+
                     <button
                         type="button"
                         className="nav-item nav-item--quiet"
@@ -384,6 +542,52 @@ export default function Sidebar({
                     setEditingTag('')
                 }}
                 onSubmit={submitTag}
+            />
+
+            <SavedSearchDialog
+                key={
+                    savedDialog === null
+                        ? 'closed'
+                        : `${savedDialog}:${editingSavedSearch}:${search}`
+                }
+                open={savedDialog !== null}
+                mode={savedDialog === 'rename' ? 'rename' : 'create'}
+                initialName={
+                    savedDialog === 'rename'
+                        ? (savedSearches.find((entry) => entry.id === editingSavedSearch)?.name ??
+                          '')
+                        : ''
+                }
+                query={
+                    savedDialog === 'rename'
+                        ? (savedSearches.find((entry) => entry.id === editingSavedSearch)?.query ??
+                          search)
+                        : search
+                }
+                onClose={() => {
+                    setSavedDialog(null)
+                    setEditingSavedSearch('')
+                }}
+                onSubmit={async (name) => {
+                    if (savedDialog === 'rename') {
+                        await renameSavedSearch(editingSavedSearch, name)
+                        return
+                    }
+                    await createSavedSearch(name)
+                }}
+            />
+
+            <ConfirmDialog
+                open={deletingSavedSearch !== null}
+                title="Delete this saved search?"
+                description="The view leaves the sidebar. Your notes and the search itself are untouched."
+                confirmLabel="Delete search"
+                tone="danger"
+                onClose={() => setDeletingSavedSearch(null)}
+                onConfirm={async () => {
+                    if (!deletingSavedSearch) return
+                    await deleteSavedSearch(deletingSavedSearch)
+                }}
             />
 
             <ConfirmDialog

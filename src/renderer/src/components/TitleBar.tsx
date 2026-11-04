@@ -1,3 +1,4 @@
+import { Popover, PopoverButton, PopoverPanel } from '@headlessui/react'
 import {
     useCallback,
     useEffect,
@@ -5,7 +6,8 @@ import {
     type JSX,
     type KeyboardEvent as ReactKeyboardEvent
 } from 'react'
-import { Search, X } from 'lucide-react'
+import { CircleHelp, Search, X } from 'lucide-react'
+import { SEARCH_OPERATOR_HELP } from '../../../shared/util/noteSearch'
 import WindowControls from './WindowControls'
 import { useTitleBarSlots } from './titleBarSlotContext'
 import { shortcutKey } from '../lib/platform'
@@ -55,7 +57,7 @@ export default function TitleBar({ isCompact, onSearchActivate }: TitleBarProps)
                 push('Open a note first, then export it.')
                 return
             }
-            void exportNote(activeNote.id)
+            void exportNote(activeNote.id, 'markdown')
         })
 
         return () => {
@@ -159,6 +161,35 @@ export default function TitleBar({ isCompact, onSearchActivate }: TitleBarProps)
                             <span>{shortcutKey}</span>K
                         </kbd>
                     )}
+
+                    <Popover className="menu-root search-help">
+                        <PopoverButton
+                            type="button"
+                            className="search-help-button"
+                            aria-label="Search operators"
+                            title="Search operators"
+                        >
+                            <CircleHelp size={13} />
+                        </PopoverButton>
+                        <PopoverPanel
+                            anchor="bottom end"
+                            portal
+                            transition
+                            className="menu-panel search-help-panel"
+                        >
+                            <p className="search-help-title">Search operators</p>
+                            <dl className="search-help-list">
+                                {SEARCH_OPERATOR_HELP.map((item) => (
+                                    <div className="search-help-row" key={item.syntax}>
+                                        <dt>
+                                            <code>{item.syntax}</code>
+                                        </dt>
+                                        <dd>{item.description}</dd>
+                                    </div>
+                                ))}
+                            </dl>
+                        </PopoverPanel>
+                    </Popover>
                 </div>
             </div>
 

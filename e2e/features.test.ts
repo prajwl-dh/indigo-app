@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 const ROOT = process.cwd()
 const OPEN_TIMEOUT_MS = 30_000
+const MOD = process.platform === 'darwin' ? 'Meta' : 'Control'
 
 type RunningApp = {
     app: ElectronApplication
@@ -92,6 +93,44 @@ async function createNote(page: Page, title: string, body: string): Promise<void
     const editor = page.locator('.note-body .bn-editor').first()
     await editor.click()
     await page.keyboard.type(body)
+}
+
+function paragraphBody(value: string): string {
+    return JSON.stringify([
+        {
+            type: 'paragraph',
+            props: { textAlignment: 'left' },
+            content: [{ type: 'text', text: value, styles: {} }],
+            children: []
+        }
+    ])
+}
+
+/**
+ * Writes a note straight through the bridge. Search, saved views, and
+ * backlinks all read saved documents, so this keeps their setup independent
+ * of typing speed.
+ */
+async function seedNote(
+    page: Page,
+    input: {
+        title: string
+        body?: string
+        tags?: string[]
+        isFavorite?: boolean
+    }
+): Promise<void> {
+    await page.evaluate(async (payload) => {
+        type Bridge = {
+            notes: {
+                create: (input?: Record<string, never>) => Promise<{ id: string }>
+                update: (patch: { id: string } & Record<string, unknown>) => Promise<unknown>
+            }
+        }
+        const indigo = (window as unknown as { indigo: Bridge }).indigo
+        const note = await indigo.notes.create()
+        await indigo.notes.update({ id: note.id, ...payload })
+    }, input)
 }
 
 async function waitForSavedNote(
@@ -275,7 +314,13 @@ describe('export as Markdown', () => {
         await createNote(instance.page, 'Exported wonder', 'Some prose worth keeping')
 
         await openRowMenu(instance.page, 'Exported wonder')
-        await instance.page.getByRole('menuitem', { name: 'Export as Markdown' }).click()
+        await instance.page.getByRole('menuitem', { name: 'Export…' }).click()
+
+        const dialog = instance.page
+            .locator('.dialog-panel')
+            .filter({ hasText: 'Export note' })
+        await dialog.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        await dialog.getByRole('button', { name: /Markdown/ }).click()
 
         await instance.page
             .getByText('is in your downloads folder')
@@ -328,6 +373,288 @@ describe('focus mode', () => {
 
         await instance.page.keyboard.press('Escape')
         await waitUntil(chromeBack, 'Escape did not bring the app back.')
+
+        await quit(instance)
+    })
+})
+
+describe('quick switcher', () => {
+    it('opens with the keyboard and jumps to a matching note', async () => {
+        const instance = await launch()
+        await createNote(instance.page, 'Alpha note', 'Written first')
+        await createNote(instance.page, 'Beta note', 'Written second')
+
+        await instance.page.keyboard.press(`${MOD}+P`)
+
+        const palette = instance.page.locator('.palette-panel')
+        await palette.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+
+        const input = palette.getByLabel('Find a note or run a command')
+        await input.fill('Beta')
+
+        const option = palette.getByRole('option', { name: /Beta note/ })
+        await option.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        await option.click()
+
+        await waitUntil(
+            async () => (await instance.page.getByLabel('Note title').inputValue()) === 'Beta note',
+            'The quick switcher did not open the chosen note.'
+        )
+
+        await quit(instance)
+    })
+})
+
+describe('search operators and saved searches', () => {
+    it('filters with operators and keeps the query as a view', async () => {
+        const instance = await launch()
+        await seedNote(instance.page, {
+            title: 'Garden plan',
+            body: paragraphBody('Tomatoes and basil'),
+            tags: ['home']
+        })
+        await seedNote(instance.page, {
+            title: 'Work log',
+            body: paragraphBody('Meetings and tomatoes'),
+            tags: ['work'],
+            isFavorite: true
+        })
+        await seedNote(instance.page, {
+            title: 'Reading list',
+            body: paragraphBody('Paper books'),
+            tags: []
+        })
+
+        await instance.page.reload()
+        await instance.page
+            .getByRole('button', { name: 'New note' })
+            .first()
+            .waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+
+        const search = instance.page.getByLabel('Search notes')
+        const titles = async (): Promise<string[]> =>
+            instance.page.locator('.note-row-title').allTextContents()
+
+        await search.fill('tag:work')
+        await waitUntil(async () => {
+            const current = await titles()
+            return current.length === 1 && current[0] === 'Work log'
+        }, 'tag: did not narrow the library to tagged notes.')
+
+        await search.fill('is:favorite')
+        await waitUntil(async () => {
+            const current = await titles()
+            return current.length === 1 && current[0] === 'Work log'
+        }, 'is:favorite did not filter to the starred note.')
+
+        await search.fill('has:tag -tag:work')
+        await waitUntil(async () => {
+            const current = await titles()
+            return current.length === 1 && current[0] === 'Garden plan'
+        }, 'Combined operators did not AND and negate as documented.')
+
+        await instance.page.getByRole('button', { name: 'Search operators' }).click()
+        await instance.page
+            .getByText('tag:travel', { exact: true })
+            .waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        await instance.page.keyboard.press('Escape')
+
+        await search.fill('tag:work')
+        await instance.page.getByRole('button', { name: 'Save this search' }).click()
+
+        const dialog = instance.page
+            .locator('.dialog-panel')
+            .filter({ hasText: 'Save this search' })
+        await dialog.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        await dialog.getByLabel('Name').fill('Work notes')
+        await dialog.getByRole('button', { name: 'Save search' }).click()
+
+        const saved = instance.page.getByRole('button', {
+            name: 'Saved search Work notes',
+            exact: true
+        })
+        await saved.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+
+        await instance.page.getByRole('button', { name: 'Clear search' }).click()
+        await waitUntil(
+            async () => (await titles()).length === 3,
+            'Clearing the search did not restore every note.'
+        )
+
+        await saved.click()
+        await waitUntil(async () => {
+            const value = await search.inputValue()
+            const current = await titles()
+            return value === 'tag:work' && current.length === 1 && current[0] === 'Work log'
+        }, 'The saved search did not restore its query.')
+
+        await quit(instance)
+
+        const second = await launch(instance)
+        const restored = second.page.getByRole('button', {
+            name: 'Saved search Work notes',
+            exact: true
+        })
+        await restored.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        await restored.click()
+
+        await waitUntil(
+            async () => (await second.page.getByLabel('Search notes').inputValue()) === 'tag:work',
+            'The saved search did not survive a relaunch.'
+        )
+
+        await quit(second)
+    })
+})
+
+describe('copy formats', () => {
+    it('copies Markdown from the note menu', async () => {
+        const instance = await launch()
+        await createNote(instance.page, 'Copied note', 'Some words worth keeping')
+
+        await openRowMenu(instance.page, 'Copied note')
+        await instance.page.getByRole('menuitem', { name: 'Copy…' }).click()
+
+        const dialog = instance.page.locator('.dialog-panel').filter({ hasText: 'Copy note' })
+        await dialog.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        await dialog.getByRole('button', { name: /Markdown/ }).click()
+
+        await instance.page
+            .getByText('Note copied as Markdown.')
+            .waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+
+        const clipboardText = await instance.app.evaluate(({ clipboard }) =>
+            clipboard.readText()
+        )
+        expect(clipboardText).toContain('# Copied note')
+        expect(clipboardText).toContain('Some words worth keeping')
+
+        await quit(instance)
+    })
+})
+
+describe('find and replace', () => {
+    it('finds every match and replaces them together', async () => {
+        const instance = await launch()
+        await createNote(instance.page, 'Findable', 'The quiet paper and the quiet ink.')
+
+        await instance.page.keyboard.press(`${MOD}+F`)
+
+        const findInput = instance.page.getByRole('textbox', { name: 'Find in note' })
+        await findInput.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        await findInput.fill('quiet')
+
+        await waitUntil(async () => {
+            const status = await instance.page.locator('.find-status').textContent()
+            return status === '1 of 2'
+        }, 'The find bar did not count both matches.')
+
+        await instance.page.getByLabel('Replace with').fill('calm')
+        await instance.page.getByRole('button', { name: 'Replace all' }).click()
+
+        await waitUntil(async () => {
+            const status = await instance.page.locator('.find-status').textContent()
+            return status === 'No matches'
+        }, 'Replacing every match left the old query in the document.')
+
+        await waitUntil(async () => {
+            const notes = await readNotes(instance.dataDirectory)
+            const saved = notes.find((note) => note.title === 'Findable')
+            return saved ? String(saved.body).includes('calm paper') : false
+        }, 'The replacement never reached the note on disk.')
+
+        await instance.page.getByRole('button', { name: 'Close find' }).click()
+        await quit(instance)
+    })
+})
+
+describe('multi-select', () => {
+    it('favourites and trashes several notes at once', async () => {
+        const instance = await launch()
+        await createNote(instance.page, 'First note', 'One')
+        await createNote(instance.page, 'Second note', 'Two')
+        await createNote(instance.page, 'Third note', 'Three')
+
+        await instance.page.getByRole('button', { name: 'Select notes' }).click()
+
+        const bulk = instance.page.getByRole('toolbar', { name: 'Bulk actions' })
+        await bulk.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+
+        await instance.page.locator('.note-row', { hasText: 'First note' }).click()
+        await instance.page.locator('.note-row', { hasText: 'Second note' }).click()
+
+        await waitUntil(
+            async () => (await bulk.locator('.bulk-count').textContent()) === '2 selected',
+            'The bulk bar did not reflect the selected rows.'
+        )
+
+        await bulk.getByRole('button', { name: 'Actions' }).click()
+        await instance.page.getByRole('menuitem', { name: 'Add to favorites' }).click()
+
+        await waitUntil(async () => {
+            const notes = await readNotes(instance.dataDirectory)
+            return ['First note', 'Second note'].every(
+                (title) => notes.find((note) => note.title === title)?.isFavorite === true
+            )
+        }, 'Bulk favouriting never reached the notes on disk.')
+
+        await bulk.getByRole('button', { name: 'Select all' }).click()
+        await waitUntil(
+            async () => (await bulk.locator('.bulk-count').textContent()) === '3 selected',
+            'Select all did not select every visible note.'
+        )
+
+        await bulk.getByRole('button', { name: 'Actions' }).click()
+        await instance.page.getByRole('menuitem', { name: 'Move to trash' }).click()
+
+        await waitUntil(
+            async () => (await instance.page.locator('.note-row').count()) === 0,
+            'Trashed notes stayed in the main list.'
+        )
+
+        await instance.page.getByRole('button', { name: 'Trash' }).first().click()
+        await waitUntil(
+            async () => (await instance.page.locator('.note-row').count()) === 3,
+            'The trashed notes did not appear in the trash view.'
+        )
+
+        await quit(instance)
+    })
+})
+
+describe('wiki links and backlinks', () => {
+    it('links a note with [[ and lists the linking note', async () => {
+        const instance = await launch()
+        await createNote(instance.page, 'Target note', 'The destination')
+        await createNote(instance.page, 'Source note', 'See this:')
+
+        const editor = instance.page.locator('.note-body .bn-editor').first()
+        await editor.click()
+        await instance.page.keyboard.type(' [[Target')
+
+        const option = instance.page
+            .locator('.bn-suggestion-menu-item', { hasText: 'Target note' })
+            .first()
+        await option.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        await option.click()
+
+        await waitUntil(async () => {
+            const notes = await readNotes(instance.dataDirectory)
+            const source = notes.find((note) => note.title === 'Source note')
+            return source ? String(source.body).includes('indigo:note/') : false
+        }, 'The wiki link never reached the source note on disk.')
+
+        await instance.page
+            .locator('.note-row', {
+                has: instance.page.locator('.note-row-title', { hasText: /^Target note$/ })
+            })
+            .click()
+        await instance.page
+            .locator('.backlinks')
+            .waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+
+        const linking = await instance.page.locator('.backlink-title').allTextContents()
+        expect(linking).toContain('Source note')
 
         await quit(instance)
     })

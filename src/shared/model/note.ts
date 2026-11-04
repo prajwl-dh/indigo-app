@@ -38,6 +38,18 @@ export type NotesView = 'all' | 'favorites' | 'tasks' | 'trash'
 
 export type NotesSort = 'updated' | 'title'
 
+/** A search query kept under a name in the sidebar. */
+export type SavedSearch = {
+    id: string
+    name: string
+    query: string
+    createdAt: string
+}
+
+export type SavedSearches = SavedSearch[]
+
+export type NoteTransferFormat = 'text' | 'markdown' | 'html'
+
 export type StorageFileIssue = {
     file: string
     reason: 'unreadable' | 'not-a-note'
