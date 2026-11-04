@@ -1,6 +1,8 @@
 import { Menu, MenuButton, MenuItem, MenuItems, MenuSeparator } from '@headlessui/react'
 import {
     ArrowLeft,
+    ChevronDown,
+    ChevronUp,
     Clipboard,
     Copy,
     Download,
@@ -8,13 +10,15 @@ import {
     MoreHorizontal,
     Pin,
     RotateCcw,
+    Search,
     Star,
-    Trash2
+    Trash2,
+    X
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type JSX } from 'react'
 import { createPortal } from 'react-dom'
 import TextareaAutosize from 'react-textarea-autosize'
-import type { Note } from '../../../../shared/model/note'
+import type { Note, NoteTransferFormat } from '../../../../shared/model/note'
 import { getNoteColor, type NoteColor } from '../../../../shared/model/noteColor'
 import {
     countWords,
@@ -22,7 +26,13 @@ import {
     isBlockDocumentEmpty,
     titleFromBody
 } from '../../../../shared/util/noteText'
-import { countLabel, formatExactTime, formatRelativeTime, noteTitle } from '../../lib/format'
+import {
+    countLabel,
+    formatExactTime,
+    formatRelativeTime,
+    noteExcerpt,
+    noteTitle
+} from '../../lib/format'
 import { useAppearance } from '../../state/appearance'
 import { useToast } from '../../state/toast'
 import { useWorkspace } from '../../state/workspace'
@@ -30,6 +40,7 @@ import { useTitleBarSlots } from '../titleBarSlotContext'
 import BlockEditor, { type BlockEditorHandle } from './BlockEditor'
 import NoteColorMenu from './NoteColorMenu'
 import ConfirmDialog from '../ConfirmDialog'
+import TransferDialog from '../TransferDialog'
 import TagPicker from './TagPicker'
 
 type NoteEditorProps = {
@@ -66,8 +77,10 @@ export default function NoteEditor({
         toggleFavorite,
         togglePinned,
         duplicateNote,
-        copyNoteText,
+        copyNote,
         exportNote,
+        backlinksFor,
+        openNote,
         moveToTrash,
         restoreNote,
         deleteNote
@@ -77,10 +90,18 @@ export default function NoteEditor({
     const [wordCount, setWordCount] = useState(() => countWords(extractPlainText(note.body)))
     const [saveState, setSaveState] = useState<SaveState>('saved')
     const [confirmDelete, setConfirmDelete] = useState(false)
+    const [transfer, setTransfer] = useState<'copy' | 'export' | null>(null)
+    const [findOpen, setFindOpen] = useState(false)
+    const [findQuery, setFindQuery] = useState('')
+    const [replaceValue, setReplaceValue] = useState('')
+    const [findCase, setFindCase] = useState(false)
+    const [findCount, setFindCount] = useState(0)
+    const [findIndex, setFindIndex] = useState(0)
     const { actions: actionsSlot, back: backSlot } = useTitleBarSlots()
 
     const titleInput = useRef<HTMLTextAreaElement>(null)
     const blockEditor = useRef<BlockEditorHandle>(null)
+    const findInput = useRef<HTMLInputElement>(null)
 
     const titleValue = useRef(note.title)
     const bodyValue = useRef(note.body)
@@ -264,6 +285,104 @@ export default function NoteEditor({
         }
     }
 
+    const applyFindResult = (result: { count: number; index: number } | undefined): void => {
+        if (!result) return
+        setFindCount(result.count)
+        setFindIndex(result.index)
+    }
+
+    const runFind = (query: string, caseSensitive = findCase): void => {
+        applyFindResult(blockEditor.current?.find(query, caseSensitive))
+    }
+
+    const openFind = (): void => {
+        setFindOpen(true)
+        window.requestAnimationFrame(() => {
+            findInput.current?.focus()
+            findInput.current?.select()
+            runFind(findQuery)
+        })
+    }
+
+    const closeFind = useCallback((): void => {
+        setFindOpen(false)
+        setFindCount(0)
+        setFindIndex(0)
+        blockEditor.current?.clearFind()
+    }, [])
+
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent): void => {
+            if (!(event.metaKey || event.ctrlKey)) return
+            if (event.shiftKey || event.altKey) return
+            if (event.key.toLowerCase() !== 'f') return
+            if (document.querySelector('.palette-panel, .dialog-panel')) return
+            event.preventDefault()
+            openFind()
+        }
+
+        window.addEventListener('keydown', onKeyDown)
+        return () => window.removeEventListener('keydown', onKeyDown)
+        // The handler needs the latest query and case, so it is rebuilt with
+        // them rather than reading stale state.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [findQuery, findCase])
+
+    useEffect(() => {
+        if (!findOpen) return
+
+        const onKeyDown = (event: KeyboardEvent): void => {
+            if (event.key !== 'Escape') return
+            event.preventDefault()
+            closeFind()
+        }
+
+        window.addEventListener('keydown', onKeyDown)
+        return () => window.removeEventListener('keydown', onKeyDown)
+    }, [closeFind, findOpen])
+
+    const changeFindQuery = (next: string): void => {
+        setFindQuery(next)
+        runFind(next)
+    }
+
+    const toggleFindCase = (): void => {
+        const next = !findCase
+        setFindCase(next)
+        runFind(findQuery, next)
+    }
+
+    const findNext = (backwards = false): void => {
+        applyFindResult(
+            backwards ? blockEditor.current?.findPrevious() : blockEditor.current?.findNext()
+        )
+    }
+
+    const replaceCurrent = (): void => {
+        applyFindResult(blockEditor.current?.replaceCurrent(replaceValue))
+    }
+
+    const replaceAll = (): void => {
+        applyFindResult(blockEditor.current?.replaceAll(replaceValue))
+    }
+
+    const chooseTransfer = async (format: NoteTransferFormat): Promise<void> => {
+        if (transfer === 'copy') {
+            await copyNote(note.id, format)
+            return
+        }
+        await exportNote(note.id, format)
+    }
+
+    const backlinks = backlinksFor(note.id)
+
+    const findStatus =
+        findQuery.trim().length === 0
+            ? ''
+            : findCount === 0
+              ? 'No matches'
+              : `${findIndex + 1} of ${findCount}`
+
     const colorValue = note.color ? getNoteColor(note.color)[resolved] : null
 
     const handleDelete = async (): Promise<void> => {
@@ -391,18 +510,18 @@ export default function NoteEditor({
                             <MenuItem
                                 as="button"
                                 className="menu-item"
-                                onClick={() => void copyNoteText(note.id)}
+                                onClick={() => setTransfer('copy')}
                             >
                                 <Clipboard size={14} />
-                                Copy as text
+                                Copy…
                             </MenuItem>
                             <MenuItem
                                 as="button"
                                 className="menu-item"
-                                onClick={() => void exportNote(note.id)}
+                                onClick={() => setTransfer('export')}
                             >
                                 <Download size={14} />
-                                Export as Markdown
+                                Export…
                             </MenuItem>
                             <MenuSeparator className="menu-separator" />
                             <MenuItem
@@ -441,6 +560,119 @@ export default function NoteEditor({
                     </button>,
                     backSlot
                 )}
+
+            {findOpen && (
+                <div className="find-bar" role="search" aria-label="Find in note">
+                    <div className="find-row">
+                        <Search size={14} className="find-icon" aria-hidden="true" />
+                        <input
+                            ref={findInput}
+                            className="find-input"
+                            type="text"
+                            value={findQuery}
+                            placeholder="Find in note"
+                            aria-label="Find in note"
+                            autoComplete="off"
+                            spellCheck={false}
+                            onChange={(event) => changeFindQuery(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter') {
+                                    event.preventDefault()
+                                    findNext(event.shiftKey)
+                                }
+                                if (event.key === 'Escape') {
+                                    event.preventDefault()
+                                    closeFind()
+                                }
+                            }}
+                        />
+                        <span className="find-status" aria-live="polite">
+                            {findStatus}
+                        </span>
+                        <button
+                            type="button"
+                            className="icon-button icon-button--small find-step"
+                            aria-label="Previous match"
+                            title="Previous match (Shift+Enter)"
+                            disabled={findCount === 0}
+                            onClick={() => findNext(true)}
+                        >
+                            <ChevronUp size={15} />
+                        </button>
+                        <button
+                            type="button"
+                            className="icon-button icon-button--small find-step"
+                            aria-label="Next match"
+                            title="Next match (Enter)"
+                            disabled={findCount === 0}
+                            onClick={() => findNext(false)}
+                        >
+                            <ChevronDown size={15} />
+                        </button>
+                        <button
+                            type="button"
+                            className="find-case"
+                            aria-label="Match case"
+                            aria-pressed={findCase}
+                            title="Match case"
+                            data-active={findCase ? 'true' : 'false'}
+                            onClick={toggleFindCase}
+                        >
+                            Aa
+                        </button>
+                        <button
+                            type="button"
+                            className="icon-button icon-button--small find-close"
+                            aria-label="Close find"
+                            title="Close find (Esc)"
+                            onClick={closeFind}
+                        >
+                            <X size={15} />
+                        </button>
+                    </div>
+
+                    {!note.isInTrash && (
+                        <div className="find-row find-row--replace">
+                            <input
+                                className="find-input"
+                                type="text"
+                                value={replaceValue}
+                                placeholder="Replace with"
+                                aria-label="Replace with"
+                                autoComplete="off"
+                                spellCheck={false}
+                                onChange={(event) => setReplaceValue(event.target.value)}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                        event.preventDefault()
+                                        replaceCurrent()
+                                    }
+                                    if (event.key === 'Escape') {
+                                        event.preventDefault()
+                                        closeFind()
+                                    }
+                                }}
+                            />
+                            <button
+                                type="button"
+                                className="button button--secondary button--small"
+                                disabled={findCount === 0}
+                                onClick={replaceCurrent}
+                            >
+                                Replace
+                            </button>
+                            <button
+                                type="button"
+                                className="button button--secondary button--small"
+                                disabled={findCount === 0}
+                                onClick={replaceAll}
+                            >
+                                Replace all
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
 
             <div className="editor-scroll">
                 <div className="editor-page">
@@ -522,8 +754,46 @@ export default function NoteEditor({
                             onChange={changeBody}
                         />
                     </div>
+
+                    {!note.isInTrash && backlinks.length > 0 && (
+                        <section className="backlinks" aria-label="Backlinks">
+                            <h2 className="backlinks-title">Linked from</h2>
+                            <ul className="backlinks-list">
+                                {backlinks.map((linkingNote) => (
+                                    <li key={linkingNote.id}>
+                                        <button
+                                            type="button"
+                                            className="backlink"
+                                            onClick={() => void openNote(linkingNote.id)}
+                                        >
+                                            <span className="backlink-title">
+                                                {noteTitle(linkingNote)}
+                                            </span>
+                                            <span className="backlink-excerpt">
+                                                {noteExcerpt(linkingNote, 110) || 'No text yet'}
+                                            </span>
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </section>
+                    )}
+
+                    {!note.isInTrash && (
+                        <p className="editor-hint">
+                            Type <code>[[</code> to link another note.
+                        </p>
+                    )}
                 </div>
             </div>
+
+            <TransferDialog
+                open={transfer !== null}
+                mode={transfer ?? 'copy'}
+                noteTitle={noteTitle(note)}
+                onClose={() => setTransfer(null)}
+                onChoose={chooseTransfer}
+            />
 
             <ConfirmDialog
                 open={confirmDelete}

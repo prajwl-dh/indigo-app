@@ -3,6 +3,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useAppearance } from '../state/appearance'
 import { useWorkspace } from '../state/workspace'
 import BrandMark from './BrandMark'
+import CommandPalette from './CommandPalette'
 import EmptyCanvas from './EmptyCanvas'
 import NoteEditor from './editor/NoteEditor'
 import NotesPanel from './notes/NotesPanel'
@@ -37,6 +38,7 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
     const isNarrow = useMediaQuery('(max-width: 1023px)')
     const isCompact = useMediaQuery('(max-width: 859px)')
     const [drawerOpen, setDrawerOpen] = useState(false)
+    const [paletteOpen, setPaletteOpen] = useState(false)
     const [collapsed, setCollapsed] = useState(() => {
         try {
             return window.localStorage.getItem('indigo:sidebar-collapsed') === 'true'
@@ -87,6 +89,19 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setFocusMode(false)
     }, [activeNote, focusMode])
+
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent): void => {
+            if (!(event.metaKey || event.ctrlKey)) return
+            if (event.shiftKey || event.altKey) return
+            if (event.key.toLowerCase() !== 'p') return
+            event.preventDefault()
+            setPaletteOpen(true)
+        }
+
+        window.addEventListener('keydown', onKeyDown)
+        return () => window.removeEventListener('keydown', onKeyDown)
+    }, [])
 
     const toggleSidebar = useCallback((): void => {
         // On a narrow window the expanded sidebar is an overlay, so the same
@@ -180,6 +195,10 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
                         collapsed={isNarrow ? !drawerOpen : collapsed}
                         onToggleCollapsed={toggleSidebar}
                         onClose={() => setDrawerOpen(false)}
+                        onOpenPalette={() => {
+                            setDrawerOpen(false)
+                            setPaletteOpen(true)
+                        }}
                     />
 
                     <main className="workspace-main">
@@ -214,6 +233,7 @@ export default function Shell({ settingsOpen, onCloseSettings }: ShellProps): JS
 
             {!settingsOpen && <UpdateNotice />}
             <SettingsDialog open={settingsOpen} onClose={onCloseSettings} />
+            {paletteOpen && <CommandPalette open onClose={() => setPaletteOpen(false)} />}
         </div>
     )
 }
