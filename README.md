@@ -23,13 +23,36 @@ Indigo is a desktop notes app for macOS, Windows, and Linux. Notes are plain JSO
 - **Focus mode.** The page alone, with a quiet way back.
 - **Autosave you can trust.** Atomic writes, a short debounce, and save handshakes before switching notes, quitting, or installing an update.
 
-## Install
+## Installation Guide
 
-Download the latest build from [Releases](https://github.com/prajwl-dh/indigo-app/releases).
+### macOS (.dmg)
 
-- **macOS:** open the `.dmg` and drag Indigo to Applications. The app is unsigned, so run `xattr -cr /Applications/Indigo.app` once if macOS blocks it.
-- **Windows:** run the `.exe` installer. If SmartScreen appears, choose **More info → Run anyway**.
-- **Linux:** make the `.AppImage` executable (`chmod +x Indigo*.AppImage`) and run it.
+Indigo is not signed with an Apple Developer certificate, so macOS may block it the first time.
+
+1. Download the `.dmg` for your Mac: **Apple Silicon** for M-series chips or **Intel** for older Macs.
+2. Open the downloaded file and drag **Indigo** into **Applications**.
+3. Open **Terminal** and run:
+
+    ```bash
+    xattr -cr /Applications/Indigo.app
+    ```
+
+4. Open Indigo from Applications. This is a one-time step.
+
+### Windows (.exe)
+
+The installer is not code-signed, so Windows SmartScreen may show a warning.
+
+1. Download the `.exe` installer.
+2. Run the installer.
+3. If **Windows protected your PC** appears, choose **More info**, then **Run anyway**.
+4. Finish the installation wizard.
+
+### Linux (.AppImage)
+
+1. Download the `.AppImage` for **x64** or **ARM64**.
+2. Make it executable: right-click → **Properties** → **Permissions** → **Allow executing file as program**.
+3. Double-click the file to run it.
 
 ## Your data
 
@@ -64,13 +87,3 @@ npm run test:e2e   # builds, then launches Electron
 ```
 
 The end-to-end suite uses a temporary `INDIGO_DATA_DIR`, so it never touches your real library. On Linux it needs a display (CI uses `xvfb-run`).
-
-## Releases
-
-`main` only accepts pull requests. To ship a version:
-
-1. Bump `version` in `package.json` and commit it with the change.
-2. Open the pull request and wait for the `verify-indigo` checks.
-3. Merge. The `release-indigo` workflow repeats the checks, builds macOS (arm64 and x64), Windows, and Linux (x64 and arm64), and publishes a GitHub release tagged `v<version>`.
-
-If a release run fails after packaging, use **Re-run failed jobs** rather than merging again.
