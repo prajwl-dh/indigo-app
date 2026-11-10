@@ -323,14 +323,27 @@ describe('tasks view', () => {
 
         // The note name is gone; the row itself opens the note.
         expect(await instance.page.locator('.task-note').count()).toBe(0)
-        const checkCursor = await milkRow
-            .locator('.task-check')
-            .evaluate((element) => getComputedStyle(element).cursor)
-        expect(checkCursor).toBe('pointer')
-        const textCursor = await milkRow
-            .locator('.task-text')
-            .evaluate((element) => getComputedStyle(element).cursor)
-        expect(textCursor).toBe('default')
+
+        // Ticking re-sorts the list, so the row is briefly replaced. Read the
+        // cursors with a retry rather than from a possibly detached node.
+        await expect
+            .poll(
+                () =>
+                    milkRow
+                        .locator('.task-check')
+                        .evaluate((element) => getComputedStyle(element).cursor),
+                { timeout: OPEN_TIMEOUT_MS }
+            )
+            .toBe('pointer')
+        await expect
+            .poll(
+                () =>
+                    milkRow
+                        .locator('.task-text')
+                        .evaluate((element) => getComputedStyle(element).cursor),
+                { timeout: OPEN_TIMEOUT_MS }
+            )
+            .toBe('default')
 
         await milkRow.locator('.task-text').click()
         await waitUntil(
