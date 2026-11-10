@@ -12,7 +12,7 @@ export type Note = {
     color: NoteColor | null
     /**
      * Pinned notes sit above everything else in their view. Like the note's
-     * colour, pinning is an organisational act, not a content edit, so it
+     * color, pinning is an organisational act, not a content edit, so it
      * never changes the "Edited …" timestamp.
      */
     isPinned?: boolean

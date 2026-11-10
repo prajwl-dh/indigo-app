@@ -19,8 +19,8 @@ export default function NoteColorMenu({ color, onChange }: NoteColorMenuProps): 
             <MenuButton
                 type="button"
                 className="icon-button color-button"
-                aria-label={active ? `Note colour: ${active.label}` : 'Choose a note colour'}
-                title="Note colour"
+                aria-label={active ? `Note color: ${active.label}` : 'Choose a note color'}
+                title="Note color"
             >
                 <Palette size={16} />
                 <span
@@ -34,10 +34,10 @@ export default function NoteColorMenu({ color, onChange }: NoteColorMenuProps): 
             </MenuButton>
             <MenuItems anchor="bottom end" portal transition className="menu-panel color-panel">
                 <div className="color-panel-head">
-                    <span className="color-panel-title">Note colour</span>
+                    <span className="color-panel-title">Note color</span>
                     <span className="color-panel-value">{active ? active.label : 'None'}</span>
                 </div>
-                <div className="color-swatches" role="group" aria-label="Note colour">
+                <div className="color-swatches" role="group" aria-label="Note color">
                     {noteColors.map((entry) => {
                         const selected = color === entry.id
                         return (
@@ -70,7 +70,7 @@ export default function NoteColorMenu({ color, onChange }: NoteColorMenuProps): 
                     onClick={() => onChange(null)}
                 >
                     <Ban size={14} />
-                    No colour
+                    No color
                     {color === null && <Check size={13} className="color-none-check" />}
                 </MenuItem>
             </MenuItems>

@@ -43,6 +43,16 @@ export type WorkspaceTask = {
     task: NoteTask
 }
 
+/** A block the editor should scroll to once its note is on screen. */
+export type RevealTarget = {
+    noteId: string
+    blockId: string
+    nonce: number
+}
+
+/** Toggles a task inside the open editor so the note does not have to close. */
+type TaskToggleHandler = (noteId: string, blockId: string, checked: boolean) => boolean
+
 type WorkspaceContextValue = {
     notes: Notes
     visibleNotes: Notes
@@ -66,7 +76,11 @@ type WorkspaceContextValue = {
     renameSavedSearch: (id: string, name: string) => Promise<void>
     deleteSavedSearch: (id: string) => Promise<void>
     clearSavedSearch: () => void
-    openNote: (id: string) => Promise<void>
+    openNote: (id: string) => Promise<boolean>
+    /** Opens the note, then asks the editor to scroll a block into view. */
+    revealBlock: (noteId: string, blockId: string) => Promise<void>
+    revealTarget: RevealTarget | null
+    clearReveal: (nonce: number) => void
     /** Closes the note. False when pending edits could not be saved. */
     closeNote: () => Promise<boolean>
     createNote: () => Promise<void>
@@ -84,6 +98,7 @@ type WorkspaceContextValue = {
     backlinksFor: (id: string) => Note[]
     tasks: WorkspaceTask[]
     toggleTask: (noteId: string, blockId: string, checked: boolean) => Promise<void>
+    setTaskToggleHandler: (handler: TaskToggleHandler | null) => void
     moveToTrash: (id: string) => Promise<void>
     restoreNote: (id: string) => Promise<void>
     deleteNote: (id: string) => Promise<void>
@@ -146,9 +161,12 @@ export function WorkspaceProvider({
     const [sort, setSortState] = useState<NotesSort>('updated')
     const [savedSearches, setSavedSearches] = useState<SavedSearches>([])
     const [activeSavedSearchId, setActiveSavedSearchId] = useState<string | null>(null)
+    const [revealTarget, setRevealTarget] = useState<RevealTarget | null>(null)
+    const revealNonce = useRef(0)
 
     const notesRef = useRef(notes)
     const saveHandler = useRef<(() => Promise<boolean>) | null>(null)
+    const taskToggleHandler = useRef<TaskToggleHandler | null>(null)
 
     useEffect(() => {
         notesRef.current = notes
@@ -231,6 +249,10 @@ export function WorkspaceProvider({
         saveHandler.current = handler
     }, [])
 
+    const setTaskToggleHandler = useCallback((handler: TaskToggleHandler | null): void => {
+        taskToggleHandler.current = handler
+    }, [])
+
     useEffect(() => {
         return window.indigo.app.onFlushRequest(flushNow)
     }, [flushNow])
@@ -258,10 +280,10 @@ export function WorkspaceProvider({
     )
 
     const openNote = useCallback(
-        async (id: string): Promise<void> => {
-            if (id === activeNoteId) return
+        async (id: string): Promise<boolean> => {
+            if (id === activeNoteId) return true
             // Never unmount an editor whose latest edit did not reach disk.
-            if (!(await saveNow())) return
+            if (!(await saveNow())) return false
             await discardBlankNote(activeNoteId)
 
             const target = notesRef.current.find((note) => note.id === id)
@@ -273,9 +295,25 @@ export function WorkspaceProvider({
             setSearchState('')
             setActiveSavedSearchId(null)
             setActiveNoteId(id)
+            return true
         },
         [activeNoteId, discardBlankNote, saveNow, view]
     )
+
+    const revealBlock = useCallback(
+        async (noteId: string, blockId: string): Promise<void> => {
+            // Opening also succeeds when the note is already on screen, so a
+            // second click on the same task scrolls again.
+            if (!(await openNote(noteId))) return
+            revealNonce.current += 1
+            setRevealTarget({ noteId, blockId, nonce: revealNonce.current })
+        },
+        [openNote]
+    )
+
+    const clearReveal = useCallback((nonce: number): void => {
+        setRevealTarget((current) => (current && current.nonce === nonce ? null : current))
+    }, [])
 
     const closeNote = useCallback(async (): Promise<boolean> => {
         if (!(await saveNow())) return false
@@ -674,11 +712,13 @@ export function WorkspaceProvider({
     const toggleTask = useCallback(
         async (noteId: string, blockId: string, checked: boolean): Promise<void> => {
             try {
-                // The open editor holds its own copy of the document; patching
-                // disk behind it would only be overwritten by the next save.
-                // Close it first: closing flushes the pending edit, and if the
-                // flush fails the editor stays open and the toggle waits.
+                // While a note is open the editor owns its document. Toggle the
+                // block there so the note stays open and the change joins the
+                // undo stack; its autosave writes the body to disk.
                 if (activeNoteId === noteId) {
+                    if (taskToggleHandler.current?.(noteId, blockId, checked)) return
+                    // No live editor yet: fall back to closing, which flushes
+                    // the pending edit before the patch.
                     if (!(await closeNote())) return
                 }
 
@@ -932,6 +972,9 @@ export function WorkspaceProvider({
             deleteSavedSearch,
             clearSavedSearch,
             openNote,
+            revealBlock,
+            revealTarget,
+            clearReveal,
             closeNote,
             createNote,
             previewNote,
@@ -958,6 +1001,7 @@ export function WorkspaceProvider({
             saveNow,
             flushNow,
             setSaveHandler,
+            setTaskToggleHandler,
             openSettings: onOpenSettings
         }),
         [
@@ -985,6 +1029,9 @@ export function WorkspaceProvider({
             deleteSavedSearch,
             clearSavedSearch,
             openNote,
+            revealBlock,
+            revealTarget,
+            clearReveal,
             closeNote,
             createNote,
             previewNote,
@@ -1011,6 +1058,7 @@ export function WorkspaceProvider({
             saveNow,
             flushNow,
             setSaveHandler,
+            setTaskToggleHandler,
             onOpenSettings
         ]
     )

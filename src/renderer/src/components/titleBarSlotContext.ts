@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 
 export type TitleBarSlotRegistry = {
-    /** Where the open note's actions (save state, colour, star, menu) render. */
+    /** Where the open note's actions (save state, color, star, menu) render. */
     actions: HTMLElement | null
     /** Where the compact back button renders. */
     back: HTMLElement | null

@@ -7,7 +7,7 @@ import {
     type Block,
     type PartialBlock
 } from '@blocknote/core'
-import { SuggestionMenu } from '@blocknote/core/extensions'
+import { filterSuggestionItems, SuggestionMenu } from '@blocknote/core/extensions'
 import '@blocknote/core/fonts/inter.css'
 import { BlockNoteView, darkDefaultTheme, lightDefaultTheme } from '@blocknote/mantine'
 import '@blocknote/mantine/style.css'
@@ -15,13 +15,19 @@ import {
     blockTypeSelectItems,
     FormattingToolbar,
     FormattingToolbarController,
+    getDefaultReactSlashMenuItems,
+    LinkToolbar,
+    LinkToolbarController,
     SuggestionMenuController,
     useCreateBlockNote,
-    type DefaultReactSuggestionItem
+    type DefaultReactSuggestionItem,
+    type FloatingUIOptions,
+    type LinkToolbarProps
 } from '@blocknote/react'
+import { autoPlacement, offset, shift, size } from '@floating-ui/react'
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
-import { FileText } from 'lucide-react'
+import { Link2 } from 'lucide-react'
 import {
     forwardRef,
     useCallback,
@@ -35,13 +41,17 @@ import {
 import type { Note } from '../../../../shared/model/note'
 import type { ResolvedTheme } from '../../../../shared/model/theme'
 import { noteHref, NOTE_LINK_PREFIX, noteIdFromHref } from '../../../../shared/util/noteLinks'
-import { extractPlainText } from '../../../../shared/util/noteText'
 import { useWorkspace } from '../../state/workspace'
+import NoteLinkDialog from './NoteLinkDialog'
 
 export type FindResult = { count: number; index: number }
 
 export type BlockEditorHandle = {
     focus: () => void
+    /** Scrolls a block into view and flashes it. False until the editor exists. */
+    revealBlock: (blockId: string) => boolean
+    /** Ticks or unticks a checklist block in the live document. */
+    setTaskChecked: (blockId: string, checked: boolean) => boolean
     isSuggestionMenuOpen: () => boolean
     find: (query: string, caseSensitive?: boolean) => FindResult
     findNext: () => FindResult
@@ -100,9 +110,50 @@ const FIND_KEY = new PluginKey<FindState>('indigo-find')
 const ALLOWED_LINK_URI =
     /^(?:(?:http|https|ftp|ftps|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z0-9+.-]+(?:[^a-z+.-:]|$))/i
 
+/**
+ * BlockNote's default suggestion menu shrinks to whatever space is left
+ * below the caret. Near the bottom of a long note that turns a full menu into
+ * a one-line strip. The menu gets a stable viewport-based height instead, so
+ * it scrolls internally and flips above the caret when it needs the room.
+ */
+const SUGGESTION_MENU_MAX_HEIGHT = 460
+
+const slashMenuFloatingOptions: FloatingUIOptions = {
+    useFloatingOptions: {
+        middleware: [
+            offset(10),
+            autoPlacement({
+                allowedPlacements: ['bottom-start', 'top-start'],
+                padding: 10
+            }),
+            shift(),
+            size({
+                padding: 10,
+                apply({ elements }) {
+                    const viewport = window.visualViewport?.height ?? window.innerHeight
+                    const height = Math.max(
+                        240,
+                        Math.min(SUGGESTION_MENU_MAX_HEIGHT, viewport - 24)
+                    )
+                    elements.floating.style.maxHeight = `${height}px`
+                }
+            })
+        ]
+    }
+}
+
 function isAllowedLink(href: string): boolean {
     if (href.startsWith(NOTE_LINK_PREFIX)) return true
     return ALLOWED_LINK_URI.test(href.replace(/\s/gu, ''))
+}
+
+/**
+ * Note links open another page, so the link toolbar's edit, open-in-new-tab,
+ * and remove actions do not belong on them. Other links keep the defaults.
+ */
+function NoteLinkToolbar({ url, ...props }: LinkToolbarProps): JSX.Element | null {
+    if (noteIdFromHref(url)) return null
+    return <LinkToolbar url={url} {...props} />
 }
 
 function findMatches(
@@ -266,22 +317,20 @@ function serializeDocument(blocks: Block[]): string {
     return isBlocksEmpty(clean) ? '' : JSON.stringify(clean)
 }
 
-type NoteSuggestion = DefaultReactSuggestionItem & { noteId: string }
-
 const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function BlockEditor(
     { noteId, initialBody, editable, theme, onChange },
     ref
 ): JSX.Element {
-    const { notes, openNote } = useWorkspace()
+    const { openNote } = useWorkspace()
     const [initialContent] = useState(() => parseInitialContent(initialBody))
+    const [linkDialogOpen, setLinkDialogOpen] = useState(false)
 
-    const notesRef = useRef<Note[]>(notes)
     const openNoteRef = useRef(openNote)
+    const linkSelectionRef = useRef<{ from: number; to: number } | null>(null)
 
     useEffect(() => {
-        notesRef.current = notes
         openNoteRef.current = openNote
-    }, [notes, openNote])
+    }, [openNote])
 
     const editor = useCreateBlockNote(
         {
@@ -328,44 +377,90 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
         }
     }, [editor])
 
-    const insertNoteLink = (id: string, title: string): void => {
+    const insertNoteLink = useCallback(
+        (id: string, title: string): void => {
+            if (!editor) return
+            try {
+                editor.getExtension(SuggestionMenu)?.clearQuery()
+            } catch {
+                // The menu is optional; inserting the link still works without it.
+            }
+
+            editor.insertInlineContent([
+                {
+                    type: 'link',
+                    href: noteHref(id),
+                    content: title.trim() || 'Untitled note'
+                },
+                { type: 'text', text: ' ', styles: {} }
+            ])
+            editor.focus()
+        },
+        [editor]
+    )
+
+    /**
+     * The slash menu removes its trigger before this runs. The caret position
+     * it leaves behind is where the chosen link belongs, so it is kept until
+     * the picker has made its choice.
+     */
+    const beginNoteLink = useCallback((): void => {
         if (!editor) return
-        try {
-            editor.getExtension(SuggestionMenu)?.clearQuery()
-        } catch {
-            // The menu is optional; inserting the link still works without it.
-        }
+        const selection = editor._tiptapEditor.state.selection
+        linkSelectionRef.current = { from: selection.from, to: selection.to }
+        setLinkDialogOpen(true)
+    }, [editor])
 
-        editor.insertInlineContent([
-            {
-                type: 'link',
-                href: noteHref(id),
-                content: title.trim() || 'Untitled note'
-            },
-            { type: 'text', text: ' ', styles: {} }
-        ])
-        editor.focus()
-    }
+    const closeLinkDialog = useCallback((): void => {
+        setLinkDialogOpen(false)
+        linkSelectionRef.current = null
+        window.requestAnimationFrame(() => editor?.focus())
+    }, [editor])
 
-    const getNoteLinkItems = async (query: string): Promise<NoteSuggestion[]> => {
-        const needle = query.trim().toLowerCase()
-        const matches = notesRef.current
-            .filter((note) => !note.isInTrash && note.id !== noteId)
-            .filter((note) => {
-                if (!needle) return true
-                if (note.title.toLowerCase().includes(needle)) return true
-                return extractPlainText(note.body).toLowerCase().includes(needle)
-            })
-            .slice(0, 8)
+    const pickNoteLink = useCallback(
+        (note: Note): void => {
+            if (!editor) return
+            const saved = linkSelectionRef.current
+            if (saved) {
+                const view = editor._tiptapEditor.view
+                const from = Math.min(saved.from, view.state.doc.content.size)
+                const to = Math.min(saved.to, view.state.doc.content.size)
+                view.dispatch(
+                    view.state.tr.setSelection(TextSelection.create(view.state.doc, from, to))
+                )
+            }
+            insertNoteLink(note.id, note.title)
+            linkSelectionRef.current = null
+        },
+        [editor, insertNoteLink]
+    )
 
-        return matches.map((note) => ({
-            noteId: note.id,
-            title: note.title.trim() || 'Untitled note',
-            subtext: extractPlainText(note.body).slice(0, 60) || 'Empty note',
-            icon: <FileText size={14} />,
-            onItemClick: () => insertNoteLink(note.id, note.title)
-        }))
-    }
+    const getSlashMenuItems = useCallback(
+        async (query: string): Promise<DefaultReactSuggestionItem[]> => {
+            if (!editor) return []
+            const items = getDefaultReactSlashMenuItems(editor)
+            const linkItem: DefaultReactSuggestionItem = {
+                title: 'Link to note',
+                subtext: 'Link another note in this workspace',
+                aliases: ['link', 'note', 'wiki', 'reference', 'connect'],
+                group: 'Basic blocks',
+                icon: <Link2 size={18} />,
+                onItemClick: beginNoteLink
+            }
+
+            // Keep "Link to note" beside the other basic blocks instead of
+            // starting a second group with the same name at the bottom.
+            const lastBasic = items.reduce(
+                (last, item, index) => (item.group === 'Basic blocks' ? index : last),
+                -1
+            )
+            const insertAt = lastBasic === -1 ? items.length : lastBasic + 1
+            const combined = [...items.slice(0, insertAt), linkItem, ...items.slice(insertAt)]
+
+            return filterSuggestionItems(combined, query)
+        },
+        [beginNoteLink, editor]
+    )
 
     const view = useCallback(
         (): import('@tiptap/pm/view').EditorView | null => editor?._tiptapEditor?.view ?? null,
@@ -392,6 +487,62 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
         )
     }, [view])
 
+    const revealBlock = useCallback(
+        (blockId: string): boolean => {
+            const root = editor?.domElement
+            if (!root) return false
+
+            let frames = 0
+            const scroll = (): void => {
+                // BlockNote nests the block inside an outer wrapper that also
+                // carries data-id; mark the block itself so the flash hugs the
+                // content rather than the wrapper.
+                const element =
+                    root.querySelector<HTMLElement>(
+                        `.bn-block[data-id="${CSS.escape(blockId)}"]`
+                    ) ?? root.querySelector<HTMLElement>(`[data-id="${CSS.escape(blockId)}"]`)
+                if (!element) {
+                    // The note is still mounting its blocks; try the next frame.
+                    frames += 1
+                    if (frames <= 30) window.requestAnimationFrame(scroll)
+                    return
+                }
+
+                element.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                // The editor re-renders blocks and strips classes, so the flash
+                // is a Web Animation that lives on the node itself.
+                element.getAnimations().forEach((animation) => animation.cancel())
+                const flash =
+                    getComputedStyle(document.documentElement).getPropertyValue('--hover').trim() ||
+                    'rgba(0, 0, 0, 0.06)'
+                element.animate(
+                    [
+                        { backgroundColor: flash, borderRadius: '6px' },
+                        { backgroundColor: 'transparent', borderRadius: '6px' }
+                    ],
+                    { duration: 1600, easing: 'ease-out' }
+                )
+            }
+
+            scroll()
+            return true
+        },
+        [editor]
+    )
+
+    const setTaskChecked = useCallback(
+        (blockId: string, checked: boolean): boolean => {
+            if (!editor) return false
+            const block = editor.getBlock(blockId)
+            // A live editor owns the document: a missing block is stale task
+            // state, not a reason to fall back to patching disk behind it.
+            if (!block || block.type !== 'checkListItem') return true
+            editor.updateBlock(blockId, { props: { checked } })
+            return true
+        },
+        [editor]
+    )
+
     const setFind = useCallback(
         (meta: FindMeta): FindResult => {
             const currentView = view()
@@ -407,6 +558,8 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
         ref,
         () => ({
             focus: () => editor?.focus(),
+            revealBlock,
+            setTaskChecked,
             // The slash menu puts its trigger in the document while the writer
             // is choosing. Title derivation has to know the menu is still open,
             // or "/" is read as content.
@@ -458,7 +611,7 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
                 setFind({ clear: true })
             }
         }),
-        [editor, currentFind, revealActiveMatch, setFind, view]
+        [editor, currentFind, revealActiveMatch, revealBlock, setFind, setTaskChecked, view]
     )
 
     const appTheme = useMemo(() => {
@@ -502,29 +655,46 @@ const BlockEditor = forwardRef<BlockEditorHandle, BlockEditorProps>(function Blo
     if (!editor) return <></>
 
     return (
-        <BlockNoteView
-            editor={editor}
-            theme={appTheme}
-            editable={editable}
-            formattingToolbar={false}
-            className="block-editor"
-            onChange={() => {
-                if (!editable) return
-                onChange(serializeDocument(editor.document))
-            }}
-        >
-            <FormattingToolbarController
-                formattingToolbar={(props) => (
-                    <FormattingToolbar {...props} blockTypeSelectItems={filteredBlockTypeItems} />
-                )}
+        <>
+            <BlockNoteView
+                editor={editor}
+                theme={appTheme}
+                editable={editable}
+                formattingToolbar={false}
+                linkToolbar={false}
+                slashMenu={false}
+                className="block-editor"
+                onChange={() => {
+                    if (!editable) return
+                    onChange(serializeDocument(editor.document))
+                }}
+            >
+                <FormattingToolbarController
+                    formattingToolbar={(props) => (
+                        <FormattingToolbar
+                            {...props}
+                            blockTypeSelectItems={filteredBlockTypeItems}
+                        />
+                    )}
+                />
+                <LinkToolbarController linkToolbar={NoteLinkToolbar} />
+                <SuggestionMenuController
+                    triggerCharacter="/"
+                    getItems={getSlashMenuItems}
+                    shouldOpen={(state) =>
+                        !state.selection.$from.parent.type.isInGroup('tableContent')
+                    }
+                    floatingUIOptions={slashMenuFloatingOptions}
+                />
+            </BlockNoteView>
+
+            <NoteLinkDialog
+                open={linkDialogOpen}
+                excludeNoteId={noteId}
+                onClose={closeLinkDialog}
+                onPick={pickNoteLink}
             />
-            <SuggestionMenuController
-                triggerCharacter="[["
-                minQueryLength={0}
-                getItems={getNoteLinkItems}
-                onItemClick={(item) => insertNoteLink(item.noteId, item.title)}
-            />
-        </BlockNoteView>
+        </>
     )
 })
 

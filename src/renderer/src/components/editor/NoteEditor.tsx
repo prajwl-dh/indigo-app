@@ -8,6 +8,7 @@ import {
     Download,
     Focus,
     MoreHorizontal,
+    Network,
     Pin,
     RotateCcw,
     Search,
@@ -26,19 +27,14 @@ import {
     isBlockDocumentEmpty,
     titleFromBody
 } from '../../../../shared/util/noteText'
-import {
-    countLabel,
-    formatExactTime,
-    formatRelativeTime,
-    noteExcerpt,
-    noteTitle
-} from '../../lib/format'
+import { countLabel, formatExactTime, formatRelativeTime, noteTitle } from '../../lib/format'
 import { useAppearance } from '../../state/appearance'
 import { useToast } from '../../state/toast'
 import { useWorkspace } from '../../state/workspace'
 import { useTitleBarSlots } from '../titleBarSlotContext'
 import BlockEditor, { type BlockEditorHandle } from './BlockEditor'
 import NoteColorMenu from './NoteColorMenu'
+import NoteGraphDialog from './NoteGraphDialog'
 import ConfirmDialog from '../ConfirmDialog'
 import TransferDialog from '../TransferDialog'
 import TagPicker from './TagPicker'
@@ -73,14 +69,15 @@ export default function NoteEditor({
         updateNote,
         previewNote,
         setSaveHandler,
+        setTaskToggleHandler,
+        revealTarget,
+        clearReveal,
         createTag,
         toggleFavorite,
         togglePinned,
         duplicateNote,
         copyNote,
         exportNote,
-        backlinksFor,
-        openNote,
         moveToTrash,
         restoreNote,
         deleteNote
@@ -91,6 +88,7 @@ export default function NoteEditor({
     const [saveState, setSaveState] = useState<SaveState>('saved')
     const [confirmDelete, setConfirmDelete] = useState(false)
     const [transfer, setTransfer] = useState<'copy' | 'export' | null>(null)
+    const [graphOpen, setGraphOpen] = useState(false)
     const [findOpen, setFindOpen] = useState(false)
     const [findQuery, setFindQuery] = useState('')
     const [replaceValue, setReplaceValue] = useState('')
@@ -223,6 +221,16 @@ export default function NoteEditor({
         return () => setSaveHandler(null)
     }, [setSaveHandler])
 
+    // The Tasks view can tick a task while this note is open. Apply it to the
+    // live document so the note stays open and the edit is saved by autosave.
+    useEffect(() => {
+        setTaskToggleHandler((noteId, blockId, checked) => {
+            if (noteId !== note.id) return false
+            return blockEditor.current?.setTaskChecked(blockId, checked) ?? false
+        })
+        return () => setTaskToggleHandler(null)
+    }, [note.id, setTaskToggleHandler])
+
     useEffect(() => {
         aliveRef.current = true
         return () => {
@@ -258,6 +266,32 @@ export default function NoteEditor({
         window.requestAnimationFrame(() => titleInput.current?.focus())
     }, [note.body, note.isInTrash, note.title])
 
+    // A task row asks for its block to be shown. The editor mounts a frame or
+    // two after the note switches, so wait for the handle before scrolling.
+    useEffect(() => {
+        if (!revealTarget || revealTarget.noteId !== note.id) return
+
+        let frame = 0
+        let attempts = 0
+        let cancelled = false
+
+        const attempt = (): void => {
+            if (cancelled) return
+            if (blockEditor.current?.revealBlock(revealTarget.blockId)) {
+                clearReveal(revealTarget.nonce)
+                return
+            }
+            attempts += 1
+            if (attempts < 120) frame = window.requestAnimationFrame(attempt)
+        }
+
+        frame = window.requestAnimationFrame(attempt)
+        return () => {
+            cancelled = true
+            window.cancelAnimationFrame(frame)
+        }
+    }, [clearReveal, note.id, revealTarget])
+
     const changeTitle = (next: string): void => {
         if (next === titleValue.current) return
         titleValue.current = next
@@ -281,7 +315,7 @@ export default function NoteEditor({
         try {
             await updateNote({ id: note.id, color: next })
         } catch (caught) {
-            pushError(caught, 'Could not change the note colour.')
+            pushError(caught, 'Could not change the note color.')
         }
     }
 
@@ -374,8 +408,6 @@ export default function NoteEditor({
         await exportNote(note.id, format)
     }
 
-    const backlinks = backlinksFor(note.id)
-
     const findStatus =
         findQuery.trim().length === 0
             ? ''
@@ -449,6 +481,18 @@ export default function NoteEditor({
                     onClick={onToggleFocus}
                 >
                     <Focus size={16} />
+                </button>
+            )}
+
+            {!note.isInTrash && (
+                <button
+                    type="button"
+                    className="icon-button"
+                    aria-label="Note graph"
+                    title="Note graph"
+                    onClick={() => setGraphOpen(true)}
+                >
+                    <Network size={16} />
                 </button>
             )}
 
@@ -694,7 +738,7 @@ export default function NoteEditor({
                         <span
                             className="note-color-flag"
                             style={{ '--note-color': colorValue } as CSSProperties}
-                            title={`Note colour: ${note.color ? getNoteColor(note.color).label : ''}`}
+                            title={`Note color: ${note.color ? getNoteColor(note.color).label : ''}`}
                         />
                     )}
 
@@ -754,38 +798,14 @@ export default function NoteEditor({
                             onChange={changeBody}
                         />
                     </div>
-
-                    {!note.isInTrash && backlinks.length > 0 && (
-                        <section className="backlinks" aria-label="Backlinks">
-                            <h2 className="backlinks-title">Linked from</h2>
-                            <ul className="backlinks-list">
-                                {backlinks.map((linkingNote) => (
-                                    <li key={linkingNote.id}>
-                                        <button
-                                            type="button"
-                                            className="backlink"
-                                            onClick={() => void openNote(linkingNote.id)}
-                                        >
-                                            <span className="backlink-title">
-                                                {noteTitle(linkingNote)}
-                                            </span>
-                                            <span className="backlink-excerpt">
-                                                {noteExcerpt(linkingNote, 110) || 'No text yet'}
-                                            </span>
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        </section>
-                    )}
-
-                    {!note.isInTrash && (
-                        <p className="editor-hint">
-                            Type <code>[[</code> to link another note.
-                        </p>
-                    )}
                 </div>
             </div>
+
+            <NoteGraphDialog
+                open={graphOpen}
+                focusNoteId={note.id}
+                onClose={() => setGraphOpen(false)}
+            />
 
             <TransferDialog
                 open={transfer !== null}
