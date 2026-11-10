@@ -391,7 +391,7 @@ export class NotesStore {
                 throw new Error('This note no longer exists on disk.')
             }
 
-            // Colouring and pinning are how the reader files notes, not how
+            // Coloring and pinning are how the reader files notes, not how
             // they edit them: neither should reshuffle the library under
             // their cursor by touching the "Edited …" timestamp.
             const touchesContent =

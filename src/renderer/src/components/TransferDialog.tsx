@@ -48,6 +48,8 @@ export default function TransferDialog({
     const [error, setError] = useState<string | null>(null)
 
     const copying = mode === 'copy'
+    // HTML is a useful export target but not a useful clipboard format here.
+    const formats = copying ? FORMATS.filter((option) => option.format !== 'html') : FORMATS
 
     const choose = async (format: NoteTransferFormat): Promise<void> => {
         setPending(format)
@@ -77,7 +79,7 @@ export default function TransferDialog({
                     </p>
 
                     <div className="transfer-options">
-                        {FORMATS.map((option) => (
+                        {formats.map((option) => (
                             <button
                                 key={option.format}
                                 type="button"

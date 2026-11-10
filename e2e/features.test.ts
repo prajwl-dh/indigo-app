@@ -107,8 +107,8 @@ function paragraphBody(value: string): string {
 }
 
 /**
- * Writes a note straight through the bridge. Search, saved views, and
- * backlinks all read saved documents, so this keeps their setup independent
+ * Writes a note straight through the bridge. Search, saved views, and the
+ * note graph all read saved documents, so this keeps their setup independent
  * of typing speed.
  */
 async function seedNote(
@@ -247,10 +247,27 @@ describe('tasks view', () => {
             const indigo = (window as unknown as { indigo: Bridge }).indigo
 
             const note = await indigo.notes.create()
+            // Enough prose above the checklist that revealing the task has to
+            // scroll the note body, not merely open it.
+            const filler = Array.from({ length: 28 }, (_, index) => ({
+                id: `filler-${index}`,
+                type: 'paragraph',
+                props: {},
+                content: [
+                    {
+                        type: 'text',
+                        text: `Filler paragraph ${index + 1} keeps the checklist below the fold.`,
+                        styles: {}
+                    }
+                ],
+                children: []
+            }))
+
             await indigo.notes.update({
                 id: note.id,
                 title: 'Groceries',
                 body: JSON.stringify([
+                    ...filler,
                     {
                         id: 'item-milk',
                         type: 'checkListItem',
@@ -304,6 +321,65 @@ describe('tasks view', () => {
             }
         }, 'The ticked item never reached the note on disk.')
 
+        // The note name is gone; the row itself opens the note.
+        expect(await instance.page.locator('.task-note').count()).toBe(0)
+        const checkCursor = await milkRow
+            .locator('.task-check')
+            .evaluate((element) => getComputedStyle(element).cursor)
+        expect(checkCursor).toBe('pointer')
+        const textCursor = await milkRow
+            .locator('.task-text')
+            .evaluate((element) => getComputedStyle(element).cursor)
+        expect(textCursor).toBe('default')
+
+        await milkRow.locator('.task-text').click()
+        await waitUntil(
+            async () => (await instance.page.getByLabel('Note title').inputValue()) === 'Groceries',
+            'Clicking a task did not open its note.'
+        )
+
+        // The checklist sits at the bottom of a long note: opening the note is
+        // not enough, the task's own block has to be brought into view.
+        const milkBlock = instance.page.locator('.bn-block[data-id="item-milk"]').first()
+        await milkBlock.waitFor({ state: 'attached', timeout: OPEN_TIMEOUT_MS })
+
+        let flashed = false
+        await waitUntil(async () => {
+            if (await milkBlock.evaluate((element) => element.getAnimations().length > 0)) {
+                flashed = true
+            }
+            const blockBox = await milkBlock.boundingBox()
+            const scrollerBox = await instance.page.locator('.editor-scroll').boundingBox()
+            if (!blockBox || !scrollerBox) return false
+            const visible =
+                blockBox.y >= scrollerBox.y - 1 &&
+                blockBox.y + blockBox.height <= scrollerBox.y + scrollerBox.height + 1
+            return flashed && visible
+        }, 'Clicking a task did not scroll its block into view.')
+
+        // Ticking a task while its note is open must not close the note.
+        const eggsRow = instance.page.locator('.task-row', { hasText: 'Eggs' })
+        await eggsRow.getByRole('button', { name: 'Mark “Eggs” as not done' }).click()
+
+        await waitUntil(async () => {
+            const notes = await readNotes(instance.dataDirectory)
+            const groceries = notes.find((note) => note.title === 'Groceries')
+            if (!groceries) return false
+            try {
+                const blocks = JSON.parse(String(groceries.body)) as Array<{
+                    id?: string
+                    props?: { checked?: boolean }
+                }>
+                return blocks.some(
+                    (block) => block.id === 'item-eggs' && block.props?.checked === false
+                )
+            } catch {
+                return false
+            }
+        }, 'Ticking a task in the open note did not reach disk.')
+
+        expect(await instance.page.getByLabel('Note title').inputValue()).toBe('Groceries')
+
         await quit(instance)
     })
 })
@@ -316,10 +392,9 @@ describe('export as Markdown', () => {
         await openRowMenu(instance.page, 'Exported wonder')
         await instance.page.getByRole('menuitem', { name: 'Export…' }).click()
 
-        const dialog = instance.page
-            .locator('.dialog-panel')
-            .filter({ hasText: 'Export note' })
+        const dialog = instance.page.locator('.dialog-panel').filter({ hasText: 'Export note' })
         await dialog.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        await dialog.getByRole('button', { name: /HTML/ }).waitFor({ state: 'visible' })
         await dialog.getByRole('button', { name: /Markdown/ }).click()
 
         await instance.page
@@ -517,15 +592,14 @@ describe('copy formats', () => {
 
         const dialog = instance.page.locator('.dialog-panel').filter({ hasText: 'Copy note' })
         await dialog.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        expect(await dialog.getByRole('button', { name: /HTML/ }).count()).toBe(0)
         await dialog.getByRole('button', { name: /Markdown/ }).click()
 
         await instance.page
             .getByText('Note copied as Markdown.')
             .waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
 
-        const clipboardText = await instance.app.evaluate(({ clipboard }) =>
-            clipboard.readText()
-        )
+        const clipboardText = await instance.app.evaluate(({ clipboard }) => clipboard.readText())
         expect(clipboardText).toContain('# Copied note')
         expect(clipboardText).toContain('Some words worth keeping')
 
@@ -622,19 +696,27 @@ describe('multi-select', () => {
     })
 })
 
-describe('wiki links and backlinks', () => {
-    it('links a note with [[ and lists the linking note', async () => {
+describe('note links and graph', () => {
+    it('links a note from the slash menu and shows it in the graph', async () => {
         const instance = await launch()
         await createNote(instance.page, 'Target note', 'The destination')
         await createNote(instance.page, 'Source note', 'See this:')
 
         const editor = instance.page.locator('.note-body .bn-editor').first()
         await editor.click()
-        await instance.page.keyboard.type(' [[Target')
+        await instance.page.keyboard.type(' /')
 
-        const option = instance.page
-            .locator('.bn-suggestion-menu-item', { hasText: 'Target note' })
+        const linkItem = instance.page
+            .locator('.bn-suggestion-menu-item', { hasText: 'Link to note' })
             .first()
+        await linkItem.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        await linkItem.click()
+
+        const picker = instance.page.locator('.note-link-panel')
+        await picker.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        await picker.getByLabel('Find a note to link').fill('Target')
+
+        const option = picker.getByRole('option', { name: /Target note/ })
         await option.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
         await option.click()
 
@@ -642,19 +724,46 @@ describe('wiki links and backlinks', () => {
             const notes = await readNotes(instance.dataDirectory)
             const source = notes.find((note) => note.title === 'Source note')
             return source ? String(source.body).includes('indigo:note/') : false
-        }, 'The wiki link never reached the source note on disk.')
+        }, 'The note link never reached the source note on disk.')
+
+        const noteLink = editor.locator('a[href^="indigo:note/"]').first()
+        await noteLink.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        const cursor = await noteLink.evaluate((element) => getComputedStyle(element).cursor)
+        expect(cursor).toBe('pointer')
+
+        // Moving the caret into a link normally opens BlockNote's link toolbar.
+        // Note links must not offer edit, open-in-new-tab, or remove actions.
+        await instance.page.keyboard.press('ArrowLeft')
+        await instance.page.keyboard.press('ArrowLeft')
+        await instance.page.waitForTimeout(300)
+        expect(await instance.page.locator('.bn-link-toolbar').count()).toBe(0)
 
         await instance.page
             .locator('.note-row', {
                 has: instance.page.locator('.note-row-title', { hasText: /^Target note$/ })
             })
             .click()
-        await instance.page
-            .locator('.backlinks')
-            .waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+        await instance.page.getByRole('button', { name: 'Note graph' }).click()
 
-        const linking = await instance.page.locator('.backlink-title').allTextContents()
-        expect(linking).toContain('Source note')
+        const graph = instance.page.locator('.graph-panel')
+        await graph.waitFor({ state: 'visible', timeout: OPEN_TIMEOUT_MS })
+
+        const labels = await graph.locator('.graph-node text').allTextContents()
+        expect(labels).toContain('Source note')
+
+        // The dot and its title are both targets for opening the note.
+        const sourceLabel = graph.locator('.graph-node text', { hasText: 'Source note' }).first()
+        const labelCursor = await sourceLabel.evaluate(
+            (element) => getComputedStyle(element).cursor
+        )
+        expect(labelCursor).toBe('pointer')
+
+        await sourceLabel.click()
+        await waitUntil(
+            async () =>
+                (await instance.page.getByLabel('Note title').inputValue()) === 'Source note',
+            'Clicking a graph label did not open its note.'
+        )
 
         await quit(instance)
     })

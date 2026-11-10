@@ -4,10 +4,10 @@ import { useWorkspace, type WorkspaceTask } from '../../state/workspace'
 
 /**
  * The Tasks view: every checkbox item from the whole library, open items
- * first, each naming the note it lives in.
+ * first. The whole row opens the note the task lives in.
  */
 export default function TasksList(): JSX.Element {
-    const { tasks, toggleTask, openNote, activeNote } = useWorkspace()
+    const { tasks, toggleTask, revealBlock } = useWorkspace()
 
     const open = tasks.filter((entry) => !entry.task.checked)
     const done = tasks.filter((entry) => entry.task.checked)
@@ -16,13 +16,24 @@ export default function TasksList(): JSX.Element {
 
     const row = (entry: WorkspaceTask): JSX.Element => {
         const { task, note } = entry
-        const noteOpen = activeNote?.id === note.id
+        const openTaskNote = (): void => void revealBlock(note.id, task.blockId)
 
         return (
             <div
                 className="task-row"
                 data-done={task.checked ? 'true' : 'false'}
                 key={`${note.id}:${task.blockId}`}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open note ${noteTitle(note)}`}
+                title={noteTitle(note)}
+                onClick={openTaskNote}
+                onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return
+                    if (event.key !== 'Enter' && event.key !== ' ') return
+                    event.preventDefault()
+                    openTaskNote()
+                }}
             >
                 <button
                     type="button"
@@ -34,19 +45,12 @@ export default function TasksList(): JSX.Element {
                     }
                     aria-pressed={task.checked}
                     title={task.checked ? 'Mark as not done' : 'Mark as done'}
-                    onClick={() => void toggleTask(note.id, task.blockId, !task.checked)}
+                    onClick={(event) => {
+                        event.stopPropagation()
+                        void toggleTask(note.id, task.blockId, !task.checked)
+                    }}
                 />
                 <span className="task-text">{task.text || 'Untitled task'}</span>
-                <button
-                    type="button"
-                    className="task-note"
-                    aria-label={`Open note ${noteTitle(note)}`}
-                    data-open={noteOpen ? 'true' : 'false'}
-                    title={noteTitle(note)}
-                    onClick={() => void openNote(note.id)}
-                >
-                    {noteTitle(note)}
-                </button>
             </div>
         )
     }

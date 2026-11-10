@@ -10,7 +10,7 @@ Indigo is a desktop notes app for macOS, Windows, and Linux. Notes are plain JSO
 
 ## Features
 
-- **Block editor.** Headings, lists, checklists, quotes, code blocks, tables, images, and per-note colours.
+- **Block editor.** Headings, lists, checklists, quotes, code blocks, tables, images, and per-note colors.
 - **Tags, pins, and trash.** Organise without folders; restore or permanently delete when you mean it.
 - **Quick switcher.** Press `⌘P` (`Ctrl+P`) to jump to a note by title or run a command.
 - **Find and replace.** Press `⌘F` inside a note; move between matches, match case, or replace all.
