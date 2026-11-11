@@ -113,6 +113,10 @@ function layoutAll(graph: NoteGraph, width: number, height: number): Map<string,
     const indexOf = new Map(points.map((point, index) => [point.id, index]))
     const ideal = Math.sqrt((width * height) / count) * 0.62
     const iterations = count > 120 ? 110 : 190
+    // Gravity strong enough to keep even unlinked notes inside the frame, so
+    // the final fit-to-box pass never crushes linked clusters together.
+    const bound = Math.max(1, Math.min(width, height) / 2 - PADDING)
+    const gravity = ((count - 1) * (ideal * ideal)) / (bound * bound)
 
     for (let iteration = 0; iteration < iterations; iteration += 1) {
         const displacement = points.map(() => ({ x: 0, y: 0 }))
@@ -162,8 +166,8 @@ function layoutAll(graph: NoteGraph, width: number, height: number): Map<string,
         }
 
         for (let index = 0; index < count; index += 1) {
-            displacement[index].x += (width / 2 - points[index].x) * 0.012
-            displacement[index].y += (height / 2 - points[index].y) * 0.012
+            displacement[index].x += (width / 2 - points[index].x) * gravity
+            displacement[index].y += (height / 2 - points[index].y) * gravity
         }
 
         const cooling = 10 * (1 - iteration / iterations) + 1
