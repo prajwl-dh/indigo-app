@@ -3050,6 +3050,7 @@ html[data-theme='dark'] .settings-backdrop {
     min-height: 0;
     padding: 8px;
     background: var(--paper-deep);
+    overflow: hidden;
 }
 
 .graph-svg {
@@ -3057,11 +3058,34 @@ html[data-theme='dark'] .settings-backdrop {
     width: 100%;
     height: 100%;
     overflow: visible;
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+}
+
+.graph-svg:active {
+    cursor: grabbing;
+}
+
+.graph-hit {
+    pointer-events: all;
+}
+
+.graph-zoom {
+    position: absolute;
+    right: 16px;
+    bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px;
+    border-radius: var(--radius-sm);
+    background: var(--field);
 }
 
 .graph-edge {
     stroke: var(--line-strong);
-    stroke-width: 1.2;
+    stroke-width: 1.4;
     fill: none;
     transition: opacity 0.12s ease;
 }
@@ -3136,7 +3160,7 @@ html[data-theme='dark'] .settings-backdrop {
 .graph-node text {
     fill: var(--muted);
     font-family: var(--font-ui);
-    font-size: 10.5px;
+    font-size: 12px;
     text-anchor: middle;
 }
 
@@ -3147,7 +3171,7 @@ html[data-theme='dark'] .settings-backdrop {
 
 .graph-node--focus text {
     fill: var(--ink);
-    font-size: 11.5px;
+    font-size: 13px;
     font-weight: 600;
 }
 
@@ -3263,6 +3287,11 @@ html[data-theme='dark'] .settings-backdrop {
 
     .graph-canvas {
         padding: 0;
+    }
+
+    .graph-zoom {
+        right: 12px;
+        bottom: 12px;
     }
 
     .graph-foot {

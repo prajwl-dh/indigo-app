@@ -1,6 +1,16 @@
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from '@headlessui/react'
-import { Network, X } from 'lucide-react'
-import { useMemo, useState, type JSX, type KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { Maximize, Minus, Network, Plus, X } from 'lucide-react'
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    type JSX,
+    type KeyboardEvent as ReactKeyboardEvent,
+    type MouseEvent as ReactMouseEvent,
+    type PointerEvent as ReactPointerEvent
+} from 'react'
 import {
     buildNoteGraph,
     type NoteGraph,
@@ -17,10 +27,21 @@ type NoteGraphDialogProps = {
 
 type Scope = 'local' | 'all'
 type Point = { x: number; y: number }
+type Transform = { x: number; y: number; k: number }
 
-const WIDTH = 820
-const HEIGHT = 560
+/**
+ * The graph is laid out in a virtual space that tracks the size of the panel,
+ * so node and label sizes stay in CSS pixels at every screen size instead of
+ * being squeezed by a fixed viewBox. The base size is the reference layout the
+ * viewport scale is derived from.
+ */
+const BASE_WIDTH = 820
+const BASE_HEIGHT = 560
 const PADDING = 58
+const VIEW_SCALE_MAX = 1.6
+const ZOOM_MIN = 0.35
+const ZOOM_MAX = 4
+const ZOOM_STEP = 1.25
 
 function hashString(value: string): number {
     let hash = 2166136261
@@ -42,20 +63,25 @@ function seededRandom(seed: number): () => number {
     }
 }
 
-function layoutLocal(graph: NoteGraph, focusNoteId: string): Map<string, Point> {
+function layoutLocal(
+    graph: NoteGraph,
+    focusNoteId: string,
+    width: number,
+    height: number
+): Map<string, Point> {
     const positions = new Map<string, Point>()
     const focus = graph.nodes.find((node) => node.id === focusNoteId)
     if (!focus) return positions
 
-    const center = { x: WIDTH / 2, y: HEIGHT / 2 }
+    const center = { x: width / 2, y: height / 2 }
     positions.set(focus.id, center)
 
     const neighbours = graph.nodes.filter((node) => node.id !== focus.id)
     const count = neighbours.length
     if (count === 0) return positions
 
-    const radiusX = Math.min(WIDTH / 2 - PADDING - 26, 150 + count * 7)
-    const radiusY = Math.min(HEIGHT / 2 - PADDING - 26, 118 + count * 5)
+    const radiusX = Math.min(width / 2 - PADDING - 26, width * 0.3 + count * 6)
+    const radiusY = Math.min(height / 2 - PADDING - 26, height * 0.32 + count * 5)
 
     neighbours.forEach((node, index) => {
         const angle = -Math.PI / 2 + (index * Math.PI * 2) / count
@@ -68,25 +94,29 @@ function layoutLocal(graph: NoteGraph, focusNoteId: string): Map<string, Point> 
     return positions
 }
 
-function layoutAll(graph: NoteGraph): Map<string, Point> {
+function layoutAll(graph: NoteGraph, width: number, height: number): Map<string, Point> {
     const count = graph.nodes.length
     if (count === 0) return new Map()
-    if (count === 1) return new Map([[graph.nodes[0].id, { x: WIDTH / 2, y: HEIGHT / 2 }]])
+    if (count === 1) return new Map([[graph.nodes[0].id, { x: width / 2, y: height / 2 }]])
 
     const points = graph.nodes.map((node, index) => {
         const random = seededRandom(hashString(node.id))
         const angle = (index / count) * Math.PI * 2 + random() * 0.5
-        const radius = Math.min(WIDTH, HEIGHT) * (0.24 + random() * 0.14)
+        const radius = Math.min(width, height) * (0.24 + random() * 0.14)
         return {
             id: node.id,
-            x: WIDTH / 2 + Math.cos(angle) * radius,
-            y: HEIGHT / 2 + Math.sin(angle) * radius
+            x: width / 2 + Math.cos(angle) * radius,
+            y: height / 2 + Math.sin(angle) * radius
         }
     })
 
     const indexOf = new Map(points.map((point, index) => [point.id, index]))
-    const ideal = Math.sqrt((WIDTH * HEIGHT) / count) * 0.62
+    const ideal = Math.sqrt((width * height) / count) * 0.62
     const iterations = count > 120 ? 110 : 190
+    // Gravity strong enough to keep even unlinked notes inside the frame, so
+    // the final fit-to-box pass never crushes linked clusters together.
+    const bound = Math.max(1, Math.min(width, height) / 2 - PADDING)
+    const gravity = ((count - 1) * (ideal * ideal)) / (bound * bound)
 
     for (let iteration = 0; iteration < iterations; iteration += 1) {
         const displacement = points.map(() => ({ x: 0, y: 0 }))
@@ -136,8 +166,8 @@ function layoutAll(graph: NoteGraph): Map<string, Point> {
         }
 
         for (let index = 0; index < count; index += 1) {
-            displacement[index].x += (WIDTH / 2 - points[index].x) * 0.012
-            displacement[index].y += (HEIGHT / 2 - points[index].y) * 0.012
+            displacement[index].x += (width / 2 - points[index].x) * gravity
+            displacement[index].y += (height / 2 - points[index].y) * gravity
         }
 
         const cooling = 10 * (1 - iteration / iterations) + 1
@@ -163,7 +193,7 @@ function layoutAll(graph: NoteGraph): Map<string, Point> {
 
     const spanX = Math.max(1, maxX - minX)
     const spanY = Math.max(1, maxY - minY)
-    const scale = Math.min((WIDTH - PADDING * 2) / spanX, (HEIGHT - PADDING * 2) / spanY, 1.4)
+    const scale = Math.min((width - PADDING * 2) / spanX, (height - PADDING * 2) / spanY, 1.4)
     const centerX = (minX + maxX) / 2
     const centerY = (minY + maxY) / 2
 
@@ -171,8 +201,8 @@ function layoutAll(graph: NoteGraph): Map<string, Point> {
         points.map((point) => [
             point.id,
             {
-                x: WIDTH / 2 + (point.x - centerX) * scale,
-                y: HEIGHT / 2 + (point.y - centerY) * scale
+                x: width / 2 + (point.x - centerX) * scale,
+                y: height / 2 + (point.y - centerY) * scale
             }
         ])
     )
@@ -209,8 +239,8 @@ function combineEdges(edges: NoteGraphEdge[]): CombinedEdge[] {
 }
 
 function nodeRadius(node: NoteGraphNode, focusNoteId: string): number {
-    const base = 4 + Math.min(7, Math.sqrt(node.degree) * 2)
-    return node.id === focusNoteId ? base + 2.5 : base
+    const base = 5 + Math.min(8, Math.sqrt(node.degree) * 2.2)
+    return node.id === focusNoteId ? base + 3 : base
 }
 
 function shortTitle(value: string, limit = 24): string {
@@ -228,9 +258,9 @@ type LabelRect = { left: number; right: number; top: number; bottom: number }
 function labelRect(node: NoteGraphNode, position: Point, focusNoteId: string): LabelRect {
     const radius = nodeRadius(node, focusNoteId)
     const focus = node.id === focusNoteId
-    const fontSize = focus ? 11.5 : 10.5
+    const fontSize = focus ? 13 : 12
     const width = shortTitle(node.title).length * fontSize * (focus ? 0.62 : 0.58) + 8
-    const baseline = position.y + radius + 13
+    const baseline = position.y + radius + 14
 
     return {
         left: position.x - width / 2,
@@ -281,6 +311,24 @@ function pointOnSegment(from: Point, to: Point, t: number): Point {
     }
 }
 
+type PanState = {
+    pointerId: number
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+}
+
+type NodeDragState = {
+    pointerId: number
+    id: string
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+    moved: boolean
+}
+
 export default function NoteGraphDialog({
     open,
     focusNoteId,
@@ -289,11 +337,122 @@ export default function NoteGraphDialog({
     const { notes, openNote } = useWorkspace()
     const [scope, setScope] = useState<Scope>('local')
     const [hoverId, setHoverId] = useState<string | null>(null)
+    const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, k: 1 })
+    const [movedNodes, setMovedNodes] = useState<Map<string, Point>>(() => new Map())
+    const [size, setSize] = useState({ width: 0, height: 0 })
+
+    const svgRef = useRef<SVGSVGElement | null>(null)
+    const observerRef = useRef<ResizeObserver | null>(null)
+    const transformRef = useRef(transform)
+    const panRef = useRef<PanState | null>(null)
+    const dragRef = useRef<NodeDragState | null>(null)
+    const dragMovedRef = useRef(false)
+
+    useEffect(() => {
+        transformRef.current = transform
+    }, [transform])
+
+    // Track the panel's real size so the graph is laid out in the space it
+    // actually has, keeping nodes and labels at a readable size on any screen.
+    // A callback ref re-attaches the observer whenever the dialog mounts the
+    // canvas, and disconnects it when the element goes away.
+    const attachCanvas = useCallback((element: HTMLDivElement | null): void => {
+        observerRef.current?.disconnect()
+        observerRef.current = null
+        if (!element) return
+
+        const observer = new ResizeObserver((entries) => {
+            const rect = entries[0]?.contentRect
+            if (!rect) return
+            setSize({
+                width: Math.max(1, Math.round(rect.width)),
+                height: Math.max(1, Math.round(rect.height))
+            })
+        })
+        observer.observe(element)
+        observerRef.current = observer
+    }, [])
+
+    const view = useMemo(() => {
+        if (size.width === 0 || size.height === 0) {
+            return { width: BASE_WIDTH, height: BASE_HEIGHT, scale: 1 }
+        }
+        // Never render below the reference size, so the graph keeps legible
+        // proportions on small screens; scale up modestly on larger ones.
+        const scale = Math.min(
+            VIEW_SCALE_MAX,
+            Math.max(1, Math.min(size.width / BASE_WIDTH, size.height / BASE_HEIGHT))
+        )
+        return { width: size.width / scale, height: size.height / scale, scale }
+    }, [size])
+
+    const applyZoom = useCallback((factor: number, cx: number, cy: number) => {
+        setTransform((current) => {
+            const k = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, current.k * factor))
+            const ratio = k / current.k
+            return {
+                k,
+                x: cx - (cx - current.x) * ratio,
+                y: cy - (cy - current.y) * ratio
+            }
+        })
+    }, [])
+
+    const applyZoomRef = useRef(applyZoom)
+    useEffect(() => {
+        applyZoomRef.current = applyZoom
+    }, [applyZoom])
+
+    /**
+     * The scale the viewBox is rendered at, read live from the element so
+     * pointer maths never works from a stale measurement.
+     */
+    const currentScale = (): number => {
+        const svg = svgRef.current
+        if (!svg) return 1
+        const rect = svg.getBoundingClientRect()
+        const base = svg.viewBox.baseVal.width
+        return base > 0 && rect.width > 0 ? rect.width / base : 1
+    }
+
+    // Wheel zoom is attached natively so preventDefault works on the trackpad.
+    // A callback ref keeps the listener on the svg element whenever the dialog
+    // mounts it, and removes it when the element goes away.
+    const handleWheel = useCallback((event: WheelEvent): void => {
+        event.preventDefault()
+        const svg = event.currentTarget as SVGSVGElement
+        const rect = svg.getBoundingClientRect()
+        const base = svg.viewBox.baseVal.width
+        const scale = base > 0 && rect.width > 0 ? rect.width / base : 1
+        const cx = (event.clientX - rect.left) / scale
+        const cy = (event.clientY - rect.top) / scale
+        const factor = Math.exp(-event.deltaY * 0.0016)
+        applyZoomRef.current(factor, cx, cy)
+    }, [])
+
+    const attachSvg = useCallback(
+        (element: SVGSVGElement | null): void => {
+            const previous = svgRef.current
+            if (previous) previous.removeEventListener('wheel', handleWheel)
+            svgRef.current = element
+            if (element) element.addEventListener('wheel', handleWheel, { passive: false })
+        },
+        [handleWheel]
+    )
 
     const close = (): void => {
         setScope('local')
         setHoverId(null)
+        setTransform({ x: 0, y: 0, k: 1 })
+        setMovedNodes(new Map())
         onClose()
+    }
+
+    const changeScope = (next: Scope): void => {
+        setScope(next)
+        setHoverId(null)
+        setTransform({ x: 0, y: 0, k: 1 })
+        setMovedNodes(new Map())
     }
 
     const graph = useMemo(
@@ -301,10 +460,19 @@ export default function NoteGraphDialog({
         [focusNoteId, notes, scope]
     )
 
-    const positions = useMemo(
-        () => (scope === 'local' ? layoutLocal(graph, focusNoteId) : layoutAll(graph)),
-        [focusNoteId, graph, scope]
-    )
+    const positions = useMemo(() => {
+        const base =
+            scope === 'local'
+                ? layoutLocal(graph, focusNoteId, view.width, view.height)
+                : layoutAll(graph, view.width, view.height)
+        if (movedNodes.size === 0) return base
+
+        const merged = new Map(base)
+        for (const [id, point] of movedNodes) {
+            if (base.has(id)) merged.set(id, point)
+        }
+        return merged
+    }, [focusNoteId, graph, movedNodes, scope, view.height, view.width])
 
     const edges = useMemo(() => combineEdges(graph.edges), [graph.edges])
 
@@ -327,10 +495,107 @@ export default function NoteGraphDialog({
         void openNote(id)
     }
 
+    const handleNodeClick = (id: string): void => {
+        if (dragMovedRef.current) {
+            dragMovedRef.current = false
+            return
+        }
+        openNode(id)
+    }
+
     const handleNodeKeyDown = (event: ReactKeyboardEvent<SVGGElement>, id: string): void => {
         if (event.key !== 'Enter' && event.key !== ' ') return
         event.preventDefault()
         openNode(id)
+    }
+
+    const pointFromEvent = (event: { clientX: number; clientY: number }): Point => {
+        const rect = svgRef.current?.getBoundingClientRect()
+        if (!rect) return { x: 0, y: 0 }
+        const scale = currentScale()
+        return {
+            x: (event.clientX - rect.left) / scale,
+            y: (event.clientY - rect.top) / scale
+        }
+    }
+
+    const startPan = (event: ReactPointerEvent<SVGRectElement>): void => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return
+        panRef.current = {
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startY: event.clientY,
+            originX: transformRef.current.x,
+            originY: transformRef.current.y
+        }
+        event.currentTarget.setPointerCapture(event.pointerId)
+    }
+
+    const startNodeDrag = (event: ReactPointerEvent<SVGGElement>, node: NoteGraphNode): void => {
+        if (event.pointerType === 'mouse' && event.button !== 0) return
+        const position = positions.get(node.id)
+        if (!position) return
+
+        event.stopPropagation()
+        dragMovedRef.current = false
+        dragRef.current = {
+            pointerId: event.pointerId,
+            id: node.id,
+            startX: event.clientX,
+            startY: event.clientY,
+            originX: position.x,
+            originY: position.y,
+            moved: false
+        }
+        event.currentTarget.setPointerCapture(event.pointerId)
+    }
+
+    const handleSvgPointerMove = (event: ReactPointerEvent<SVGSVGElement>): void => {
+        const pan = panRef.current
+        if (pan && pan.pointerId === event.pointerId) {
+            const scale = currentScale()
+            setTransform((current) => ({
+                ...current,
+                x: pan.originX + (event.clientX - pan.startX) / scale,
+                y: pan.originY + (event.clientY - pan.startY) / scale
+            }))
+            return
+        }
+
+        const drag = dragRef.current
+        if (drag && drag.pointerId === event.pointerId) {
+            if (
+                !drag.moved &&
+                Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) > 3
+            ) {
+                drag.moved = true
+                dragMovedRef.current = true
+            }
+            if (drag.moved) {
+                const scale = currentScale() * transformRef.current.k
+                const x = drag.originX + (event.clientX - drag.startX) / scale
+                const y = drag.originY + (event.clientY - drag.startY) / scale
+                setMovedNodes((current) => new Map(current).set(drag.id, { x, y }))
+            }
+        }
+    }
+
+    const endPointer = (event: ReactPointerEvent<SVGSVGElement>): void => {
+        if (panRef.current?.pointerId === event.pointerId) panRef.current = null
+        if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null
+    }
+
+    const handleBackgroundDoubleClick = (event: ReactMouseEvent<SVGRectElement>): void => {
+        const point = pointFromEvent(event)
+        applyZoom(ZOOM_STEP, point.x, point.y)
+    }
+
+    const zoomBy = (factor: number): void => {
+        applyZoom(factor, view.width / 2, view.height / 2)
+    }
+
+    const resetView = (): void => {
+        setTransform({ x: 0, y: 0, k: 1 })
     }
 
     const edgeClass = (edge: NoteGraphEdge): string => {
@@ -398,10 +663,7 @@ export default function NoteGraphDialog({
                                     className="graph-scope-option"
                                     data-active={scope === 'local' ? 'true' : 'false'}
                                     aria-pressed={scope === 'local'}
-                                    onClick={() => {
-                                        setScope('local')
-                                        setHoverId(null)
-                                    }}
+                                    onClick={() => changeScope('local')}
                                 >
                                     This note
                                 </button>
@@ -410,10 +672,7 @@ export default function NoteGraphDialog({
                                     className="graph-scope-option"
                                     data-active={scope === 'all' ? 'true' : 'false'}
                                     aria-pressed={scope === 'all'}
-                                    onClick={() => {
-                                        setScope('all')
-                                        setHoverId(null)
-                                    }}
+                                    onClick={() => changeScope('all')}
                                 >
                                     All notes
                                 </button>
@@ -430,236 +689,306 @@ export default function NoteGraphDialog({
                         </div>
                     </header>
 
-                    <div className="graph-canvas">
+                    <div className="graph-canvas" ref={attachCanvas}>
                         {graph.nodes.length === 0 ? (
                             <p className="graph-empty">This note is no longer in the library.</p>
                         ) : (
-                            <svg
-                                className="graph-svg"
-                                viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-                                role="img"
-                                aria-label="Notes and the links between them"
-                            >
-                                <defs>
-                                    <marker
-                                        id="graph-arrow"
-                                        viewBox="0 0 8 8"
-                                        refX="7"
-                                        refY="4"
-                                        markerWidth="6"
-                                        markerHeight="6"
-                                        orient="auto-start-reverse"
-                                    >
-                                        <path d="M0,0 L8,4 L0,8 z" fill="var(--muted)" />
-                                    </marker>
-                                    <marker
-                                        id="graph-arrow-strong"
-                                        viewBox="0 0 8 8"
-                                        refX="7"
-                                        refY="4"
-                                        markerWidth="6"
-                                        markerHeight="6"
-                                        orient="auto-start-reverse"
-                                    >
-                                        <path d="M0,0 L8,4 L0,8 z" fill="var(--ink-soft)" />
-                                    </marker>
-                                    <marker
-                                        id="graph-arrow-faint"
-                                        viewBox="0 0 8 8"
-                                        refX="7"
-                                        refY="4"
-                                        markerWidth="6"
-                                        markerHeight="6"
-                                        orient="auto-start-reverse"
-                                    >
-                                        <path d="M0,0 L8,4 L0,8 z" fill="var(--faint)" />
-                                    </marker>
-                                </defs>
-
-                                {edges.map((pair) => {
-                                    const start = positions.get(pair.source)
-                                    const end = positions.get(pair.target)
-                                    if (!start || !end) return null
-
-                                    const startNode = graph.nodes.find(
-                                        (node) => node.id === pair.source
-                                    )
-                                    const endNode = graph.nodes.find(
-                                        (node) => node.id === pair.target
-                                    )
-                                    if (!startNode || !endNode) return null
-
-                                    const dim =
-                                        neighbourIds !== null &&
-                                        !neighbourIds.has(pair.source) &&
-                                        !neighbourIds.has(pair.target)
-
-                                    const lines: Array<{
-                                        key: string
-                                        source: string
-                                        target: string
-                                        both: boolean
-                                    }> = []
-
-                                    if (pair.forward && pair.backward) {
-                                        // One centred line carries an arrowhead at
-                                        // each end, so a mutual link reads as a
-                                        // single connection rather than two lines
-                                        // fighting for the same space.
-                                        lines.push({
-                                            key: 'mutual',
-                                            source: pair.source,
-                                            target: pair.target,
-                                            both: true
-                                        })
-                                    } else if (pair.forward) {
-                                        lines.push({
-                                            key: 'forward',
-                                            source: pair.source,
-                                            target: pair.target,
-                                            both: false
-                                        })
-                                    } else {
-                                        lines.push({
-                                            key: 'backward',
-                                            source: pair.target,
-                                            target: pair.source,
-                                            both: false
-                                        })
-                                    }
-
-                                    return lines.map((line) => {
-                                        const from = positions.get(line.source)
-                                        const to = positions.get(line.target)
-                                        if (!from || !to) return null
-
-                                        const lineDx = to.x - from.x
-                                        const lineDy = to.y - from.y
-                                        const lineDistance = Math.hypot(lineDx, lineDy) || 1
-                                        const lineUx = lineDx / lineDistance
-                                        const lineUy = lineDy / lineDistance
-                                        const fromNode = graph.nodes.find(
-                                            (node) => node.id === line.source
-                                        )
-                                        const toNode = graph.nodes.find(
-                                            (node) => node.id === line.target
-                                        )
-                                        if (!fromNode || !toNode) return null
-
-                                        const fromRadius = nodeRadius(fromNode, focusNoteId) + 2
-                                        const toRadius = nodeRadius(toNode, focusNoteId) + 2
-                                        const edge = {
-                                            source: line.source,
-                                            target: line.target
-                                        }
-
-                                        const baseStart = {
-                                            x: from.x + lineUx * fromRadius,
-                                            y: from.y + lineUy * fromRadius
-                                        }
-                                        const baseEnd = {
-                                            x: to.x - lineUx * toRadius,
-                                            y: to.y - lineUy * toRadius
-                                        }
-
-                                        // Clip the line against both titles so it starts
-                                        // and ends at the label edge instead of running
-                                        // behind the text.
-                                        let startT = 0
-                                        let endT = 1
-                                        const fromLabel = labelVisible(fromNode)
-                                            ? labelRect(fromNode, from, focusNoteId)
-                                            : null
-                                        const toLabel = labelVisible(toNode)
-                                            ? labelRect(toNode, to, focusNoteId)
-                                            : null
-                                        const fromSpan = fromLabel
-                                            ? segmentRectInterval(baseStart, baseEnd, fromLabel)
-                                            : null
-                                        const toSpan = toLabel
-                                            ? segmentRectInterval(baseStart, baseEnd, toLabel)
-                                            : null
-
-                                        if (fromSpan) startT = Math.max(startT, fromSpan.exit)
-                                        if (toSpan) endT = Math.min(endT, toSpan.enter)
-
-                                        const lineLength =
-                                            Math.hypot(
-                                                baseEnd.x - baseStart.x,
-                                                baseEnd.y - baseStart.y
-                                            ) || 1
-                                        const gapT = 3 / lineLength
-                                        if (startT > 0) startT = Math.min(1, startT + gapT)
-                                        if (endT < 1) endT = Math.max(0, endT - gapT)
-                                        if (endT - startT < 0.01) return null
-
-                                        const startPoint = pointOnSegment(
-                                            baseStart,
-                                            baseEnd,
-                                            startT
-                                        )
-                                        const endPoint = pointOnSegment(baseStart, baseEnd, endT)
-
-                                        return (
-                                            <line
-                                                key={`${pair.source}-${pair.target}-${line.key}`}
-                                                className={`graph-edge ${edgeClass(edge)}`}
-                                                data-dim={dim ? 'true' : 'false'}
-                                                x1={startPoint.x}
-                                                y1={startPoint.y}
-                                                x2={endPoint.x}
-                                                y2={endPoint.y}
-                                                markerStart={
-                                                    line.both ? markerFor(edge) : undefined
-                                                }
-                                                markerEnd={markerFor(edge)}
-                                            />
-                                        )
-                                    })
-                                })}
-
-                                {graph.nodes.map((node) => {
-                                    const position = positions.get(node.id)
-                                    if (!position) return null
-                                    const radius = nodeRadius(node, focusNoteId)
-                                    const dim = neighbourIds !== null && !neighbourIds.has(node.id)
-
-                                    return (
-                                        <g
-                                            key={node.id}
-                                            className={`graph-node ${nodeClass(node)}`}
-                                            data-dim={dim ? 'true' : 'false'}
-                                            transform={`translate(${position.x}, ${position.y})`}
-                                            role="button"
-                                            tabIndex={0}
-                                            aria-label={`Open ${node.title}`}
-                                            onClick={() => openNode(node.id)}
-                                            onKeyDown={(event) => handleNodeKeyDown(event, node.id)}
-                                            onMouseEnter={() => setHoverId(node.id)}
-                                            onMouseLeave={() => setHoverId(null)}
-                                            onFocus={() => setHoverId(node.id)}
-                                            onBlur={() => setHoverId(null)}
+                            <>
+                                <svg
+                                    ref={attachSvg}
+                                    className="graph-svg"
+                                    viewBox={`0 0 ${view.width} ${view.height}`}
+                                    role="img"
+                                    aria-label="Notes and the links between them"
+                                    onPointerMove={handleSvgPointerMove}
+                                    onPointerUp={endPointer}
+                                    onPointerCancel={endPointer}
+                                >
+                                    <rect
+                                        className="graph-hit"
+                                        x={0}
+                                        y={0}
+                                        width={view.width}
+                                        height={view.height}
+                                        fill="transparent"
+                                        onPointerDown={startPan}
+                                        onDoubleClick={handleBackgroundDoubleClick}
+                                    />
+                                    <defs>
+                                        <marker
+                                            id="graph-arrow"
+                                            viewBox="0 0 8 8"
+                                            refX="7"
+                                            refY="4"
+                                            markerWidth="6"
+                                            markerHeight="6"
+                                            orient="auto-start-reverse"
                                         >
-                                            <title>{node.title}</title>
-                                            <circle r={radius} />
-                                            {labelVisible(node) && (
-                                                <text y={radius + 13}>
-                                                    {shortTitle(node.title)}
-                                                </text>
-                                            )}
-                                        </g>
-                                    )
-                                })}
+                                            <path d="M0,0 L8,4 L0,8 z" fill="var(--muted)" />
+                                        </marker>
+                                        <marker
+                                            id="graph-arrow-strong"
+                                            viewBox="0 0 8 8"
+                                            refX="7"
+                                            refY="4"
+                                            markerWidth="6"
+                                            markerHeight="6"
+                                            orient="auto-start-reverse"
+                                        >
+                                            <path d="M0,0 L8,4 L0,8 z" fill="var(--ink-soft)" />
+                                        </marker>
+                                        <marker
+                                            id="graph-arrow-faint"
+                                            viewBox="0 0 8 8"
+                                            refX="7"
+                                            refY="4"
+                                            markerWidth="6"
+                                            markerHeight="6"
+                                            orient="auto-start-reverse"
+                                        >
+                                            <path d="M0,0 L8,4 L0,8 z" fill="var(--faint)" />
+                                        </marker>
+                                    </defs>
 
-                                {graph.edges.length === 0 && (
-                                    <text
-                                        className="graph-empty-text"
-                                        x={WIDTH / 2}
-                                        y={HEIGHT / 2 + 76}
-                                        textAnchor="middle"
-                                    ></text>
-                                )}
-                            </svg>
+                                    <g
+                                        transform={`translate(${transform.x} ${transform.y}) scale(${transform.k})`}
+                                    >
+                                        {edges.map((pair) => {
+                                            const start = positions.get(pair.source)
+                                            const end = positions.get(pair.target)
+                                            if (!start || !end) return null
+
+                                            const startNode = graph.nodes.find(
+                                                (node) => node.id === pair.source
+                                            )
+                                            const endNode = graph.nodes.find(
+                                                (node) => node.id === pair.target
+                                            )
+                                            if (!startNode || !endNode) return null
+
+                                            const dim =
+                                                neighbourIds !== null &&
+                                                !neighbourIds.has(pair.source) &&
+                                                !neighbourIds.has(pair.target)
+
+                                            const lines: Array<{
+                                                key: string
+                                                source: string
+                                                target: string
+                                                both: boolean
+                                            }> = []
+
+                                            if (pair.forward && pair.backward) {
+                                                // One centred line carries an arrowhead at
+                                                // each end, so a mutual link reads as a
+                                                // single connection rather than two lines
+                                                // fighting for the same space.
+                                                lines.push({
+                                                    key: 'mutual',
+                                                    source: pair.source,
+                                                    target: pair.target,
+                                                    both: true
+                                                })
+                                            } else if (pair.forward) {
+                                                lines.push({
+                                                    key: 'forward',
+                                                    source: pair.source,
+                                                    target: pair.target,
+                                                    both: false
+                                                })
+                                            } else {
+                                                lines.push({
+                                                    key: 'backward',
+                                                    source: pair.target,
+                                                    target: pair.source,
+                                                    both: false
+                                                })
+                                            }
+
+                                            return lines.map((line) => {
+                                                const from = positions.get(line.source)
+                                                const to = positions.get(line.target)
+                                                if (!from || !to) return null
+
+                                                const lineDx = to.x - from.x
+                                                const lineDy = to.y - from.y
+                                                const lineDistance = Math.hypot(lineDx, lineDy) || 1
+                                                const lineUx = lineDx / lineDistance
+                                                const lineUy = lineDy / lineDistance
+                                                const fromNode = graph.nodes.find(
+                                                    (node) => node.id === line.source
+                                                )
+                                                const toNode = graph.nodes.find(
+                                                    (node) => node.id === line.target
+                                                )
+                                                if (!fromNode || !toNode) return null
+
+                                                const fromRadius =
+                                                    nodeRadius(fromNode, focusNoteId) + 2
+                                                const toRadius = nodeRadius(toNode, focusNoteId) + 2
+                                                const edge = {
+                                                    source: line.source,
+                                                    target: line.target
+                                                }
+
+                                                const baseStart = {
+                                                    x: from.x + lineUx * fromRadius,
+                                                    y: from.y + lineUy * fromRadius
+                                                }
+                                                const baseEnd = {
+                                                    x: to.x - lineUx * toRadius,
+                                                    y: to.y - lineUy * toRadius
+                                                }
+
+                                                // Clip the line against both titles so it starts
+                                                // and ends at the label edge instead of running
+                                                // behind the text.
+                                                let startT = 0
+                                                let endT = 1
+                                                const fromLabel = labelVisible(fromNode)
+                                                    ? labelRect(fromNode, from, focusNoteId)
+                                                    : null
+                                                const toLabel = labelVisible(toNode)
+                                                    ? labelRect(toNode, to, focusNoteId)
+                                                    : null
+                                                const fromSpan = fromLabel
+                                                    ? segmentRectInterval(
+                                                          baseStart,
+                                                          baseEnd,
+                                                          fromLabel
+                                                      )
+                                                    : null
+                                                const toSpan = toLabel
+                                                    ? segmentRectInterval(
+                                                          baseStart,
+                                                          baseEnd,
+                                                          toLabel
+                                                      )
+                                                    : null
+
+                                                if (fromSpan)
+                                                    startT = Math.max(startT, fromSpan.exit)
+                                                if (toSpan) endT = Math.min(endT, toSpan.enter)
+
+                                                const lineLength =
+                                                    Math.hypot(
+                                                        baseEnd.x - baseStart.x,
+                                                        baseEnd.y - baseStart.y
+                                                    ) || 1
+                                                const gapT = 3 / lineLength
+                                                if (startT > 0) startT = Math.min(1, startT + gapT)
+                                                if (endT < 1) endT = Math.max(0, endT - gapT)
+                                                if (endT - startT < 0.01) return null
+
+                                                const startPoint = pointOnSegment(
+                                                    baseStart,
+                                                    baseEnd,
+                                                    startT
+                                                )
+                                                const endPoint = pointOnSegment(
+                                                    baseStart,
+                                                    baseEnd,
+                                                    endT
+                                                )
+
+                                                return (
+                                                    <line
+                                                        key={`${pair.source}-${pair.target}-${line.key}`}
+                                                        className={`graph-edge ${edgeClass(edge)}`}
+                                                        data-dim={dim ? 'true' : 'false'}
+                                                        x1={startPoint.x}
+                                                        y1={startPoint.y}
+                                                        x2={endPoint.x}
+                                                        y2={endPoint.y}
+                                                        markerStart={
+                                                            line.both ? markerFor(edge) : undefined
+                                                        }
+                                                        markerEnd={markerFor(edge)}
+                                                    />
+                                                )
+                                            })
+                                        })}
+
+                                        {graph.nodes.map((node) => {
+                                            const position = positions.get(node.id)
+                                            if (!position) return null
+                                            const radius = nodeRadius(node, focusNoteId)
+                                            const dim =
+                                                neighbourIds !== null && !neighbourIds.has(node.id)
+
+                                            return (
+                                                <g
+                                                    key={node.id}
+                                                    className={`graph-node ${nodeClass(node)}`}
+                                                    data-dim={dim ? 'true' : 'false'}
+                                                    transform={`translate(${position.x}, ${position.y})`}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    aria-label={`Open ${node.title}`}
+                                                    onClick={() => handleNodeClick(node.id)}
+                                                    onKeyDown={(event) =>
+                                                        handleNodeKeyDown(event, node.id)
+                                                    }
+                                                    onPointerDown={(event) =>
+                                                        startNodeDrag(event, node)
+                                                    }
+                                                    onMouseEnter={() => setHoverId(node.id)}
+                                                    onMouseLeave={() => setHoverId(null)}
+                                                    onFocus={() => setHoverId(node.id)}
+                                                    onBlur={() => setHoverId(null)}
+                                                >
+                                                    <title>{node.title}</title>
+                                                    <circle r={radius} />
+                                                    {labelVisible(node) && (
+                                                        <text y={radius + 14}>
+                                                            {shortTitle(node.title)}
+                                                        </text>
+                                                    )}
+                                                </g>
+                                            )
+                                        })}
+
+                                        {graph.edges.length === 0 && (
+                                            <text
+                                                className="graph-empty-text"
+                                                x={view.width / 2}
+                                                y={view.height / 2 + 76}
+                                                textAnchor="middle"
+                                            ></text>
+                                        )}
+                                    </g>
+                                </svg>
+
+                                <div className="graph-zoom" role="group" aria-label="Zoom controls">
+                                    <button
+                                        type="button"
+                                        className="icon-button"
+                                        aria-label="Zoom out"
+                                        title="Zoom out"
+                                        onClick={() => zoomBy(1 / ZOOM_STEP)}
+                                    >
+                                        <Minus size={14} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="icon-button"
+                                        aria-label="Reset view"
+                                        title="Reset view"
+                                        onClick={resetView}
+                                    >
+                                        <Maximize size={14} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="icon-button"
+                                        aria-label="Zoom in"
+                                        title="Zoom in"
+                                        onClick={() => zoomBy(ZOOM_STEP)}
+                                    >
+                                        <Plus size={14} />
+                                    </button>
+                                </div>
+                            </>
                         )}
                     </div>
 
@@ -691,7 +1020,7 @@ export default function NoteGraphDialog({
                         ) : (
                             <p className="graph-foot-note">Every link in the library.</p>
                         )}
-                        <p className="graph-foot-hint">Click a note to open it</p>
+                        <p className="graph-foot-hint">Scroll to zoom · drag to pan</p>
                     </footer>
                 </DialogPanel>
             </div>
